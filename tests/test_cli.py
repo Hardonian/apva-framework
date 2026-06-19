@@ -36,4 +36,4 @@ def test_load_golden_set(tmp_path: Path):
     path.write_text('{"examples": [{"query": "q", "answer": "a", "expected_answer": "a"}]}')
     examples = load_golden_set(path)
     assert len(examples) == 1
-    assert examples[0].query == "q"
+    assert examples[0]["query"] == "q"
