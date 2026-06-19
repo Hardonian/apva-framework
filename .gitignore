@@ -17,10 +17,19 @@ env/
 htmlcov/
 .tox/
 
+# Local environment and runtime
+.env
+.env.*
+!.env.example
+*.log
+*.db
+*.sqlite
+
+# APVA report artifacts
+*.report.json
+data/tmp/
+
 # IDE / OS
 .idea/
 .vscode/
 .DS_Store
-
-# APVA report artifacts
-*.report.json
