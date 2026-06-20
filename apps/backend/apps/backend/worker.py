@@ -6,7 +6,21 @@ import asyncio
 from datetime import datetime, timezone
 from typing import Any
 
-from celery import Celery
+try:  # Celery is optional for local tests and lightweight installs.
+    from celery import Celery  # type: ignore[import-not-found]
+except ModuleNotFoundError:  # pragma: no cover - exercised when celery extra is absent
+    class Celery:  # type: ignore[no-redef]
+        """Tiny local fallback that preserves the @task decorator contract."""
+
+        def __init__(self, *args: Any, **kwargs: Any) -> None:
+            self.args = args
+            self.kwargs = kwargs
+
+        def task(self, *args: Any, **kwargs: Any):
+            def decorator(fn):
+                fn.delay = fn  # type: ignore[attr-defined]
+                return fn
+            return decorator
 
 from apps.backend.config import settings
 from apps.backend.database import AsyncSessionLocal

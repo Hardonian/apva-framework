@@ -40,7 +40,7 @@ async def ingest_telemetry(
         ai_augmented_time=payload.ai_augmented_time,
         guardrail_latency_tax=payload.guardrail_latency_tax,
         session_iterations=payload.session_iterations,
-        metadata=payload.metadata,
+        event_metadata=payload.metadata,
         created_at=datetime.now(timezone.utc),
     )
     session.add(event)

@@ -34,7 +34,7 @@ class TelemetryEventPayload(BaseModel):
     human_baseline_time: float = Field(..., ge=0.0)
     ai_augmented_time: float = Field(..., ge=0.0)
     guardrail_latency_tax: float = Field(..., ge=0.0)
-    session_iterations: int = Field(..., ge=0)
+    session_iterations: int = Field(default=1, ge=0)
     metadata: dict[str, Any] = Field(default_factory=dict)
 
 
@@ -128,6 +128,11 @@ class APVATelemetryClient:
         headers = {"Content-Type": "application/json"}
         if self.api_key:
             headers["Authorization"] = f"Bearer {self.api_key}"
-        with httpx.Client(timeout=5.0) as client:
+        client = httpx.Client(timeout=5.0)
+        try:
             response = client.post(self.endpoint, headers=headers, json=payload.model_dump())
             response.raise_for_status()
+        finally:
+            close = getattr(client, "close", None)
+            if callable(close):
+                close()

@@ -24,7 +24,7 @@ class TelemetryEvent(Base):
         ai_augmented_time: AI-augmented time in minutes.
         guardrail_latency_tax: Guardrail latency tax in minutes.
         session_iterations: Session iteration count.
-        metadata: Optional structured metadata from the SDK.
+        event_metadata: Optional structured metadata from the SDK, stored in the metadata column.
         created_at: UTC creation timestamp.
     """
 
@@ -38,7 +38,7 @@ class TelemetryEvent(Base):
     ai_augmented_time: Mapped[float] = mapped_column(Float, nullable=False)
     guardrail_latency_tax: Mapped[float] = mapped_column(Float, nullable=False)
     session_iterations: Mapped[int] = mapped_column(Integer, nullable=False)
-    metadata: Mapped[dict] = mapped_column(JSON, nullable=False, default=dict)
+    event_metadata: Mapped[dict] = mapped_column("metadata", JSON, nullable=False, default=dict)
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),
         default=lambda: datetime.now(timezone.utc),

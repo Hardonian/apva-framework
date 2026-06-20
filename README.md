@@ -47,16 +47,48 @@ Guardrail_Tax = Base_Latency_Overhead + (False_Positive_Rate * Resolution_Penalt
 
 ## Installation
 
+Fast local dev setup:
 ```bash
 git clone https://github.com/<your-username>/apva-framework.git
 cd apva-framework
-
 python3 -m venv .venv
-source .venv/bin/activate
-pip install -r requirements.txt
+. .venv/bin/activate
+python -m pip install -e '.[dev]' -e packages/cli -e packages/sdk
+pytest
 ```
 
-Python **3.10+** is required.
+Runtime-only core install:
+```bash
+python3 -m venv .venv
+. .venv/bin/activate
+python -m pip install -r requirements.txt
+```
+
+Python **3.10+** is required. The dependency ranges are intentionally Python-3.14-friendly for the EPYC lab.
+
+---
+
+## Dashboard Integration
+
+The AI Lab Command Center exposes APVA directly at:
+
+```bash
+curl -fsS http://127.0.0.1:8000/api/productivity/apva \
+  -H 'Content-Type: application/json' \
+  -d '{
+    "name":"Productized AI Lab Audit",
+    "human_baseline_min":180,
+    "ai_generation_time_min":25,
+    "verification_time_min":30,
+    "skill_level":"mid",
+    "exact_span_recall":0.9,
+    "faithfulness_score":0.85,
+    "monthly_runs":12,
+    "hourly_value_usd":75
+  }' | jq
+```
+
+Use this as the money filter: if TVY is negative, kill the automation; if TVY is positive but small, optimize; if TVY is high, productize.
 
 ---
 
