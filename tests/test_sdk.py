@@ -17,6 +17,12 @@ def test_ingest_sync(monkeypatch: pytest.MonkeyPatch):
             return None
 
     class FakeClient:
+        def __enter__(self):
+            return self
+
+        def __exit__(self, *args):
+            pass
+
         def post(self, url, headers=None, json=None):
             posted.append(json)
             return FakeResponse()

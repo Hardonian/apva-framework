@@ -9,12 +9,15 @@ from httpx import AsyncClient, ASGITransport
 
 from apps.backend.main import app
 
+from apps.backend.dependencies import get_tenant_context
 
 @pytest.fixture()
 async def api():
+    app.dependency_overrides[get_tenant_context] = lambda: {"tenant_id": 1, "name": "Acme Corp"}
     transport = ASGITransport(app=app)
     async with AsyncClient(transport=transport, base_url="http://test") as client:
         yield client
+    app.dependency_overrides.clear()
 
 
 @pytest.mark.anyio

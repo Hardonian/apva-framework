@@ -75,6 +75,8 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     
     if http_client is not None:
         await http_client.aclose()
+        
+    await engine.dispose()
 
 
 app = FastAPI(
@@ -133,7 +135,3 @@ async def unhandled_exception_handler(request: Request, exc: Exception) -> JSONR
     )
 
 
-@app.on_event("shutdown")
-async def shutdown_event() -> None:
-    """Dispose the SQLAlchemy engine on shutdown."""
-    await engine.dispose()
