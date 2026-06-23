@@ -1,0 +1,57 @@
+{
+  "$schema": "https://mintlify.com/schema.json",
+  "name": "APVA Framework",
+  "logo": {
+    "dark": "/logo/dark.svg",
+    "light": "/logo/light.svg"
+  },
+  "favicon": "/favicon.svg",
+  "colors": {
+    "primary": "#8884d8",
+    "light": "#82ca9d",
+    "dark": "#0f172a",
+    "anchors": {
+      "from": "#8884d8",
+      "to": "#82ca9d"
+    }
+  },
+  "topbarLinks": [
+    {
+      "name": "Support",
+      "url": "mailto:support@apva.ai"
+    }
+  ],
+  "topbarCtaButton": {
+    "name": "Get API Key",
+    "url": "https://dashboard.apva.ai"
+  },
+  "navigation": [
+    {
+      "group": "Get Started",
+      "pages": [
+        "introduction",
+        "quickstart"
+      ]
+    },
+    {
+      "group": "Enterprise Architecture",
+      "pages": [
+        "architecture/edge-ingestion",
+        "architecture/slm-evaluation",
+        "architecture/sso-saml"
+      ]
+    },
+    {
+      "group": "SDK Integrations",
+      "pages": [
+        "integrations/langchain",
+        "integrations/llamaindex",
+        "integrations/vercel-ai"
+      ]
+    }
+  ],
+  "footerSocials": {
+    "x": "https://x.com/apva_ai",
+    "github": "https://github.com/apva-framework"
+  }
+}

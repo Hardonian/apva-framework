@@ -180,3 +180,33 @@ async def get_agentic_insights(
         })
         
     return insights
+
+@router.get("/benchmarks", response_model=dict[str, Any])
+async def get_global_benchmarks(
+    session: AsyncSession = Depends(get_session),
+    tenant_context: dict = Depends(get_tenant_context),
+) -> dict[str, Any]:
+    """Return anonymized global percentiles to create network effects."""
+    
+    # In a real environment, this would query ClickHouse for global aggregates
+    # excluding the current tenant_id to generate comparative percentiles.
+    # We return mocked global statistics to demonstrate the "Investability" moat.
+    
+    return {
+        "global_percentiles": {
+            "rag_reliability": {
+                "your_percentile": 68,
+                "p50": 0.82,
+                "p90": 0.95,
+                "p99": 0.98,
+                "message": "Your reliability is in the 68th percentile of Enterprise customers. Improve context precision to reach the 90th percentile."
+            },
+            "guardrail_tax_ms": {
+                "your_percentile": 45,
+                "p50": 1500.0,
+                "p90": 400.0,
+                "p99": 120.0,
+                "message": "Your guardrails are slower than 55% of users. Upgrade to APVA Proprietary SLMs to achieve <120ms latency."
+            }
+        }
+    }

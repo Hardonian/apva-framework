@@ -1,0 +1,56 @@
+---
+title: Quickstart
+description: "Instrument your Generative AI application with APVA in under 60 seconds."
+---
+
+## 1. Get an Enterprise API Key
+
+First, sign into the [APVA Dashboard](https://dashboard.apva.ai) using your Okta/SAML Enterprise SSO account. Navigate to **Settings > API Keys** and generate a new key.
+
+## 2. Install the Native SDK
+
+APVA provides zero-code wrappers for the most popular AI frameworks.
+
+<CodeGroup>
+
+```bash LangChain
+pip install apva-langchain
+```
+
+```bash LlamaIndex
+pip install apva-llamaindex
+```
+
+```bash Vercel AI
+npm install @apva/vercel-sdk
+```
+
+</CodeGroup>
+
+## 3. Instrument your Code
+
+With our zero-code integration, you simply wrap your existing chains or agents. APVA automatically intercepts LLM calls, measures latency, extracts context chunks, and computes True Value Yield in the background.
+
+```python Python
+from langchain.chat_models import ChatOpenAI
+from langchain.chains import LLMChain
+from apva_langchain import APVACallbackHandler
+
+# 1. Initialize the APVA Handler
+apva_handler = APVACallbackHandler(
+    api_key="apva_sk_...",
+    app_name="customer-support-bot"
+)
+
+# 2. Attach it to your existing LangChain execution
+llm = ChatOpenAI(temperature=0.7)
+chain = LLMChain(llm=llm, prompt=prompt)
+
+# 3. APVA automatically tracks the execution, fires telemetry to the Edge Network,
+# and queues RAG evaluations against the Proprietary SLM.
+response = chain.run("How do I reset my password?", callbacks=[apva_handler])
+```
+
+## 4. View your Dashboard
+
+Head back to the dashboard. You will instantly see your **Macro TVY (USD)** and **Agentic Prescriptions** populating in real-time as the ClickHouse OLAP cluster aggregates your telemetry.

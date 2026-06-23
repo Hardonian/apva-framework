@@ -9,6 +9,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from apps.backend.models import EvaluationJob, TelemetryEvent, UsageRecord
 from apps.backend.services.billing import StripeBillingService
+from apps.backend.services.clickhouse import ClickHouseClient
 
 logger = logging.getLogger(__name__)
 
@@ -31,7 +32,10 @@ class EventStreamer:
         # 1. Fire to Billing Meter
         StripeBillingService.record_usage(tenant_id, "telemetry_ingest", 1)
         
-        # 2. Write to persistent store (simulating ClickHouse/Postgres consumer)
+        # 2. Fire to ClickHouse (OLAP Engine)
+        await ClickHouseClient.insert_telemetry(payload)
+        
+        # 3. Write to persistent store (simulating Kafka consumer sinking to Postgres)
         event = TelemetryEvent(
             tenant_id=tenant_id,
             **payload
@@ -57,7 +61,10 @@ class EventStreamer:
         # 1. Fire to Billing Meter
         StripeBillingService.record_usage(tenant_id, "rag_eval", 1)
         
-        # 2. Write to persistent store
+        # 2. Fire to ClickHouse (OLAP Engine)
+        await ClickHouseClient.insert_evaluation(payload)
+        
+        # 3. Write to persistent store
         job = EvaluationJob(
             tenant_id=tenant_id,
             **payload
