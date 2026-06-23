@@ -56,6 +56,8 @@ class ProductivityMetrics(BaseModel):
             to generate the deliverable. Must be >= 0.
         epistemic_verification_time_min: Cognitive-load time (minutes) a human
             spends verifying / correcting the AI output. Must be >= 0.
+        hourly_rate_usd: Optional dynamic hourly rate of the practitioner to
+            compute financial ROI in USD. Must be >= 0.
     """
 
     model_config = ConfigDict(extra="forbid")
@@ -64,6 +66,7 @@ class ProductivityMetrics(BaseModel):
     skill_level: SkillLevel = Field(default=SkillLevel.MID)
     ai_generation_time_min: float = Field(..., ge=0.0)
     epistemic_verification_time_min: float = Field(..., ge=0.0)
+    hourly_rate_usd: float | None = Field(default=None, ge=0.0)
 
     @property
     def skill_adjusted_human_baseline_min(self) -> float:
@@ -161,6 +164,7 @@ class APVAReport(BaseModel):
         rag_reliability_coefficient: Blended reliability coefficient ``[0,1]``.
         guardrail_friction_tax_min: Total guardrail friction tax in minutes.
         true_value_yield_min: Headline TVY metric (may be negative).
+        true_value_yield_usd: Financial ROI metric in USD (if hourly rate provided).
         is_net_positive: Convenience flag, ``True`` iff TVY > 0.
     """
 
@@ -172,4 +176,5 @@ class APVAReport(BaseModel):
     rag_reliability_coefficient: float
     guardrail_friction_tax_min: float
     true_value_yield_min: float
+    true_value_yield_usd: float | None = None
     is_net_positive: bool

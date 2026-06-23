@@ -38,6 +38,8 @@ class TelemetryEvent(Base):
     ai_augmented_time: Mapped[float] = mapped_column(Float, nullable=False)
     guardrail_latency_tax: Mapped[float] = mapped_column(Float, nullable=False)
     session_iterations: Mapped[int] = mapped_column(Integer, nullable=False)
+    hourly_rate_usd: Mapped[float | None] = mapped_column(Float, nullable=True)
+    is_shadow: Mapped[bool] = mapped_column(Integer, nullable=False, default=False)
     event_metadata: Mapped[dict] = mapped_column("metadata", JSON, nullable=False, default=dict)
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),

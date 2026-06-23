@@ -31,6 +31,8 @@ class TelemetryIngestRequest(BaseModel):
     ai_augmented_time: float = Field(..., ge=0.0)
     guardrail_latency_tax: float = Field(..., ge=0.0)
     session_iterations: int = Field(..., ge=0)
+    hourly_rate_usd: float | None = Field(default=None, ge=0.0)
+    is_shadow: bool = Field(default=False)
     metadata: dict[str, Any] = Field(default_factory=dict)
 
 
@@ -99,6 +101,7 @@ class TvyMetricResponse(BaseModel):
     avg_guardrail_tax_min: float
     avg_rag_reliability_coefficient: float
     macro_tvy_min: float
+    avg_true_value_yield_usd: float | None = None
     is_net_positive: bool
 
 

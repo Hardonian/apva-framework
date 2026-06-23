@@ -96,6 +96,7 @@ def _build_from_args(args: argparse.Namespace) -> BenchmarkInput:
             skill_level=SkillLevel(args.skill),
             ai_generation_time_min=args.ai_time,
             epistemic_verification_time_min=args.verify_time,
+            hourly_rate_usd=args.hourly_rate,
         ),
         rag=RAGMetrics(
             exact_span_recall=args.span_recall,
@@ -144,6 +145,12 @@ def build_parser() -> argparse.ArgumentParser:
         choices=[s.value for s in SkillLevel],
         default=SkillLevel.MID.value,
         help="Human skill tier (default: mid).",
+    )
+    run.add_argument(
+        "--hourly-rate",
+        type=float,
+        default=None,
+        help="Optional dynamic hourly rate in USD to compute financial ROI.",
     )
     run.add_argument(
         "--ai-time", type=float, required=True, help="AI generation time (min)."

@@ -150,6 +150,10 @@ class APVACalculator:
         reliability = cls.rag_reliability_coefficient(benchmark.rag)
         tax = cls.guardrail_friction_tax(benchmark.guardrail)
         tvy = (gross * reliability) - tax
+        
+        tvy_usd = None
+        if benchmark.productivity.hourly_rate_usd is not None:
+            tvy_usd = (tvy / 60.0) * benchmark.productivity.hourly_rate_usd
 
         return APVAReport(
             name=benchmark.name,
@@ -160,6 +164,7 @@ class APVACalculator:
             rag_reliability_coefficient=reliability,
             guardrail_friction_tax_min=tax,
             true_value_yield_min=tvy,
+            true_value_yield_usd=tvy_usd,
             is_net_positive=tvy > 0.0,
         )
 
