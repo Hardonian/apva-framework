@@ -41,6 +41,8 @@ def apva_track_latency(
     session_id: str | None = None,
     run_id: str | None = None,
     human_baseline_time: float | None = None,
+    hourly_rate_usd: float | None = None,
+    is_shadow: bool = False,
     metadata: dict[str, Any] | None = None,
 ) -> Callable[[Callable[P, Awaitable[T] | T]], Callable[P, Awaitable[T]]]:
     """Track AI-augmented latency and stream APVA telemetry.
@@ -51,6 +53,8 @@ def apva_track_latency(
         session_id: Client session ID.
         run_id: Client run ID.
         human_baseline_time: Human baseline time in minutes.
+        hourly_rate_usd: Optional hourly rate.
+        is_shadow: Shadow mode flag.
         metadata: Optional metadata.
 
     Returns:
@@ -87,6 +91,8 @@ def apva_track_latency(
                 ai_augmented_time=elapsed_min,
                 guardrail_latency_tax=0.0,
                 session_iterations=1,
+                hourly_rate_usd=hourly_rate_usd,
+                is_shadow=is_shadow,
                 metadata=dict(default_metadata),
             )
             telemetry_client.ingest_async(payload)
@@ -106,6 +112,8 @@ def apva_guardrail_check(
     human_baseline_time: float | None = None,
     ai_augmented_time: float | None = None,
     session_iterations: int = 1,
+    hourly_rate_usd: float | None = None,
+    is_shadow: bool = False,
     metadata: dict[str, Any] | None = None,
 ) -> Callable[[Callable[P, Awaitable[T] | T]], Callable[P, Awaitable[T]]]:
     """Track guardrail latency tax and stream APVA telemetry.
@@ -118,6 +126,8 @@ def apva_guardrail_check(
         human_baseline_time: Human baseline time in minutes.
         ai_augmented_time: AI-augmented time in minutes.
         session_iterations: Session iteration count.
+        hourly_rate_usd: Optional hourly rate.
+        is_shadow: Shadow mode flag.
         metadata: Optional metadata.
 
     Returns:
@@ -154,6 +164,8 @@ def apva_guardrail_check(
                 ai_augmented_time=float(ai_augmented_time or 0.0),
                 guardrail_latency_tax=guardrail_latency_tax,
                 session_iterations=session_iterations,
+                hourly_rate_usd=hourly_rate_usd,
+                is_shadow=is_shadow,
                 metadata=dict(default_metadata),
             )
             telemetry_client.ingest_async(payload)

@@ -23,6 +23,8 @@ class TelemetryEventPayload(BaseModel):
         ai_augmented_time: AI-augmented time in minutes.
         guardrail_latency_tax: Guardrail latency tax in minutes.
         session_iterations: Session iteration count.
+        hourly_rate_usd: Optional hourly rate of the practitioner.
+        is_shadow: Whether this is a shadow-mode evaluation.
         metadata: Optional structured metadata.
     """
 
@@ -35,6 +37,8 @@ class TelemetryEventPayload(BaseModel):
     ai_augmented_time: float = Field(..., ge=0.0)
     guardrail_latency_tax: float = Field(..., ge=0.0)
     session_iterations: int = Field(default=1, ge=0)
+    hourly_rate_usd: float | None = Field(default=None, ge=0.0)
+    is_shadow: bool = Field(default=False)
     metadata: dict[str, Any] = Field(default_factory=dict)
 
 
