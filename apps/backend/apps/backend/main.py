@@ -33,6 +33,18 @@ async def create_tables() -> None:
     if settings.environment.lower() == "development":
         async with engine.begin() as conn:
             await conn.run_sync(Base.metadata.create_all)
+            
+        from sqlalchemy import select
+        from apps.backend.database import async_session_maker
+        from apps.backend.models import Tenant
+        import secrets
+        
+        async with async_session_maker() as session:
+            tenant = await session.scalar(select(Tenant).where(Tenant.id == 1))
+            if not tenant:
+                tenant = Tenant(id=1, name="Acme Corp", api_key_hash=secrets.token_urlsafe(32))
+                session.add(tenant)
+                await session.commit()
 
 
 async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
