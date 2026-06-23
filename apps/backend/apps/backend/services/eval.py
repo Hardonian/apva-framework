@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import asyncio
+import logging
 import re
 from dataclasses import dataclass
 from typing import Any
@@ -229,7 +230,8 @@ async def main() -> None:
         expected_answer="APVA measures AI productivity and value.",
     )
     result = await run_local_or_target_score(request, "http://localhost:8080")
-    print(result)
+    logger = logging.getLogger(__name__)
+    logger.info("Local scoring result: %s", result)
 
 
 if __name__ == "__main__":

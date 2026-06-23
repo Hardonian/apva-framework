@@ -24,9 +24,9 @@ class TelemetryIngestRequest(BaseModel):
 
     model_config = ConfigDict(extra="forbid")
 
-    app_name: str = Field(..., min_length=1)
-    session_id: str = Field(..., min_length=1)
-    run_id: str = Field(..., min_length=1)
+    app_name: str = Field(..., min_length=1, max_length=255)
+    session_id: str = Field(..., min_length=1, max_length=255)
+    run_id: str = Field(..., min_length=1, max_length=255)
     human_baseline_time: float = Field(..., ge=0.0)
     ai_augmented_time: float = Field(..., ge=0.0)
     guardrail_latency_tax: float = Field(..., ge=0.0)
@@ -61,11 +61,11 @@ class EvalTriggerRequest(BaseModel):
 
     model_config = ConfigDict(extra="forbid")
 
-    transcript_id: str = Field(..., min_length=1)
-    query: str = Field(..., min_length=1)
-    context: str = Field(..., min_length=1)
-    answer: str = Field(..., min_length=1)
-    expected_answer: str = Field(..., min_length=1)
+    transcript_id: str = Field(..., min_length=1, max_length=255)
+    query: str = Field(..., min_length=1, max_length=65536)
+    context: str = Field(..., min_length=1, max_length=65536)
+    answer: str = Field(..., min_length=1, max_length=65536)
+    expected_answer: str = Field(..., min_length=1, max_length=65536)
 
 
 class EvalTriggerResponse(BaseModel):

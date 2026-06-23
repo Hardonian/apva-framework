@@ -36,7 +36,13 @@ celery_app = Celery(
 )
 
 
-@celery_app.task(bind=True, name="apva.evaluate_rag_transcript", max_retries=3)
+@celery_app.task(
+    bind=True, 
+    name="apva.evaluate_rag_transcript", 
+    max_retries=3,
+    acks_late=True,
+    reject_on_worker_lost=True
+)
 def evaluate_rag_transcript(self, payload: dict[str, Any]) -> dict[str, Any]:
     """Run async RAG evaluation without blocking FastAPI request threads.
 

@@ -29,8 +29,10 @@ async def create_tables() -> None:
     This is intentionally only used at application startup in this MVP. In
     production, Alembic migrations should own schema changes.
     """
-    async with engine.begin() as conn:
-        await conn.run_sync(Base.metadata.create_all)
+    from apps.backend.config import settings
+    if settings.environment.lower() == "development":
+        async with engine.begin() as conn:
+            await conn.run_sync(Base.metadata.create_all)
 
 
 async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
@@ -64,7 +66,7 @@ app = FastAPI(
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
-    allow_credentials=True,
+    allow_credentials=False,
     allow_methods=["*"],
     allow_headers=["*"],
 )

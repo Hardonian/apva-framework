@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import secrets
+
 from fastapi import Depends, HTTPException, status
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 
@@ -27,7 +29,7 @@ def get_api_key(credentials: HTTPAuthorizationCredentials = Depends(security)) -
             detail="Invalid authentication scheme.",
             headers={"WWW-Authenticate": "Bearer"},
         )
-    if not settings.api_key or credentials.credentials != settings.api_key:
+    if not settings.api_key or not secrets.compare_digest(credentials.credentials, settings.api_key):
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Invalid or missing API Key.",
