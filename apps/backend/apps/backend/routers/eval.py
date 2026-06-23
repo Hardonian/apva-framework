@@ -8,9 +8,10 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from apps.backend.database import get_session
-from apps.backend.dependencies import get_api_key
+from apps.backend.dependencies import get_tenant_context
 from apps.backend.models import EvaluationJob
 from apps.backend.schemas import EvalTriggerRequest, EvalTriggerResponse
+from apps.backend.services.streaming import EventStreamer
 from apps.backend.worker import evaluate_rag_transcript
 
 router = APIRouter(prefix="/eval", tags=["eval"])
@@ -21,42 +22,45 @@ router = APIRouter(prefix="/eval", tags=["eval"])
     response_model=EvalTriggerResponse,
     status_code=status.HTTP_202_ACCEPTED,
 )
-async def trigger_async_eval(
+async def trigger_evaluation(
     payload: EvalTriggerRequest,
     session: AsyncSession = Depends(get_session),
-    api_key: str = Depends(get_api_key),
+    tenant_context: dict = Depends(get_tenant_context),
 ) -> EvalTriggerResponse:
-    """Enqueue a RAG transcript for non-blocking LLM-as-judge scoring.
+    """Ingest a new evaluation job and queue it for async processing.
 
     Args:
-        payload: RAG transcript and golden expected answer.
+        payload: The evaluation job inputs.
         session: Async database session.
+        tenant_context: Resolved multi-tenant organization context.
 
     Returns:
-        EvalTriggerResponse: Persisted job ID, status, and Celery task ID.
+        EvalTriggerResponse: Acknowledged job ID.
     """
-    job = EvaluationJob(
-        transcript_id=payload.transcript_id,
-        query=payload.query,
-        context=payload.context,
-        answer=payload.answer,
-        expected_answer=payload.expected_answer,
-        status="pending",
+    job_payload = {
+        "transcript_id": payload.transcript_id,
+        "query": payload.query,
+        "context": payload.context,
+        "answer": payload.answer,
+        "expected_answer": payload.expected_answer,
+    }
+    
+    job = await EventStreamer.publish_eval(
+        session=session,
+        tenant_id=tenant_context["tenant_id"],
+        payload=job_payload
     )
-    session.add(job)
-    await session.commit()
-    await session.refresh(job)
 
     task = evaluate_rag_transcript.delay(
         {
             "job_id": job.id,
-            "transcript_id": payload.transcript_id,
-            "query": payload.query,
-            "context": payload.context,
-            "answer": payload.answer,
-            "expected_answer": payload.expected_answer,
+            "query": job.query,
+            "context": job.context,
+            "answer": job.answer,
+            "expected_answer": job.expected_answer,
         }
     )
+
     return EvalTriggerResponse(
         job_id=job.id,
         status="pending",
@@ -68,13 +72,14 @@ async def trigger_async_eval(
 async def get_eval_job(
     job_id: int,
     session: AsyncSession = Depends(get_session),
-    api_key: str = Depends(get_api_key),
-) -> dict:
+    tenant_context: dict = Depends(get_tenant_context),
+) -> EvaluationJob:
     """Return a persisted evaluation job by ID.
 
     Args:
         job_id: Evaluation job ID.
         session: Async database session.
+        tenant_context: Resolved multi-tenant organization context.
 
     Returns:
         dict: Job fields serialized for JSON response.

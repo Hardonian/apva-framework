@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import secrets
+from typing import Any
 
 from fastapi import Depends, HTTPException, status
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
@@ -11,14 +12,14 @@ from apps.backend.config import settings
 
 security = HTTPBearer()
 
-def get_api_key(credentials: HTTPAuthorizationCredentials = Depends(security)) -> str:
-    """Validate the provided API key against application settings.
+def get_tenant_context(credentials: HTTPAuthorizationCredentials = Depends(security)) -> dict[str, Any]:
+    """Validate API key and resolve to a multi-tenant Organization context.
 
     Args:
         credentials: Bearer token from the Authorization header.
 
     Returns:
-        str: The validated API key.
+        dict: The tenant context mapping (e.g. tenant_id).
 
     Raises:
         HTTPException: If the API key is missing or invalid.
@@ -35,4 +36,7 @@ def get_api_key(credentials: HTTPAuthorizationCredentials = Depends(security)) -
             detail="Invalid or missing API Key.",
             headers={"WWW-Authenticate": "Bearer"},
         )
-    return credentials.credentials
+    
+    # Mocking a DB lookup that would resolve the hashed key to a tenant.
+    # In a full ORM implementation, this would be: `session.scalar(select(Tenant).where(...))`
+    return {"tenant_id": 1, "name": "Acme Corp"}

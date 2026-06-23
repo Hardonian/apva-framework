@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from typing import Any
+
 from fastapi import APIRouter, Depends
 from fastapi.responses import PlainTextResponse
 from sqlalchemy import func, select
@@ -9,7 +11,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from apps.backend.config import settings
 from apps.backend.database import get_session
-from apps.backend.dependencies import get_api_key
+from apps.backend.dependencies import get_tenant_context
 from apps.backend.models import EvaluationJob, TelemetryEvent
 from apps.backend.schemas import TvyMetricResponse
 
@@ -19,12 +21,13 @@ router = APIRouter(prefix="/metrics", tags=["metrics"])
 @router.get("/tvy", response_model=TvyMetricResponse)
 async def get_macro_tvy(
     session: AsyncSession = Depends(get_session),
-    api_key: str = Depends(get_api_key),
+    tenant_context: dict = Depends(get_tenant_context),
 ) -> TvyMetricResponse:
     """Calculate macro True Value Yield for the dashboard.
 
     Args:
         session: Async database session.
+        tenant_context: Resolved multi-tenant organization context.
 
     Returns:
         TvyMetricResponse: Aggregated TVY metrics.
@@ -36,13 +39,13 @@ async def get_macro_tvy(
             func.avg(TelemetryEvent.ai_augmented_time),
             func.avg(TelemetryEvent.guardrail_latency_tax),
             func.avg(TelemetryEvent.hourly_rate_usd),
-        )
+        ).where(TelemetryEvent.tenant_id == tenant_context["tenant_id"])
     ).one()
     evaluation_count, avg_reliability = await session.execute(
         select(
             func.count(EvaluationJob.id),
             func.avg(EvaluationJob.rag_reliability_coefficient),
-        ).where(EvaluationJob.status == "completed")
+        ).where(EvaluationJob.status == "completed", EvaluationJob.tenant_id == tenant_context["tenant_id"])
     ).one()
 
     telemetry_count_int = int(telemetry_count or 0)
@@ -75,8 +78,8 @@ async def get_macro_tvy(
 
 @router.get("/prometheus", response_class=PlainTextResponse)
 async def get_prometheus_metrics(
-    session: AsyncSession = Depends(get_db_session),
-    # Ensure this is protected by the API key
+    session: AsyncSession = Depends(get_session),
+    tenant_context: dict = Depends(get_tenant_context),
 ) -> str:
     """Export TVY and other macro metrics in Prometheus format.
 
@@ -90,13 +93,13 @@ async def get_prometheus_metrics(
             func.avg(TelemetryEvent.ai_augmented_time),
             func.avg(TelemetryEvent.guardrail_latency_tax),
             func.avg(TelemetryEvent.hourly_rate_usd),
-        )
+        ).where(TelemetryEvent.tenant_id == tenant_context["tenant_id"])
     ).one()
     evaluation_count, avg_reliability = await session.execute(
         select(
             func.count(EvaluationJob.id),
             func.avg(EvaluationJob.rag_reliability_coefficient),
-        ).where(EvaluationJob.status == "completed")
+        ).where(EvaluationJob.status == "completed", EvaluationJob.tenant_id == tenant_context["tenant_id"])
     ).one()
 
     telemetry_count_int = int(telemetry_count or 0)
@@ -134,3 +137,46 @@ async def get_prometheus_metrics(
         f"apva_avg_guardrail_tax_min {avg_guardrail_float}"
     ]
     return "\n".join(lines) + "\n"
+
+@router.get("/insights", response_model=list[dict[str, Any]])
+async def get_agentic_insights(
+    session: AsyncSession = Depends(get_session),
+    tenant_context: dict = Depends(get_tenant_context),
+) -> list[dict[str, Any]]:
+    """Return actionable AI prescriptions based on tenant data."""
+    # Compute the latest metrics to generate insights
+    metrics_response = await get_macro_tvy(session, tenant_context)
+    
+    insights = []
+    
+    guardrail_tax = metrics_response.avg_guardrail_tax_min
+    reliability = metrics_response.avg_rag_reliability_coefficient
+    
+    if guardrail_tax > 0.05:
+        insights.append({
+            "severity": "high",
+            "metric": "Guardrail Tax",
+            "observation": f"Guardrail latency is high ({guardrail_tax:.2f} min).",
+            "prescription": "Optimize LLM prompt length or use a faster SLM for guardrails to save time.",
+            "estimated_savings_usd_per_10k": 1500.00
+        })
+        
+    if reliability < 0.85:
+        insights.append({
+            "severity": "critical",
+            "metric": "RAG Reliability",
+            "observation": f"Reliability dropped to {reliability*100:.1f}%.",
+            "prescription": "Increase Vector DB top_k retrieval or refine chunking strategy to improve faithfulness.",
+            "estimated_savings_usd_per_10k": 5200.00
+        })
+        
+    if not insights:
+        insights.append({
+            "severity": "info",
+            "metric": "Overall Health",
+            "observation": "System is performing optimally.",
+            "prescription": "No immediate tuning required.",
+            "estimated_savings_usd_per_10k": 0.0
+        })
+        
+    return insights

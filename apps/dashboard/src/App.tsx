@@ -23,31 +23,46 @@ interface MetricsData {
   is_net_positive: boolean;
 }
 
+interface Insight {
+  severity: 'info' | 'high' | 'critical';
+  metric: string;
+  observation: string;
+  prescription: string;
+  estimated_savings_usd_per_10k: number;
+}
+
 function App() {
   const [metrics, setMetrics] = useState<MetricsData | null>(null);
+  const [insights, setInsights] = useState<Insight[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    // In a real app, you would pass the API key via headers or context
-    // This expects the backend to be running at localhost:8000
-    axios.get('http://localhost:8000/api/v1/metrics/tvy', {
-        headers: { 'Authorization': 'Bearer APVA-DEV-KEY-123' }
-    })
-      .then(response => {
-        setMetrics(response.data);
+    const fetchData = async () => {
+      try {
+        const headers = { 'Authorization': 'Bearer APVA-DEV-KEY-123' };
+        
+        const [metricsRes, insightsRes] = await Promise.all([
+          axios.get('http://localhost:8000/api/v1/metrics/tvy', { headers }),
+          axios.get('http://localhost:8000/api/v1/metrics/insights', { headers })
+        ]);
+        
+        setMetrics(metricsRes.data);
+        setInsights(insightsRes.data);
         setLoading(false);
-      })
-      .catch(err => {
+      } catch (err: any) {
         setError(err.message || 'Failed to fetch metrics');
         setLoading(false);
-      });
+      }
+    };
+    
+    fetchData();
   }, []);
 
-  if (loading) return <div className="loader">Loading APVA Dashboard...</div>;
+  if (loading) return <div className="loader">Loading Enterprise APVA Dashboard...</div>;
   if (error) return <div className="error">Error loading metrics: {error}</div>;
 
-  // Mock historical data since the endpoint only provides a snapshot
+  // Mock historical data
   const mockHistoricalData = [
     { name: 'Mon', tvy: (metrics?.macro_tvy_min ?? 0) * 0.8, tvyUsd: (metrics?.avg_true_value_yield_usd ?? 0) * 0.8 },
     { name: 'Tue', tvy: (metrics?.macro_tvy_min ?? 0) * 0.9, tvyUsd: (metrics?.avg_true_value_yield_usd ?? 0) * 0.9 },
@@ -59,42 +74,70 @@ function App() {
   return (
     <div className="dashboard-container">
       <header className="dashboard-header">
+        <div className="tenant-badge">Organization: Acme Corp</div>
         <h1>APVA True Value Yield Dashboard</h1>
-        <p>Enterprise AI ROI Analytics</p>
+        <p>Enterprise AI ROI Analytics & Agentic Insights</p>
       </header>
       
-      <div className="metrics-grid">
-        <div className={`metric-card ${metrics?.is_net_positive ? 'positive' : 'negative'}`}>
-          <h3>Macro TVY (Minutes)</h3>
-          <div className="metric-value">{metrics?.macro_tvy_min.toFixed(2)}m</div>
-        </div>
-        <div className={`metric-card ${metrics?.is_net_positive ? 'positive' : 'negative'}`}>
-          <h3>Financial TVY (USD)</h3>
-          <div className="metric-value">${metrics?.avg_true_value_yield_usd?.toFixed(2) || '0.00'}</div>
-        </div>
-        <div className="metric-card">
-          <h3>Avg Guardrail Tax</h3>
-          <div className="metric-value">{metrics?.avg_guardrail_tax_min.toFixed(2)}m</div>
-        </div>
-        <div className="metric-card">
-          <h3>RAG Reliability</h3>
-          <div className="metric-value">{(metrics?.avg_rag_reliability_coefficient ?? 0 * 100).toFixed(1)}%</div>
-        </div>
-      </div>
+      <div className="layout-grid">
+        <div className="main-content">
+          <div className="metrics-grid">
+            <div className={`metric-card ${metrics?.is_net_positive ? 'positive' : 'negative'}`}>
+              <h3>Macro TVY (Minutes)</h3>
+              <div className="metric-value">{metrics?.macro_tvy_min.toFixed(2)}m</div>
+            </div>
+            <div className={`metric-card ${metrics?.is_net_positive ? 'positive' : 'negative'}`}>
+              <h3>Financial TVY (USD)</h3>
+              <div className="metric-value">${metrics?.avg_true_value_yield_usd?.toFixed(2) || '0.00'}</div>
+            </div>
+            <div className="metric-card">
+              <h3>Avg Guardrail Tax</h3>
+              <div className="metric-value">{metrics?.avg_guardrail_tax_min.toFixed(2)}m</div>
+            </div>
+            <div className="metric-card">
+              <h3>RAG Reliability</h3>
+              <div className="metric-value">{(metrics?.avg_rag_reliability_coefficient ?? 0 * 100).toFixed(1)}%</div>
+            </div>
+          </div>
 
-      <div className="chart-container">
-        <h2>TVY Trending (Last 5 Days)</h2>
-        <ResponsiveContainer width="100%" height={300}>
-          <LineChart data={mockHistoricalData}>
-            <CartesianGrid strokeDasharray="3 3" stroke="#333" />
-            <XAxis dataKey="name" stroke="#ccc" />
-            <YAxis stroke="#ccc" />
-            <Tooltip contentStyle={{ backgroundColor: '#1e1e1e', borderColor: '#333' }} />
-            <Legend />
-            <Line type="monotone" dataKey="tvy" stroke="#8884d8" name="TVY (Minutes)" strokeWidth={3} />
-            <Line type="monotone" dataKey="tvyUsd" stroke="#82ca9d" name="TVY (USD)" strokeWidth={3} />
-          </LineChart>
-        </ResponsiveContainer>
+          <div className="chart-container">
+            <h2>TVY Trending (Last 5 Days)</h2>
+            <ResponsiveContainer width="100%" height={300}>
+              <LineChart data={mockHistoricalData}>
+                <CartesianGrid strokeDasharray="3 3" stroke="#333" />
+                <XAxis dataKey="name" stroke="#ccc" />
+                <YAxis stroke="#ccc" />
+                <Tooltip contentStyle={{ backgroundColor: '#1e1e1e', borderColor: '#333' }} />
+                <Legend />
+                <Line type="monotone" dataKey="tvy" stroke="#8884d8" name="TVY (Minutes)" strokeWidth={3} />
+                <Line type="monotone" dataKey="tvyUsd" stroke="#82ca9d" name="TVY (USD)" strokeWidth={3} />
+              </LineChart>
+            </ResponsiveContainer>
+          </div>
+        </div>
+
+        <div className="sidebar">
+          <div className="insights-panel">
+            <h2>✨ AI Co-Pilot Prescriptions</h2>
+            {insights.map((insight, idx) => (
+              <div key={idx} className={`insight-card severity-${insight.severity}`}>
+                <div className="insight-header">
+                  <span className="insight-metric">{insight.metric}</span>
+                  {insight.severity === 'critical' && <span className="alert-badge">Critical</span>}
+                </div>
+                <p className="insight-observation">{insight.observation}</p>
+                <div className="insight-prescription">
+                  <strong>Action Required:</strong> {insight.prescription}
+                </div>
+                {insight.estimated_savings_usd_per_10k > 0 && (
+                  <div className="insight-savings">
+                    Estimated Savings: <span className="savings-value">+${insight.estimated_savings_usd_per_10k}/mo</span>
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+        </div>
       </div>
     </div>
   );

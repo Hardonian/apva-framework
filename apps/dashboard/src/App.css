@@ -7,6 +7,7 @@
   --text-secondary: #94a3b8;
   --success: #10b981;
   --danger: #ef4444;
+  --warning: #f59e0b;
 }
 
 body {
@@ -18,9 +19,21 @@ body {
 }
 
 .dashboard-container {
-  max-width: 1200px;
+  max-width: 1400px;
   margin: 0 auto;
   padding: 2rem;
+}
+
+.tenant-badge {
+  display: inline-block;
+  background: rgba(136, 132, 216, 0.2);
+  color: var(--primary);
+  padding: 0.5rem 1rem;
+  border-radius: 20px;
+  font-size: 0.9rem;
+  font-weight: 600;
+  margin-bottom: 1rem;
+  border: 1px solid rgba(136, 132, 216, 0.4);
 }
 
 .dashboard-header {
@@ -36,11 +49,24 @@ body {
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   margin-bottom: 0.5rem;
+  margin-top: 0;
 }
 
 .dashboard-header p {
   color: var(--text-secondary);
   font-size: 1.1rem;
+}
+
+.layout-grid {
+  display: grid;
+  grid-template-columns: 2fr 1fr;
+  gap: 2rem;
+}
+
+@media (max-width: 1024px) {
+  .layout-grid {
+    grid-template-columns: 1fr;
+  }
 }
 
 .metrics-grid {
@@ -109,6 +135,102 @@ body {
   margin-bottom: 2rem;
   font-size: 1.5rem;
   color: var(--text-primary);
+}
+
+.insights-panel {
+  background: var(--card-bg);
+  -webkit-backdrop-filter: blur(10px);
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 1rem;
+  padding: 2rem;
+  height: 100%;
+  animation: fadeIn 1s ease-out backwards;
+  animation-delay: 0.6s;
+}
+
+.insights-panel h2 {
+  margin-top: 0;
+  margin-bottom: 2rem;
+  font-size: 1.5rem;
+  color: var(--text-primary);
+  background: linear-gradient(135deg, #f59e0b, #ef4444);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.insight-card {
+  background: rgba(15, 23, 42, 0.6);
+  border-radius: 0.75rem;
+  padding: 1.5rem;
+  margin-bottom: 1.5rem;
+  border-left: 4px solid var(--primary);
+  transition: transform 0.2s ease;
+}
+
+.insight-card:hover {
+  transform: translateX(5px);
+}
+
+.insight-card.severity-info {
+  border-left-color: var(--primary);
+}
+
+.insight-card.severity-high {
+  border-left-color: var(--warning);
+}
+
+.insight-card.severity-critical {
+  border-left-color: var(--danger);
+}
+
+.insight-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0.75rem;
+}
+
+.insight-metric {
+  font-weight: 700;
+  font-size: 1.1rem;
+  color: var(--text-primary);
+}
+
+.alert-badge {
+  background: rgba(239, 68, 68, 0.2);
+  color: var(--danger);
+  padding: 0.25rem 0.5rem;
+  border-radius: 4px;
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+.insight-observation {
+  color: var(--text-secondary);
+  font-size: 0.95rem;
+  margin-bottom: 1rem;
+}
+
+.insight-prescription {
+  background: rgba(255, 255, 255, 0.05);
+  padding: 1rem;
+  border-radius: 0.5rem;
+  font-size: 0.95rem;
+  line-height: 1.5;
+  margin-bottom: 1rem;
+}
+
+.insight-savings {
+  font-size: 0.9rem;
+  color: var(--text-secondary);
+  font-weight: 600;
+}
+
+.savings-value {
+  color: var(--success);
+  font-size: 1.1rem;
 }
 
 .loader, .error {

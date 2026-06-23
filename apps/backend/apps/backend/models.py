@@ -4,12 +4,58 @@ from __future__ import annotations
 
 from datetime import datetime, timezone
 
-from sqlalchemy import JSON, DateTime, Float, Integer, String, Text
-from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
+from sqlalchemy import JSON, DateTime, Float, Integer, String, Text, ForeignKey
+from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
 
 
 class Base(DeclarativeBase):
     """Base class for all APVA ORM models."""
+
+class Tenant(Base):
+    """Multi-tenant Organization workspace.
+
+    Attributes:
+        id: Primary key.
+        name: Organization name.
+        api_key_hash: Hashed API key for authentication.
+        stripe_customer_id: Stripe billing reference.
+        created_at: UTC creation timestamp.
+    """
+
+    __tablename__ = "tenants"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    name: Mapped[str] = mapped_column(String(255), nullable=False)
+    api_key_hash: Mapped[str] = mapped_column(String(255), nullable=False, index=True, unique=True)
+    stripe_customer_id: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        default=lambda: datetime.now(timezone.utc),
+        nullable=False,
+    )
+
+class UsageRecord(Base):
+    """Usage metering for Stripe billing.
+
+    Attributes:
+        id: Primary key.
+        tenant_id: Tenant reference.
+        event_type: e.g. telemetry_ingest or rag_eval.
+        count: number of billable units.
+        created_at: timestamp of record.
+    """
+    
+    __tablename__ = "usage_records"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    tenant_id: Mapped[int] = mapped_column(Integer, ForeignKey("tenants.id"), nullable=False, index=True)
+    event_type: Mapped[str] = mapped_column(String(100), nullable=False)
+    count: Mapped[int] = mapped_column(Integer, nullable=False, default=1)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        default=lambda: datetime.now(timezone.utc),
+        nullable=False,
+    )
 
 
 class TelemetryEvent(Base):
@@ -31,6 +77,7 @@ class TelemetryEvent(Base):
     __tablename__ = "telemetry_events"
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    tenant_id: Mapped[int] = mapped_column(Integer, ForeignKey("tenants.id"), nullable=False, index=True)
     app_name: Mapped[str] = mapped_column(String(255), nullable=False, index=True)
     session_id: Mapped[str] = mapped_column(String(255), nullable=False, index=True)
     run_id: Mapped[str] = mapped_column(String(255), nullable=False, index=True)
@@ -73,6 +120,7 @@ class EvaluationJob(Base):
     __tablename__ = "evaluation_jobs"
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    tenant_id: Mapped[int] = mapped_column(Integer, ForeignKey("tenants.id"), nullable=False, index=True)
     transcript_id: Mapped[str] = mapped_column(String(255), nullable=False, index=True)
     query: Mapped[str] = mapped_column(Text, nullable=False)
     context: Mapped[str] = mapped_column(Text, nullable=False)

@@ -29,6 +29,7 @@ class Settings(BaseSettings):
     )
 
     app_name: str = Field(default="apva-backend", min_length=1)
+    environment: str = Field(default="development", min_length=1)
     database_url: str = Field(
         default="postgresql+asyncpg://apva:apva@localhost:5432/apva",
         min_length=1,
