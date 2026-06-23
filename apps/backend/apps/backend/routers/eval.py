@@ -8,6 +8,7 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from apps.backend.database import get_session
+from apps.backend.dependencies import get_api_key
 from apps.backend.models import EvaluationJob
 from apps.backend.schemas import EvalTriggerRequest, EvalTriggerResponse
 from apps.backend.worker import evaluate_rag_transcript
@@ -23,6 +24,7 @@ router = APIRouter(prefix="/eval", tags=["eval"])
 async def trigger_async_eval(
     payload: EvalTriggerRequest,
     session: AsyncSession = Depends(get_session),
+    api_key: str = Depends(get_api_key),
 ) -> EvalTriggerResponse:
     """Enqueue a RAG transcript for non-blocking LLM-as-judge scoring.
 
@@ -66,6 +68,7 @@ async def trigger_async_eval(
 async def get_eval_job(
     job_id: int,
     session: AsyncSession = Depends(get_session),
+    api_key: str = Depends(get_api_key),
 ) -> dict:
     """Return a persisted evaluation job by ID.
 

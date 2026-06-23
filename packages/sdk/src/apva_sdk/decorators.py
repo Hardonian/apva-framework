@@ -10,7 +10,7 @@ from functools import wraps
 from typing import Any, ParamSpec, TypeVar
 from uuid import uuid4
 
-from apva_sdk.client import APVATelemetryClient, TelemetryEventPayload
+from apva_sdk.client import APVATelemetryClient, TelemetryEventPayload, get_default_client
 
 P = ParamSpec("P")
 T = TypeVar("T")
@@ -56,7 +56,7 @@ def apva_track_latency(
     Returns:
         Callable: Decorator that records latency after the wrapped call.
     """
-    telemetry_client = client or APVATelemetryClient()
+    telemetry_client = client or get_default_client()
     default_app_name = app_name or telemetry_client.app_name
     default_session_id = session_id or telemetry_client.session_id
     default_run_id = run_id or uuid4().hex
@@ -123,7 +123,7 @@ def apva_guardrail_check(
     Returns:
         Callable: Decorator that records guardrail tax after the wrapped call.
     """
-    telemetry_client = client or APVATelemetryClient()
+    telemetry_client = client or get_default_client()
     default_app_name = app_name or telemetry_client.app_name
     default_session_id = session_id or telemetry_client.session_id
     default_run_id = run_id or uuid4().hex

@@ -36,8 +36,8 @@ celery_app = Celery(
 )
 
 
-@celery_app.task(name="apva.evaluate_rag_transcript")
-def evaluate_rag_transcript(payload: dict[str, Any]) -> dict[str, Any]:
+@celery_app.task(bind=True, name="apva.evaluate_rag_transcript", max_retries=3)
+def evaluate_rag_transcript(self, payload: dict[str, Any]) -> dict[str, Any]:
     """Run async RAG evaluation without blocking FastAPI request threads.
 
     Args:
@@ -46,13 +46,15 @@ def evaluate_rag_transcript(payload: dict[str, Any]) -> dict[str, Any]:
     Returns:
         dict[str, Any]: Completed evaluation scores and job ID.
     """
-    return asyncio.run(_evaluate_rag_transcript_async(payload))
+    return asyncio.run(_evaluate_rag_transcript_async(self, payload))
 
 
-async def _evaluate_rag_transcript_async(payload: dict[str, Any]) -> dict[str, Any]:
+
+async def _evaluate_rag_transcript_async(task: Any, payload: dict[str, Any]) -> dict[str, Any]:
     """Persist and score an evaluation job asynchronously.
 
     Args:
+        task: Celery task instance.
         payload: Serialized evaluation request payload.
 
     Returns:
@@ -87,11 +89,21 @@ async def _evaluate_rag_transcript_async(payload: dict[str, Any]) -> dict[str, A
             **scores,
         }
     except Exception as exc:  # pragma: no cover - exercised through worker logs
-        async with AsyncSessionLocal() as session:
-            job = await session.get(EvaluationJob, payload["job_id"])
-            if job is not None:
-                job.status = "failed"
-                job.error_message = str(exc)
-                job.completed_at = datetime.now(timezone.utc)
-                await session.commit()
-        raise
+        is_last_retry = False
+        if hasattr(task, "request") and hasattr(task.request, "retries"):
+            if task.request.retries >= task.max_retries:
+                is_last_retry = True
+        else:
+            is_last_retry = True
+            
+        if is_last_retry:
+            async with AsyncSessionLocal() as session:
+                job = await session.get(EvaluationJob, payload["job_id"])
+                if job is not None:
+                    job.status = "failed"
+                    job.error_message = str(exc)
+                    job.completed_at = datetime.now(timezone.utc)
+                    await session.commit()
+            raise
+        else:
+            raise task.retry(exc=exc, countdown=5)

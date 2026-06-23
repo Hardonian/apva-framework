@@ -8,6 +8,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from apps.backend.config import settings
 from apps.backend.database import get_session
+from apps.backend.dependencies import get_api_key
 from apps.backend.models import EvaluationJob, TelemetryEvent
 from apps.backend.schemas import TvyMetricResponse
 
@@ -17,6 +18,7 @@ router = APIRouter(prefix="/metrics", tags=["metrics"])
 @router.get("/tvy", response_model=TvyMetricResponse)
 async def get_macro_tvy(
     session: AsyncSession = Depends(get_session),
+    api_key: str = Depends(get_api_key),
 ) -> TvyMetricResponse:
     """Calculate macro True Value Yield for the dashboard.
 

@@ -4,8 +4,11 @@ from __future__ import annotations
 
 from collections.abc import AsyncGenerator
 
+import httpx
 from fastapi import FastAPI, Request
+from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
+import logging
 
 from apps.backend.database import engine
 from apps.backend.models import Base
@@ -13,6 +16,11 @@ from apps.backend.routers.eval import router as eval_router
 from apps.backend.routers.health import router as health_router
 from apps.backend.routers.metrics import router as metrics_router
 from apps.backend.routers.telemetry import router as telemetry_router
+
+logger = logging.getLogger(__name__)
+
+# Global httpx client for reuse
+http_client: httpx.AsyncClient | None = None
 
 
 async def create_tables() -> None:
@@ -34,8 +42,16 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     Yields:
         None: Yields control back to FastAPI after startup.
     """
+    global http_client
+    
     await create_tables()
+    
+    http_client = httpx.AsyncClient(timeout=10.0)
+    
     yield
+    
+    if http_client is not None:
+        await http_client.aclose()
 
 
 app = FastAPI(
@@ -44,6 +60,15 @@ app = FastAPI(
     version="2.0.0",
     lifespan=lifespan,
 )
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
 app.include_router(telemetry_router, prefix="/api/v1")
 app.include_router(eval_router, prefix="/api/v1")
 app.include_router(metrics_router, prefix="/api/v1")
@@ -61,6 +86,7 @@ async def unhandled_exception_handler(request: Request, exc: Exception) -> JSONR
     Returns:
         JSONResponse: Structured error response.
     """
+    logger.error("Unhandled exception processing request %s %s", request.method, request.url, exc_info=exc)
     return JSONResponse(
         status_code=500,
         content={"detail": "Internal server error", "type": type(exc).__name__},

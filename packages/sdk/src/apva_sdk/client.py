@@ -112,12 +112,22 @@ class APVATelemetryClient:
 
     def _sender_loop(self) -> None:
         """Drain the queue and send telemetry events to the backend."""
-        while not self._stop_event.is_set() or not self._queue.empty():
-            try:
-                payload = self._queue.get(timeout=0.2)
-            except queue.Empty:
-                continue
-            self._send(payload)
+        headers = {"Content-Type": "application/json"}
+        if self.api_key:
+            headers["Authorization"] = f"Bearer {self.api_key}"
+            
+        with httpx.Client(timeout=5.0, headers=headers) as client:
+            while not self._stop_event.is_set() or not self._queue.empty():
+                try:
+                    payload = self._queue.get(timeout=0.2)
+                except queue.Empty:
+                    continue
+                
+                try:
+                    response = client.post(self.endpoint, json=payload.model_dump())
+                    response.raise_for_status()
+                except Exception:
+                    pass # In a production system, we might log this or retry
 
     def _send(self, payload: TelemetryEventPayload) -> None:
         """Send one payload to the backend.
@@ -128,11 +138,21 @@ class APVATelemetryClient:
         headers = {"Content-Type": "application/json"}
         if self.api_key:
             headers["Authorization"] = f"Bearer {self.api_key}"
-        client = httpx.Client(timeout=5.0)
-        try:
-            response = client.post(self.endpoint, headers=headers, json=payload.model_dump())
+            
+        with httpx.Client(timeout=5.0, headers=headers) as client:
+            response = client.post(self.endpoint, json=payload.model_dump())
             response.raise_for_status()
-        finally:
-            close = getattr(client, "close", None)
-            if callable(close):
-                close()
+
+_default_client: APVATelemetryClient | None = None
+
+def get_default_client() -> APVATelemetryClient:
+    """Return a lazy-initialized default global telemetry client.
+    
+    Returns:
+        APVATelemetryClient: The default global client instance.
+    """
+    global _default_client
+    if _default_client is None:
+        _default_client = APVATelemetryClient()
+    return _default_client
+

@@ -134,6 +134,16 @@ def compute_rag_scores(answer: str, expected_answer: str) -> RagScoreResult:
     )
 
 
+_http_client: httpx.AsyncClient | None = None
+
+def get_http_client() -> httpx.AsyncClient:
+    """Return a global singleton HTTPX client for connection pooling."""
+    global _http_client
+    if _http_client is None:
+        _http_client = httpx.AsyncClient(timeout=10.0)
+    return _http_client
+
+
 async def score_with_mock_target(
     request: EvalTriggerRequest, target_app_url: str
 ) -> dict[str, Any]:
@@ -153,10 +163,11 @@ async def score_with_mock_target(
         "expected_answer": request.expected_answer,
     }
     url = f"{target_app_url.rstrip('/')}/score-faithfulness"
-    async with httpx.AsyncClient(timeout=10.0) as client:
-        response = await client.post(url, json=payload)
-        response.raise_for_status()
-        return response.json()
+    
+    client = get_http_client()
+    response = await client.post(url, json=payload)
+    response.raise_for_status()
+    return response.json()
 
 
 def compute_tvy_from_scores(

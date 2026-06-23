@@ -8,10 +8,12 @@ from fastapi import APIRouter, Depends, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from apps.backend.database import get_session
+from apps.backend.dependencies import get_api_key
 from apps.backend.models import TelemetryEvent
 from apps.backend.schemas import TelemetryIngestRequest, TelemetryIngestResponse
 
 router = APIRouter(prefix="/telemetry", tags=["telemetry"])
+
 
 
 @router.post(
@@ -22,6 +24,7 @@ router = APIRouter(prefix="/telemetry", tags=["telemetry"])
 async def ingest_telemetry(
     payload: TelemetryIngestRequest,
     session: AsyncSession = Depends(get_session),
+    api_key: str = Depends(get_api_key),
 ) -> TelemetryIngestResponse:
     """Persist one SDK telemetry payload.
 
