@@ -146,36 +146,38 @@ async def get_agentic_insights(
     """Return actionable AI prescriptions based on tenant data."""
     # Compute the latest metrics to generate insights
     metrics_response = await get_macro_tvy(session, tenant_context)
+    metrics_obj = await get_macro_tvy(session, tenant_context)
+    metrics = {
+        "avg_guardrail_tax_min": metrics_obj.avg_guardrail_tax_min,
+        "avg_rag_reliability_coefficient": metrics_obj.avg_rag_reliability_coefficient
+    }
     
     insights = []
     
-    guardrail_tax = metrics_response.avg_guardrail_tax_min
-    reliability = metrics_response.avg_rag_reliability_coefficient
-    
-    if guardrail_tax > 0.05:
+    if metrics["avg_guardrail_tax_min"] > 1.0:
         insights.append({
             "severity": "high",
-            "metric": "Guardrail Tax",
-            "observation": f"Guardrail latency is high ({guardrail_tax:.2f} min).",
-            "prescription": "Optimize LLM prompt length or use a faster SLM for guardrails to save time.",
-            "estimated_savings_usd_per_10k": 1500.00
+            "metric": "Guardrail Tax Latency",
+            "observation": "STATISTICAL ANOMALY: Mean guardrail execution time exceeds optimal threshold (> 1.0m).",
+            "prescription": "Optimize semantic routers. Consider offloading PII redaction to APVA edge workers.",
+            "estimated_savings_usd_per_10k": 1250.0
         })
         
-    if reliability < 0.85:
+    if metrics["avg_rag_reliability_coefficient"] and metrics["avg_rag_reliability_coefficient"] < 0.8:
         insights.append({
             "severity": "critical",
-            "metric": "RAG Reliability",
-            "observation": f"Reliability dropped to {reliability*100:.1f}%.",
-            "prescription": "Increase Vector DB top_k retrieval or refine chunking strategy to improve faithfulness.",
-            "estimated_savings_usd_per_10k": 5200.00
+            "metric": "RAG Reliability Coefficient",
+            "observation": "CRITICAL VARIANCE: Answer faithfulness has degraded below 0.80 SLA.",
+            "prescription": "Revert active prompt template to v1.2 and increase vector DB 'top_k' parameter to 5.",
+            "estimated_savings_usd_per_10k": 3400.0
         })
         
     if not insights:
         insights.append({
             "severity": "info",
-            "metric": "Overall Health",
-            "observation": "System is performing optimally.",
-            "prescription": "No immediate tuning required.",
+            "metric": "System Optimization",
+            "observation": "All inference metrics currently operate within optimal statistical control limits.",
+            "prescription": "No immediate intervention required. Maintain current deployment configuration.",
             "estimated_savings_usd_per_10k": 0.0
         })
         

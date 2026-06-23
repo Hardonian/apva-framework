@@ -1,23 +1,26 @@
-FROM python:3.11-slim AS builder
+FROM python:3.12-slim
 
-ENV PYTHONDONTWRITEBYTECODE=1 \
-    PYTHONUNBUFFERED=1 \
-    PIP_NO_CACHE_DIR=1
+# Install uv for fast dependency resolution
+COPY --from=ghcr.io/astral-sh/uv:latest /uv /bin/uv
 
-WORKDIR /build
-COPY apps/backend/requirements.txt /build/requirements.txt
-RUN pip install --upgrade pip && pip install --prefix=/install -r /build/requirements.txt
+ENV PYTHONUNBUFFERED=1
+ENV WORKDIR=/app
 
-FROM python:3.11-slim AS runtime
+WORKDIR ${WORKDIR}
 
-ENV PYTHONDONTWRITEBYTECODE=1 \
-    PYTHONUNBUFFERED=1 \
-    PYTHONPATH=/app
+# Install system dependencies if required by pg or building packages
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    gcc \
+    libpq-dev \
+    && rm -rf /var/lib/apt/lists/*
 
-WORKDIR /app
-COPY --from=builder /install /usr/local
-COPY . /app
-RUN chmod +x /app/apps/backend/scripts/wait-for-it.sh
+COPY pyproject.toml .
+
+# Resolve and install dependencies using uv
+RUN uv pip install --system -r pyproject.toml
+
+COPY . .
 
 EXPOSE 8000
-CMD ["uvicorn", "apps.backend.main:app", "--host", "0.0.0.0", "--port", "8000"]
+
+CMD ["uv", "run", "uvicorn", "apps.backend.main:app", "--host", "0.0.0.0", "--port", "8000"]

@@ -10,6 +10,11 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 import logging
 
+from slowapi import Limiter, _rate_limit_exceeded_handler
+from slowapi.util import get_remote_address
+from slowapi.errors import RateLimitExceeded
+from slowapi.middleware import SlowAPIMiddleware
+
 from apps.backend.database import engine
 from apps.backend.models import Base
 from apps.backend.routers.eval import router as eval_router
@@ -22,6 +27,9 @@ logger = logging.getLogger(__name__)
 
 # Global httpx client for reuse
 http_client: httpx.AsyncClient | None = None
+
+# Initialize Rate Limiter
+limiter = Limiter(key_func=get_remote_address, default_limits=["100/minute"])
 
 
 async def create_tables() -> None:
@@ -76,9 +84,25 @@ app = FastAPI(
     lifespan=lifespan,
 )
 
+# Apply rate limiting
+app.state.limiter = limiter
+app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
+app.add_middleware(SlowAPIMiddleware)
+
+@app.middleware("http")
+async def add_security_headers(request: Request, call_next):
+    """Add Enterprise-grade security headers to all responses."""
+    response = await call_next(request)
+    response.headers["Strict-Transport-Security"] = "max-age=63072000; includeSubDomains; preload"
+    response.headers["X-Content-Type-Options"] = "nosniff"
+    response.headers["X-Frame-Options"] = "DENY"
+    response.headers["Content-Security-Policy"] = "default-src 'self'; frame-ancestors 'none'"
+    response.headers["X-XSS-Protection"] = "1; mode=block"
+    return response
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=["http://localhost:5173", "https://dashboard.apva.ai"],
     allow_credentials=False,
     allow_methods=["*"],
     allow_headers=["*"],

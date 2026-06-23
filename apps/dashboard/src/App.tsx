@@ -51,8 +51,12 @@ function App() {
         localStorage.setItem('apva_token', res.data.access_token);
         setIsAuthenticated(true);
       }
-    } catch (err: any) {
-      setLoginError(err.response?.data?.detail || 'SSO Login Failed');
+    } catch (err: unknown) {
+      if (axios.isAxiosError(err)) {
+        setLoginError(err.response?.data?.detail || 'SSO Login Failed');
+      } else {
+        setLoginError('An unexpected error occurred');
+      }
     }
   };
 
@@ -73,8 +77,12 @@ function App() {
         setMetrics(metricsRes.data);
         setInsights(insightsRes.data);
         setLoading(false);
-      } catch (err: any) {
-        setError(err.message || 'Failed to fetch metrics');
+      } catch (err: unknown) {
+        if (err instanceof Error) {
+          setError(err.message || 'Failed to fetch metrics');
+        } else {
+          setError('An unknown error occurred');
+        }
         setLoading(false);
       }
     };
@@ -86,8 +94,8 @@ function App() {
     return (
       <div className="login-container">
         <div className="login-card">
-          <h1>APVA Enterprise</h1>
-          <p>Sign in with your organizational account</p>
+          <h1>APVA Analytical Engine</h1>
+          <p>Authenticate via organizational identity provider</p>
           <form onSubmit={handleLogin} className="login-form">
             <input 
               type="email" 
@@ -104,8 +112,8 @@ function App() {
     );
   }
 
-  if (loading) return <div className="loader">Loading Enterprise APVA Dashboard...</div>;
-  if (error) return <div className="error">Error loading metrics: {error}</div>;
+  if (loading) return <div className="loader">Initializing APVA Analytical Engine...</div>;
+  if (error) return <div className="error">Metrics resolution failure: {error}</div>;
 
   // Mock historical data
   const mockHistoricalData = [
@@ -121,7 +129,7 @@ function App() {
       <header className="dashboard-header">
         <div className="tenant-badge">Organization: Acme Corp</div>
         <h1>APVA True Value Yield Dashboard</h1>
-        <p>Enterprise AI ROI Analytics & Agentic Insights</p>
+        <p>Enterprise Inference Analytics & Operational Directives</p>
       </header>
       
       <div className="layout-grid">
@@ -163,7 +171,7 @@ function App() {
 
         <div className="sidebar">
           <div className="insights-panel">
-            <h2>✨ AI Co-Pilot Prescriptions</h2>
+            <h2>Diagnostic Resolution Directives</h2>
             {insights.map((insight, idx) => (
               <div key={idx} className={`insight-card severity-${insight.severity}`}>
                 <div className="insight-header">
