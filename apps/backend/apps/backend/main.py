@@ -16,6 +16,7 @@ from apps.backend.routers.eval import router as eval_router
 from apps.backend.routers.health import router as health_router
 from apps.backend.routers.metrics import router as metrics_router
 from apps.backend.routers.telemetry import router as telemetry_router
+from apps.backend.routers.auth import router as auth_router
 
 logger = logging.getLogger(__name__)
 
@@ -87,6 +88,7 @@ app.include_router(telemetry_router, prefix="/api/v1")
 app.include_router(eval_router, prefix="/api/v1")
 app.include_router(metrics_router, prefix="/api/v1")
 app.include_router(health_router, prefix="/api/v1")
+app.include_router(auth_router, prefix="/api/v1")
 
 
 @app.exception_handler(Exception)

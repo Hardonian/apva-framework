@@ -32,15 +32,38 @@ interface Insight {
 }
 
 function App() {
+  const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false);
   const [metrics, setMetrics] = useState<MetricsData | null>(null);
   const [insights, setInsights] = useState<Insight[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
+  const [email, setEmail] = useState<string>('');
+  const [loginError, setLoginError] = useState<string | null>(null);
+
+  const handleLogin = async (e: React.FormEvent) => {
+    e.preventDefault();
+    try {
+      const res = await axios.post('http://localhost:8000/api/v1/auth/sso/login', {
+        email: email,
+        connection: 'saml-okta'
+      });
+      if (res.data.access_token) {
+        localStorage.setItem('apva_token', res.data.access_token);
+        setIsAuthenticated(true);
+      }
+    } catch (err: any) {
+      setLoginError(err.response?.data?.detail || 'SSO Login Failed');
+    }
+  };
 
   useEffect(() => {
+    if (!isAuthenticated) return;
+    
     const fetchData = async () => {
+      setLoading(true);
       try {
-        const headers = { 'Authorization': 'Bearer APVA-DEV-KEY-123' };
+        const token = localStorage.getItem('apva_token') || 'APVA-DEV-KEY-123';
+        const headers = { 'Authorization': `Bearer ${token}` };
         
         const [metricsRes, insightsRes] = await Promise.all([
           axios.get('http://localhost:8000/api/v1/metrics/tvy', { headers }),
@@ -57,7 +80,29 @@ function App() {
     };
     
     fetchData();
-  }, []);
+  }, [isAuthenticated]);
+
+  if (!isAuthenticated) {
+    return (
+      <div className="login-container">
+        <div className="login-card">
+          <h1>APVA Enterprise</h1>
+          <p>Sign in with your organizational account</p>
+          <form onSubmit={handleLogin} className="login-form">
+            <input 
+              type="email" 
+              placeholder="name@acmecorp.com" 
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              required
+            />
+            {loginError && <div className="login-error">{loginError}</div>}
+            <button type="submit">Continue with SSO / SAML</button>
+          </form>
+        </div>
+      </div>
+    );
+  }
 
   if (loading) return <div className="loader">Loading Enterprise APVA Dashboard...</div>;
   if (error) return <div className="error">Error loading metrics: {error}</div>;
