@@ -14,13 +14,11 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     libpq-dev \
     && rm -rf /var/lib/apt/lists/*
 
-COPY pyproject.toml .
+COPY . .
 
 # Resolve and install dependencies using uv
-RUN uv pip install --system -r pyproject.toml
-
-COPY . .
+RUN uv pip install --system -e .
 
 EXPOSE 8000
 
-CMD ["uv", "run", "uvicorn", "apps.backend.main:app", "--host", "0.0.0.0", "--port", "8000"]
+CMD ["uv", "run", "uvicorn", "apps.backend.apps.backend.main:app", "--host", "0.0.0.0", "--port", "8000"]

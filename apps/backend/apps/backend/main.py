@@ -29,7 +29,7 @@ logger = logging.getLogger(__name__)
 http_client: httpx.AsyncClient | None = None
 
 # Initialize Rate Limiter
-limiter = Limiter(key_func=get_remote_address, default_limits=["100/minute"])
+limiter = Limiter(key_func=get_remote_address, application_limits=["100/minute"])
 
 
 async def create_tables() -> None:
