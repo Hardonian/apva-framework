@@ -1,21 +1,21 @@
-name = "ai-lab-audit-api"
+name = "apva-framework"
 main = "src/worker.js"
 compatibility_date = "2024-06-01"
 
 [vars]
 ENVIRONMENT = "production"
-APP_NAME = "ai-lab-audit-api"
+APP_NAME = "apva-framework"
 SCAN_CRON = "0 3 * * *"
 LOG_LEVEL = "INFO"
 
 [[d1_databases]]
 binding = "DB"
-database_name = "ai_lab_audit"
+database_name = "apva_framework"
 database_id = "placeholder-id"
 
 [triggers]
 crons = ["0 3 * * *"]
 
 [[routes]]
-pattern = "audit.example.com"
+pattern = "apva-framework.example.com"
 custom_domain = true
