@@ -46,7 +46,7 @@ services:
     build:
       context: .
       dockerfile: ./apps/backend/Dockerfile
-    command: ["uv", "run", "celery", "-A", "apps.backend.apps.backend.worker.celery_app", "worker", "--loglevel=info"]
+    command: ["celery", "-A", "apps.backend.apps.backend.worker.celery_app", "worker", "--loglevel=info"]
     environment:
       - ENVIRONMENT=development
       - DATABASE_URL=postgresql+asyncpg://apva:enterprise_password_override_in_prod@postgres:5432/apva_db
