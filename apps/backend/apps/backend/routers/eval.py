@@ -7,12 +7,12 @@ from datetime import datetime, timezone
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from apps.backend.database import get_session
-from apps.backend.dependencies import get_tenant_context
-from apps.backend.models import EvaluationJob
-from apps.backend.schemas import EvalTriggerRequest, EvalTriggerResponse
-from apps.backend.services.streaming import EventStreamer
-from apps.backend.worker import evaluate_rag_transcript
+from ..database import get_session
+from ..dependencies import get_tenant_context
+from ..models import EvaluationJob
+from ..schemas import EvalTriggerRequest, EvalTriggerResponse
+from ..services.streaming import EventStreamer
+from ..worker import evaluate_rag_transcript
 
 router = APIRouter(prefix="/eval", tags=["eval"])
 

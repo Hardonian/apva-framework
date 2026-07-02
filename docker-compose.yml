@@ -8,7 +8,7 @@ services:
       POSTGRES_PASSWORD: enterprise_password_override_in_prod
       POSTGRES_DB: apva_db
     ports:
-      - "5432:5432"
+      - "5434:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
     healthcheck:
@@ -20,7 +20,7 @@ services:
   redis:
     image: redis:6.2-alpine
     ports:
-      - "6379:6379"
+      - "6381:6379"
     healthcheck:
       test: ["CMD", "redis-cli", "ping"]
       interval: 5s
@@ -32,7 +32,7 @@ services:
       context: .
       dockerfile: ./apps/backend/Dockerfile
     ports:
-      - "8000:8000"
+      - "8001:8000"
     environment:
       - ENVIRONMENT=development
       - DATABASE_URL=postgresql+asyncpg://apva:enterprise_password_override_in_prod@postgres:5432/apva_db
@@ -42,7 +42,6 @@ services:
         condition: service_healthy
       redis:
         condition: service_healthy
-
   celery_worker:
     build:
       context: .
@@ -61,7 +60,7 @@ services:
       context: ./apps/dashboard
       dockerfile: Dockerfile
     ports:
-      - "5173:80"
+      - "5174:80"
     depends_on:
       - backend
 

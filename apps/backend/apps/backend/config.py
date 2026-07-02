@@ -25,7 +25,7 @@ class Settings(BaseSettings):
     """
 
     model_config = SettingsConfigDict(
-        env_prefix="APVA_", env_file=".env", extra="ignore"
+        env_prefix="", env_file=".env", extra="ignore"
     )
 
     app_name: str = Field(default="apva-backend", min_length=1)

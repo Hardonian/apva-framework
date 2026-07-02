@@ -7,11 +7,11 @@ from datetime import datetime, timezone
 from fastapi import APIRouter, Depends, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from apps.backend.database import get_session
-from apps.backend.dependencies import get_tenant_context
-from apps.backend.models import TelemetryEvent
-from apps.backend.schemas import TelemetryIngestRequest, TelemetryIngestResponse
-from apps.backend.services.streaming import EventStreamer
+from ..database import get_session
+from ..dependencies import get_tenant_context
+from ..models import TelemetryEvent
+from ..schemas import TelemetryIngestRequest, TelemetryIngestResponse
+from ..services.streaming import EventStreamer
 
 router = APIRouter(prefix="/telemetry", tags=["telemetry"])
 

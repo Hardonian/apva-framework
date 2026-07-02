@@ -15,13 +15,13 @@ from slowapi.util import get_remote_address
 from slowapi.errors import RateLimitExceeded
 from slowapi.middleware import SlowAPIMiddleware
 
-from apps.backend.database import engine
-from apps.backend.models import Base
-from apps.backend.routers.eval import router as eval_router
-from apps.backend.routers.health import router as health_router
-from apps.backend.routers.metrics import router as metrics_router
-from apps.backend.routers.telemetry import router as telemetry_router
-from apps.backend.routers.auth import router as auth_router
+from .database import engine
+from .models import Base
+from .routers.eval import router as eval_router
+from .routers.health import router as health_router
+from .routers.metrics import router as metrics_router
+from .routers.telemetry import router as telemetry_router
+from .routers.auth import router as auth_router
 
 logger = logging.getLogger(__name__)
 
@@ -38,14 +38,14 @@ async def create_tables() -> None:
     This is intentionally only used at application startup in this MVP. In
     production, Alembic migrations should own schema changes.
     """
-    from apps.backend.config import settings
+    from .config import settings
+    from sqlalchemy import select
     if settings.environment.lower() == "development":
         async with engine.begin() as conn:
             await conn.run_sync(Base.metadata.create_all)
-            
-        from sqlalchemy import select
-        from apps.backend.database import async_session_maker
-        from apps.backend.models import Tenant
+           
+        from .database import async_session_maker
+        from .models import Tenant
         import secrets
         
         async with async_session_maker() as session:

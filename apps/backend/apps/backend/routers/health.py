@@ -1,5 +1,3 @@
-"""System health API routes."""
-
 from __future__ import annotations
 
 from fastapi import APIRouter, Depends
@@ -7,9 +5,9 @@ from redis.asyncio import Redis
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from apps.backend.config import settings
-from apps.backend.database import get_session
-from apps.backend.schemas import HealthResponse
+from ..config import settings
+from ..database import get_session
+from ..schemas import HealthResponse
 
 router = APIRouter(prefix="/health", tags=["health"])
 

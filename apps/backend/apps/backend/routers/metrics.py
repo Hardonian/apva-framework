@@ -9,11 +9,11 @@ from fastapi.responses import PlainTextResponse
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from apps.backend.config import settings
-from apps.backend.database import get_session
-from apps.backend.dependencies import get_tenant_context
-from apps.backend.models import EvaluationJob, TelemetryEvent
-from apps.backend.schemas import TvyMetricResponse
+from ..config import settings
+from ..database import get_session
+from ..dependencies import get_tenant_context
+from ..models import EvaluationJob, TelemetryEvent
+from ..schemas import TvyMetricResponse
 
 router = APIRouter(prefix="/metrics", tags=["metrics"])
 
