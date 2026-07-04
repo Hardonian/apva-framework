@@ -11,7 +11,7 @@ LOG_LEVEL = "INFO"
 [[d1_databases]]
 binding = "DB"
 database_name = "apva_framework"
-database_id = "placeholder-id"
+database_id = "a1c175d7-720f-4bbd-9cd8-2db03f938cc1"
 
 [triggers]
 crons = ["0 3 * * *"]
