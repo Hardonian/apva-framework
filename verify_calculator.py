@@ -5,6 +5,7 @@ Produces real numeric outputs for the four core formulas plus negative-TVY and z
 from __future__ import annotations
 from apva.calculator import APVACalculator
 from apva.models import (
+    APVAReport,
     BenchmarkInput,
     GuardrailMetrics,
     ProductivityMetrics,
