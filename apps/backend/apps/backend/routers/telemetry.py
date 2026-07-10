@@ -9,7 +9,6 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from apps.backend.database import get_session
 from apps.backend.dependencies import get_tenant_context
-from apps.backend.models import TelemetryEvent
 from apps.backend.schemas import TelemetryIngestRequest, TelemetryIngestResponse
 from apps.backend.services.streaming import EventStreamer
 
