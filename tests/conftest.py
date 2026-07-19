@@ -14,7 +14,6 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 SOURCE_ROOTS = [
     ROOT,
-    ROOT / "apps" / "backend",
     ROOT / "packages" / "cli" / "src",
     ROOT / "packages" / "sdk" / "src",
 ]
@@ -25,10 +24,12 @@ for source_root in reversed(SOURCE_ROOTS):
         sys.path.insert(0, source)
 
 # Keep backend tests local-first and independent of a running Postgres service.
-os.environ.setdefault("APVA_DATABASE_URL", "sqlite+aiosqlite:///./.apva-test.db")
-os.environ.setdefault("APVA_REDIS_URL", "redis://localhost:6380/0")
-os.environ.setdefault("APVA_CELERY_BROKER_URL", "redis://localhost:6380/0")
-os.environ.setdefault("APVA_CELERY_RESULT_BACKEND", "redis://localhost:6380/1")
+# FORCE the hermetic values (not setdefault) so an inherited/external
+# APVA_DATABASE_URL cannot leak in and make tests hit a real database.
+os.environ["APVA_DATABASE_URL"] = "sqlite+aiosqlite:///./.apva-test.db"
+os.environ["APVA_REDIS_URL"] = "redis://localhost:6380/0"
+os.environ["APVA_CELERY_BROKER_URL"] = "redis://localhost:6380/0"
+os.environ["APVA_CELERY_RESULT_BACKEND"] = "redis://localhost:6380/1"
 
 
 def pytest_sessionstart(session):  # type: ignore[no-untyped-def]
@@ -36,12 +37,26 @@ def pytest_sessionstart(session):  # type: ignore[no-untyped-def]
 
     httpx.ASGITransport does not automatically run FastAPI lifespan events in
     every supported version, so tests bootstrap the schema explicitly.
+
+    The backend builds its engine eagerly at import time from settings, so the
+    hermetic SQLite URL must be forced BEFORE the database module is imported,
+    and the engine rebuilt afterward to point at the in-memory test database.
     """
     import asyncio
     import importlib
 
-    database = importlib.import_module("apps.backend.database")
-    models = importlib.import_module("apps.backend.models")
+    from sqlalchemy.ext.asyncio import async_sessionmaker
+
+    database = importlib.import_module("apps.backend.apps.backend.database")
+    models = importlib.import_module("apps.backend.apps.backend.models")
+
+    # Rebuild the eager engine against the forced SQLite URL so tests never
+    # touch a real Postgres instance.
+    database.engine = database.build_engine(os.environ["APVA_DATABASE_URL"])
+    database.AsyncSessionLocal = async_sessionmaker(
+        database.engine, expire_on_commit=False
+    )
+    database.async_session_maker = database.AsyncSessionLocal
 
     async def create_schema() -> None:
         async with database.engine.begin() as conn:
