@@ -33,17 +33,25 @@ async def test_sso_login_rejects_invalid_domain():
 
 @pytest.mark.asyncio
 async def test_rate_limiter_active():
-    """Verify that the SlowAPI rate limiter catches abuse.
+    """Verify the global rate limiter enforces the limit and returns 429.
 
-    SKIPPED (not a test failure): the global ``application_limits`` configured on
-    the Limiter are not enforced through SlowAPIMiddleware under the ASGITransport
-    test harness (0/105 requests were throttled in probe). This is a real
-    rate-limiting gap in the app, not a missing test. It must be fixed in
-    ``apps/backend/apps/backend/main.py`` (verify the limiter is enabled and the
-    middleware actually applies ``application_limits``, or move to per-route
-    ``@limiter.limit()`` decorators). Tracked as a P1 hardening item.
+    Regression test for the previously-silent gap: SlowAPI's middleware did
+    not limit routes mounted via ``include_router`` and ``get_remote_address``
+    returned an empty key behind some proxies, so 0/105 requests were ever
+    throttled. Enforcement is now performed by the ``rate_limit`` dependency.
     """
-    pytest.skip(
-        "Rate limiter not enforced via middleware in test harness; "
-        "real app gap flagged for follow-up (see QA report)."
-    )
+    import apps.backend.apps.backend.limiter as limiter_mod
+
+    original = limiter_mod.LIMIT
+    limiter_mod.LIMIT = 3  # tighten so the test is fast and deterministic
+    try:
+        transport = ASGITransport(app=app)
+        async with AsyncClient(transport=transport, base_url="http://testserver") as client:
+            codes = []
+            for _ in range(8):
+                resp = await client.get("/api/v1/health")
+                codes.append(resp.status_code)
+        assert codes[:3] == [200, 200, 200], f"first 3 should pass: {codes}"
+        assert all(c == 429 for c in codes[3:]), f"remaining should be 429: {codes}"
+    finally:
+        limiter_mod.LIMIT = original
