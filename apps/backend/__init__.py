@@ -28,4 +28,9 @@ __all__ = [
     "EvalTriggerResponse",
     "TelemetryIngestRequest",
     "TelemetryIngestResponse",
+    "health",
+    "metrics",
+    "telemetry",
+    "eval_router",
+    "auth",
 ]

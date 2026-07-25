@@ -7,7 +7,6 @@ is automatically intercepted, enriched, and streamed to the APVA backend.
 """
 
 from typing import Any
-from uuid import uuid4
 
 class APVACallbackHandler:
     """LangChain callback handler for automated TVY instrumentation."""
