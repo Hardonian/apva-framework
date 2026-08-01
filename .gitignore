@@ -41,3 +41,6 @@ target/
 .coverage
 htmlcov/
 .apva-test.db
+
+# Cleanup additions
+.turbo
