@@ -21,4 +21,3 @@ We aim to acknowledge receipt within 48 hours and provide a remediation timeline
 ## Scope
 
 This security policy applies to the latest release of this project.
-
