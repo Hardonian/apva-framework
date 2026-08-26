@@ -11,6 +11,11 @@ export interface Env {
 	APVA_KAFKA_TOPIC: string;
 }
 
+export interface ExecutionContext {
+	waitUntil(promise: Promise<any>): void;
+	passThroughOnException?(): void;
+}
+
 const CORS_HEADERS = {
 	'Access-Control-Allow-Origin': '*',
 	'Access-Control-Allow-Methods': 'GET,POST,OPTIONS',

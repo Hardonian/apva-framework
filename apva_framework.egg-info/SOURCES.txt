@@ -40,6 +40,7 @@ apva/models.py
 apva_framework.egg-info/PKG-INFO
 apva_framework.egg-info/SOURCES.txt
 apva_framework.egg-info/dependency_links.txt
+apva_framework.egg-info/entry_points.txt
 apva_framework.egg-info/requires.txt
 apva_framework.egg-info/top_level.txt
 tests/test_batch_client.py

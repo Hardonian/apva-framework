@@ -1,0 +1,32 @@
+name: AIAS RAG & TVY Evaluation Gate
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  tvy-evaluation-gate:
+    name: APVA True Value Yield & Retrieval Quality Gate
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install APVA Framework
+        run: |
+          python -m pip install --upgrade pip
+          pip install .
+
+      - name: Run Golden Dataset Verification
+        run: |
+          python -m apva_cli.main run-eval \
+            --golden-set ./data/golden_dataset.json \
+            --threshold 0.85

@@ -5,7 +5,7 @@ CREATE TABLE IF NOT EXISTS tenants (
     name TEXT NOT NULL,
     api_key_hash TEXT NOT NULL UNIQUE,
     stripe_customer_id TEXT,
-    created_at TEXT DEFAULT (datetime('now'))
+    created_at TEXT DEFAULT CURRENT_TIMESTAMP
 );
 
 CREATE TABLE IF NOT EXISTS telemetry_events (
@@ -21,7 +21,7 @@ CREATE TABLE IF NOT EXISTS telemetry_events (
     hourly_rate_usd REAL,
     is_shadow INTEGER DEFAULT 0,
     metadata_json TEXT,
-    created_at TEXT DEFAULT (datetime('now'))
+    created_at TEXT DEFAULT CURRENT_TIMESTAMP
 );
 
 CREATE TABLE IF NOT EXISTS evaluation_jobs (
@@ -38,7 +38,7 @@ CREATE TABLE IF NOT EXISTS evaluation_jobs (
     precision_score REAL,
     rag_reliability_coefficient REAL,
     error_message TEXT,
-    created_at TEXT DEFAULT (datetime('now')),
+    created_at TEXT DEFAULT CURRENT_TIMESTAMP,
     completed_at TEXT
 );
 
@@ -54,7 +54,7 @@ CREATE TABLE IF NOT EXISTS audits (
     total_findings INTEGER DEFAULT 0,
     report_json TEXT,
     status TEXT DEFAULT 'pending',
-    created_at TEXT DEFAULT (datetime('now'))
+    created_at TEXT DEFAULT CURRENT_TIMESTAMP
 );
 
 CREATE TABLE IF NOT EXISTS findings (
@@ -67,7 +67,7 @@ CREATE TABLE IF NOT EXISTS findings (
     recommendation TEXT,
     resource_type TEXT,
     resource_name TEXT,
-    created_at TEXT DEFAULT (datetime('now'))
+    created_at TEXT DEFAULT CURRENT_TIMESTAMP
 );
 
 CREATE TABLE IF NOT EXISTS reports (
@@ -77,7 +77,7 @@ CREATE TABLE IF NOT EXISTS reports (
     content TEXT,
     delivered_via TEXT,
     delivered_at TEXT,
-    created_at TEXT DEFAULT (datetime('now'))
+    created_at TEXT DEFAULT CURRENT_TIMESTAMP
 );
 
 CREATE INDEX IF NOT EXISTS idx_telemetry_tenant ON telemetry_events(tenant_id);
