@@ -10,7 +10,7 @@ from typing import Any
 
 import httpx
 
-from apps.backend.schemas import EvalTriggerRequest
+from ..schemas import EvalTriggerRequest
 
 SPAN_RECALL_WEIGHT = 0.60
 FAITHFULNESS_WEIGHT = 0.40

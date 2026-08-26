@@ -1,222 +1,114 @@
 # APVA — AI Productivity & Value Architecture
 
-> A benchmarking framework that measures the **true enterprise ROI of Generative AI** by synthesizing three pillars into a single time-denominated metric: **True Value Yield (TVY)**.
+> Measure the **true enterprise ROI of Generative AI** as a single time-denominated metric: **True Value Yield (TVY)**.
 
-APVA moves beyond "raw output" benchmarks. Instead of asking *"how fast did the model produce text?"*, it asks *"how much net, reliability-discounted, friction-adjusted human time did this AI workflow actually save?"*
+[![Python 3.10+](https://img.shields.io/badge/python-3.10+-blue?logo=python)](https://www.python.org/)
+[![License: MIT](https://img.shields.io/badge/license-MIT-green)](LICENSE)
+[![Status: Active](https://img.shields.io/badge/status-active-orange)]()
+[![Bootstrap-ready](https://img.shields.io/badge/bootstrap-ready-2ea043)](BOOTSTRAP.md)
 
 ---
+
+## The problem
+
+Most AI benchmarks answer *"how fast did the model produce output?"* and ignore the only number a CFO cares about: **net human time saved**.
+
+APVA answers: *"How much reliability-discounted, friction-adjusted human time did this AI workflow actually save — and what is it worth?"*
 
 ## The Three Pillars
 
-| Pillar | What it captures | Key inputs |
-|--------|------------------|------------|
-| **Productivity** | Skill-stratified human baselines + epistemic verification (cognitive load) | reference baseline, skill tier, AI generation time, verification time |
-| **RAG Reliability** | Deterministic *exact span recall* blended with theoretical *LLM-as-judge faithfulness* | exact span recall, faithfulness score |
-| **Guardrail Tax** | Operational friction: false positives, latency, and Conversational Risk Accumulation (CRA) | base latency, false-positive rate, resolution penalty, CRA drop penalty |
+| Pillar | Captures | Key inputs |
+|--------|----------|------------|
+| **Productivity** | Skill-stratified human baselines + epistemic verification | reference baseline, skill tier, AI generation time, verification time |
+| **RAG Reliability** | Deterministic exact-span recall + faithfulness | exact span recall, faithfulness score, retrieval coverage |
+| **Value / Friction** | Operational friction, rework, and cost normalization | tool-switch cost, rework rate, $/hour normalization |
 
----
+These fuse into **TVY (True Value Yield)** — a defensible, time-denominated ROI metric you can compare across workflows, teams, and models.
 
-## The Core Mathematics
+## What it is
 
-All times are in **minutes**; all rates/scores are fractions in `[0, 1]`.
+APVA is a **local-first** framework (FastAPI + SQLAlchemy + Celery) that:
 
-**True Value Yield (TVY)**
-```
-TVY = (Gross_Time_Saved * RAG_Reliability_Coefficient) - Guardrail_Friction_Tax
-```
+- Runs TVY benchmarks against real workflows
+- Exposes a telemetry + scoring API (`/metrics`, `/health`)
+- Ships a CLI + SDK for embedding in your own pipelines
+- Persists results to SQLite/Postgres (async)
+- Is **bootstrap-ready** — one command stands up the full stack
 
-**Gross Time Saved (skill stratified)**
-```
-Gross_Time_Saved = Skill_Adjusted_Human_Baseline - (AI_Generation_Time + Epistemic_Verification_Time)
-```
-Junior baselines are scaled **up** (×1.5), seniors **down** (×0.7), so junior workflows yield higher gross time saved.
+## Quick bootstrap
 
-**RAG Reliability Coefficient**
-```
-RAG_Reliability = (0.60 * Exact_Span_Recall) + (0.40 * LLM_Faithfulness_Score)
-```
-
-**Guardrail Friction Tax**
-```
-Guardrail_Tax = Base_Latency_Overhead + (False_Positive_Rate * Resolution_Penalty_Time) + CRA_Session_Drop_Penalty
-```
-
-> **Negative productivity is a first-class result.** When verification overhead and guardrail tax exceed the human baseline, TVY is negative — the AI workflow is a net loss. APVA reports this faithfully rather than clamping to zero.
-
----
-
-## Installation
-
-Fast local dev setup:
 ```bash
-git clone https://github.com/<your-username>/apva-framework.git
+# 0. Prereqs: Python 3.12+, just (pipx install rust-just)
+git clone https://github.com/Hardonian/apva-framework.git
 cd apva-framework
-python3 -m venv .venv
-. .venv/bin/activate
-python -m pip install -e '.[dev]' -e packages/cli -e packages/sdk
-pytest
+
+# 1. One-command setup (venv + .env + deps + smoke test)
+just bootstrap
+#  or without just:
+./scripts/bootstrap.sh
+
+# 2. Configure
+cp .env.example .env   # edit with your keys — never commit .env
+
+# 3. Run
+just dev               # start locally
+just test              # run the suite
+just smoke             # assert health endpoint responds
+
+# Optional: Docker
+docker compose up --build
 ```
 
-Runtime-only core install:
-```bash
-python3 -m venv .venv
-. .venv/bin/activate
-python -m pip install -r requirements.txt
-```
-
-Python **3.10+** is required. The dependency ranges are intentionally Python-3.14-friendly for the EPYC lab.
-
----
-
-## Dashboard Integration
-
-The AI Lab Command Center exposes APVA directly at:
-
-```bash
-curl -fsS http://127.0.0.1:8000/api/productivity/apva \
-  -H 'Content-Type: application/json' \
-  -d '{
-    "name":"Productized AI Lab Audit",
-    "human_baseline_min":180,
-    "ai_generation_time_min":25,
-    "verification_time_min":30,
-    "skill_level":"mid",
-    "exact_span_recall":0.9,
-    "faithfulness_score":0.85,
-    "monthly_runs":12,
-    "hourly_value_usd":75
-  }' | jq
-```
-
-Use this as the money filter: if TVY is negative, kill the automation; if TVY is positive but small, optimize; if TVY is high, productize.
-
----
-
-## Usage
-
-### 1. Run the built-in demo
-
-```bash
-python -m apva.cli demo
-```
-
-### 2. Run from explicit parameters
-
-```bash
-python -m apva.cli run \
-  --name "support-bot" \
-  --human-baseline 60 --skill junior \
-  --ai-time 5 --verify-time 8 \
-  --span-recall 0.9 --faithfulness 0.85 \
-  --base-latency 0.5 --fp-rate 0.1 --resolution-penalty 12 --cra 2
-```
-
-Skill tiers: `junior`, `mid`, `senior`.
-
-### 3. Run from a JSON file
-
-```json
-{
-  "name": "doc-summarizer",
-  "productivity": {
-    "reference_human_baseline_min": 45,
-    "skill_level": "mid",
-    "ai_generation_time_min": 3,
-    "epistemic_verification_time_min": 6
-  },
-  "rag": { "exact_span_recall": 0.88, "llm_faithfulness_score": 0.82 },
-  "guardrail": {
-    "base_latency_overhead_min": 0.4,
-    "false_positive_rate": 0.05,
-    "resolution_penalty_time_min": 10,
-    "cra_session_drop_penalty_min": 1.5
-  }
-}
-```
-
-```bash
-python -m apva.cli run-file benchmark.json
-```
-
-### Example output
-
-```json
-{
-  "name": "demo-enterprise-support",
-  "skill_adjusted_human_baseline_min": 90.0,
-  "gross_time_saved_min": 77.0,
-  "rag_reliability_coefficient": 0.904,
-  "guardrail_friction_tax_min": 3.7,
-  "true_value_yield_min": 65.908,
-  "is_net_positive": true
-}
-```
-
-Write to a file with `-o report.json`.
-
----
-
-## Using APVA as a Library
-
-```python
-from apva import (
-    APVACalculator, BenchmarkInput, ProductivityMetrics,
-    RAGMetrics, GuardrailMetrics, SkillLevel,
-)
-
-bench = BenchmarkInput(
-    name="my-eval",
-    productivity=ProductivityMetrics(
-        reference_human_baseline_min=60,
-        skill_level=SkillLevel.JUNIOR,
-        ai_generation_time_min=5,
-        epistemic_verification_time_min=8,
-    ),
-    rag=RAGMetrics(exact_span_recall=0.9, llm_faithfulness_score=0.85),
-    guardrail=GuardrailMetrics(
-        base_latency_overhead_min=0.5,
-        false_positive_rate=0.1,
-        resolution_penalty_time_min=12,
-        cra_session_drop_penalty_min=2,
-    ),
-)
-
-report = APVACalculator.evaluate(bench)
-print(report.true_value_yield_min)
-```
-
----
-
-## Testing
-
-```bash
-pip install -r requirements.txt
-pytest -v
-```
-
-The suite verifies every formula to floating-point precision, the skill-stratification monotonicity property (`junior > mid > senior`), Pydantic validation bounds, and the critical **negative-productivity** edge case.
-
----
-
-## Project Structure
+## Layout
 
 ```
-apva-framework/
-├── apva/
-│   ├── __init__.py        # Public API exports
-│   ├── models.py          # Pydantic models (validated, type-safe inputs/outputs)
-│   ├── calculator.py      # The mathematical engine (pure, deterministic)
-│   └── cli.py             # argparse CLI -> JSON report
-├── tests/
-│   └── test_calculator.py # Exhaustive unit tests
-├── requirements.txt
-├── README.md
-├── .gitignore
-└── publish.sh             # Automated git + gh push
+apva/            # core TVY engine, models, scoring
+apps/            # service apps (API, worker)
+packages/        # reusable SDK / client
+data/            # fixtures, sample benchmarks
+docs/            # methodology + architecture
+tests/           # pytest suite
+deploy/          # container / deploy config
 ```
 
----
+## Why local-first
+
+No telemetry leaves your machine unless you wire it out. Benchmarks, scores, and
+raw traces stay in your own store — so the ROI numbers you report are auditable,
+not a black box.
+
+## Part of the Hardonia stack
+
+APVA is one of the [Hardonia](https://github.com/Hardonian) local-first AI
+infrastructure projects: measurable value, operator-grade control, and zero
+theatre.
 
 ## License
 
-MIT. See repository for details.
+MIT — see [LICENSE](LICENSE).
+
+---
+
+---
+
+## Related Hardonia projects
+
+<p align="center">
+  <a href="https://aiautomatedsystems.ca"><img src="https://img.shields.io/badge/AI_Automated_Systems-Visit-0f766e?style=for-the-badge&logo=cloudflare" alt="AI Automated Systems" /></a>
+  <a href="https://github.com/Hardonian/ollama-router"><img src="https://img.shields.io/badge/ollama--router-181717?style=for-the-badge&logo=github" alt="ollama-router" /></a>
+  <a href="https://github.com/Hardonian/ai-lab-audit-api"><img src="https://img.shields.io/badge/ai--lab--audit--api-181717?style=for-the-badge&logo=github" alt="ai-lab-audit-api" /></a>
+  <a href="https://github.com/Hardonian/ai-lab-command-center"><img src="https://img.shields.io/badge/command--center-181717?style=for-the-badge&logo=github" alt="ai-lab-command-center" /></a>
+  <a href="https://github.com/Hardonian/storefront"><img src="https://img.shields.io/badge/storefront-181717?style=for-the-badge&logo=github" alt="storefront" /></a>
+</p>
+
+<p align="center"><strong>Part of the <a href="https://aiautomatedsystems.ca">Hardonia</a> open-source + services stack.</strong></p>
+
+<p align="center">
+  <a href="https://aiautomatedsystems.ca/p/repo-rescue-saas-audit"><img src="https://img.shields.io/badge/Get_a-SaaS_Repo_Rescue_Audit-635BFF?style=for-the-badge&logo=stripe&logoColor=white" alt="SaaS Repo Rescue Audit" /></a>
+</p>
+
+<details>
+<summary>What this audit covers</summary>
+
+A fixed-scope review of **auth, billing, RLS, and webhook** correctness — the bugs that cost you customers and chargebacks. Runs locally on your infrastructure. See the <a href="https://aiautomatedsystems.ca/p/repo-rescue-saas-audit">product page</a>.
+</details>

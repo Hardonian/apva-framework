@@ -7,9 +7,9 @@ from typing import Any
 import pytest
 from httpx import AsyncClient, ASGITransport
 
-from apps.backend.main import app
+from apps.backend.apps.backend.main import app
 
-from apps.backend.dependencies import get_tenant_context
+from apps.backend.apps.backend.dependencies import get_tenant_context
 
 @pytest.fixture()
 async def api():

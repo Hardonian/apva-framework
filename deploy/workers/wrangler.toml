@@ -1,0 +1,21 @@
+name = "apva-framework"
+main = "src/worker.js"
+compatibility_date = "2024-06-01"
+
+[vars]
+ENVIRONMENT = "production"
+APP_NAME = "apva-framework"
+SCAN_CRON = "0 3 * * *"
+LOG_LEVEL = "INFO"
+
+[[d1_databases]]
+binding = "DB"
+database_name = "apva_framework"
+database_id = "a1c175d7-720f-4bbd-9cd8-2db03f938cc1"
+
+[triggers]
+crons = ["0 3 * * *"]
+
+[[routes]]
+pattern = "apva-framework.example.com"
+custom_domain = true

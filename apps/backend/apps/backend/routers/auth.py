@@ -3,13 +3,11 @@
 from __future__ import annotations
 
 import secrets
-from datetime import datetime, timedelta, timezone
 from typing import Any
 
 from fastapi import APIRouter, HTTPException, status
 from pydantic import BaseModel
 
-from apps.backend.database import get_session
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 

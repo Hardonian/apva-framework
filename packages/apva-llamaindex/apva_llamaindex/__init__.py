@@ -9,7 +9,7 @@ to the APVA ClickHouse backend.
 
 from typing import Any
 from llama_index.core.callbacks import BaseCallbackHandler
-from llama_index.core.callbacks.schema import CBEventType, EventPayload
+from llama_index.core.callbacks.schema import CBEventType
 
 class APVACallbackHandler(BaseCallbackHandler):
     """LlamaIndex callback handler for automated RAG evaluation & TVY."""

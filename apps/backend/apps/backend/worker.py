@@ -22,11 +22,11 @@ except ModuleNotFoundError:  # pragma: no cover - exercised when celery extra is
                 return fn
             return decorator
 
-from apps.backend.config import settings
-from apps.backend.database import AsyncSessionLocal
-from apps.backend.models import EvaluationJob
-from apps.backend.schemas import EvalTriggerRequest
-from apps.backend.services.eval import run_local_or_target_score
+from .config import settings
+from .database import AsyncSessionLocal
+from .models import EvaluationJob
+from .schemas import EvalTriggerRequest
+from .services.eval import run_local_or_target_score
 
 celery_app = Celery(
     "apva",
