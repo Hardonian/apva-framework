@@ -37,3 +37,28 @@ def test_load_golden_set(tmp_path: Path):
     examples = load_golden_set(path)
     assert len(examples) == 1
     assert examples[0]["query"] == "q"
+
+
+def test_apva_cli_main_demo(capsys: pytest.CaptureFixture[str]):
+    from apva.cli import main
+    exit_code = main(["demo"])
+    assert exit_code == 0
+    captured = capsys.readouterr()
+    assert "demo-enterprise-support" in captured.out
+
+
+def test_apva_cli_main_run_eval(capsys: pytest.CaptureFixture[str]):
+    from apva.cli import main
+    exit_code = main(["run-eval", "--golden-set", "data/golden_dataset.json", "--threshold", "0.80"])
+    assert exit_code == 0
+    captured = capsys.readouterr()
+    assert '"passed": true' in captured.out
+
+
+def test_apva_cli_main_audit(capsys: pytest.CaptureFixture[str]):
+    from apva.cli import main
+    exit_code = main(["audit", "--golden-set", "data/golden_dataset.json", "--hourly-rate", "85.0"])
+    assert exit_code == 0
+    captured = capsys.readouterr()
+    assert "APVA Enterprise AI ROI Audit Scorecard" in captured.out
+

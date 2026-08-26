@@ -164,7 +164,7 @@ def generate_audit_scorecard(
     tvy_usd = (tvy_min / 60.0) * hourly_rate_usd
     annual_usd_per_100_engineers = tvy_usd * 40 * 50 * 100
 
-    status_badge = "✅ NET-POSITIVE ROI" if tvy_min > 0 else "❌ NET-NEGATIVE YIELD"
+    status_badge = "[NET-POSITIVE ROI]" if tvy_min > 0 else "[NET-NEGATIVE YIELD]"
 
     scorecard = f"""# APVA Enterprise AI ROI Audit Scorecard
 
@@ -224,7 +224,10 @@ def _emit(report_text: str, output: str | None) -> None:
             handle.write(report_text + "\n")
         print(f"Report written to {output}", file=sys.stderr)
     else:
-        print(report_text)
+        try:
+            print(report_text)
+        except UnicodeEncodeError:
+            sys.stdout.buffer.write(report_text.encode("utf-8") + b"\n")
 
 
 def _build_from_args(args: argparse.Namespace) -> BenchmarkInput:
