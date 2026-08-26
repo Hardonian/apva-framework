@@ -94,12 +94,22 @@ def build_parser() -> argparse.ArgumentParser:
     run_eval.add_argument("--golden-set", required=True, help="Path to golden dataset JSON")
     run_eval.add_argument("--target-url", default=None, help="Optional target RAG system base URL")
     run_eval.add_argument("--threshold", type=float, default=0.85, help="Pass threshold")
+    
+    proxy = sub.add_parser("proxy", help="Run universal local AI proxy")
+    proxy.add_argument("--port", type=int, default=8080, help="Proxy listen port")
+    proxy.add_argument("--target", default="http://localhost:11434/v1", help="Target base URL (e.g., Ollama or vLLM)")
+    
     return parser
-
 
 def main(argv: list[str] | None = None) -> int:
     parser = build_parser()
     args = parser.parse_args(argv)
+    
+    if args.command == "proxy":
+        from apva_cli.proxy import run_proxy
+        run_proxy(args.port, args.target)
+        return 0
+        
     if args.command != "run-eval":
         parser.error("Unsupported command")
     examples = load_golden_set(Path(args.golden_set))

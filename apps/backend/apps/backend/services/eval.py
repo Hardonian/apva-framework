@@ -207,12 +207,22 @@ async def run_local_or_target_score(
     try:
         return await score_with_mock_target(request, target_app_url)
     except httpx.HTTPError:
-        scores = compute_rag_scores(request.answer, request.expected_answer)
+        from apps.backend.services.slm import ProprietarySLM
+        recall = exact_span_recall(request.answer, request.expected_answer)
+        precision = mock_precision_score(request.answer, request.expected_answer)
+        faithfulness = await ProprietarySLM.evaluate_rag(
+            query=request.query,
+            context=request.context,
+            answer=request.answer,
+            expected_answer=request.expected_answer
+        )
+        reliability = SPAN_RECALL_WEIGHT * recall + FAITHFULNESS_WEIGHT * faithfulness
+        
         return {
-            "exact_span_recall": scores.exact_span_recall,
-            "llm_faithfulness_score": scores.llm_faithfulness_score,
-            "precision_score": scores.precision_score,
-            "rag_reliability_coefficient": scores.rag_reliability_coefficient,
+            "exact_span_recall": recall,
+            "llm_faithfulness_score": faithfulness,
+            "precision_score": precision,
+            "rag_reliability_coefficient": reliability,
         }
 
 

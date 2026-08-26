@@ -1,0 +1,19 @@
+name = "apva-edge-telemetry-ingest"
+main = "src/index.ts"
+compatibility_date = "2024-05-24"
+compatibility_flags = ["nodejs_compat"]
+
+# Bind to Cloudflare Workers KV if necessary
+# kv_namespaces = [
+#   { binding = "APVA_CONFIG", id = "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx" }
+# ]
+
+[vars]
+# Configuration for the Edge Worker
+APVA_KAFKA_TOPIC = "apva.telemetry.events.v1"
+# KAFKA_REST_PROXY_URL will be populated securely via wrangler secrets
+
+# Optional: define routes if deployed outside of a workers.dev domain
+# routes = [
+#   { pattern = "edge.apva.io/api/v1/telemetry", zone_name = "apva.io" }
+# ]
