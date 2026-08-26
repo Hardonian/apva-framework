@@ -32,7 +32,7 @@ async def get_macro_tvy(
     Returns:
         TvyMetricResponse: Aggregated TVY metrics.
     """
-    telemetry_count, avg_human, avg_ai, avg_guardrail, avg_hourly_rate = await session.execute(
+    telemetry_result = await session.execute(
         select(
             func.count(TelemetryEvent.id),
             func.avg(TelemetryEvent.human_baseline_time),
@@ -40,13 +40,16 @@ async def get_macro_tvy(
             func.avg(TelemetryEvent.guardrail_latency_tax),
             func.avg(TelemetryEvent.hourly_rate_usd),
         ).where(TelemetryEvent.tenant_id == tenant_context["tenant_id"])
-    ).one()
-    evaluation_count, avg_reliability = await session.execute(
+    )
+    telemetry_count, avg_human, avg_ai, avg_guardrail, avg_hourly_rate = telemetry_result.one()
+
+    eval_result = await session.execute(
         select(
             func.count(EvaluationJob.id),
             func.avg(EvaluationJob.rag_reliability_coefficient),
         ).where(EvaluationJob.status == "completed", EvaluationJob.tenant_id == tenant_context["tenant_id"])
-    ).one()
+    )
+    evaluation_count, avg_reliability = eval_result.one()
 
     telemetry_count_int = int(telemetry_count or 0)
     evaluation_count_int = int(evaluation_count or 0)
@@ -86,7 +89,7 @@ async def get_prometheus_metrics(
     Returns:
         str: Prometheus-compatible text payload.
     """
-    telemetry_count, avg_human, avg_ai, avg_guardrail, avg_hourly_rate = await session.execute(
+    telemetry_result = await session.execute(
         select(
             func.count(TelemetryEvent.id),
             func.avg(TelemetryEvent.human_baseline_time),
@@ -94,13 +97,16 @@ async def get_prometheus_metrics(
             func.avg(TelemetryEvent.guardrail_latency_tax),
             func.avg(TelemetryEvent.hourly_rate_usd),
         ).where(TelemetryEvent.tenant_id == tenant_context["tenant_id"])
-    ).one()
-    evaluation_count, avg_reliability = await session.execute(
+    )
+    telemetry_count, avg_human, avg_ai, avg_guardrail, avg_hourly_rate = telemetry_result.one()
+
+    eval_result = await session.execute(
         select(
             func.count(EvaluationJob.id),
             func.avg(EvaluationJob.rag_reliability_coefficient),
         ).where(EvaluationJob.status == "completed", EvaluationJob.tenant_id == tenant_context["tenant_id"])
-    ).one()
+    )
+    evaluation_count, avg_reliability = eval_result.one()
 
     telemetry_count_int = int(telemetry_count or 0)
     evaluation_count_int = int(evaluation_count or 0)
@@ -145,7 +151,6 @@ async def get_agentic_insights(
 ) -> list[dict[str, Any]]:
     """Return actionable AI prescriptions based on tenant data."""
     # Compute the latest metrics to generate insights
-    metrics_response = await get_macro_tvy(session, tenant_context)
     metrics_obj = await get_macro_tvy(session, tenant_context)
     metrics = {
         "avg_guardrail_tax_min": metrics_obj.avg_guardrail_tax_min,

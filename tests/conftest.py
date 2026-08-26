@@ -16,6 +16,8 @@ SOURCE_ROOTS = [
     ROOT,
     ROOT / "packages" / "cli" / "src",
     ROOT / "packages" / "sdk" / "src",
+    ROOT / "packages" / "apva-langchain",
+    ROOT / "packages" / "apva-llamaindex",
 ]
 
 for source_root in reversed(SOURCE_ROOTS):

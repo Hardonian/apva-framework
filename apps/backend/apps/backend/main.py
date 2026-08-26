@@ -102,8 +102,18 @@ async def _rate_limit_handler(request: Request, exc: RateLimitError):
 
 @app.middleware("http")
 async def add_security_headers(request: Request, call_next):
-    """Add Enterprise-grade security headers to all responses."""
+    """Add Enterprise-grade security headers, request ID, and process timing to all responses."""
+    import time
+    import uuid
+
+    req_id = request.headers.get("X-Request-ID") or uuid.uuid4().hex
+    start_time = time.perf_counter()
+
     response = await call_next(request)
+
+    elapsed_ms = (time.perf_counter() - start_time) * 1000.0
+    response.headers["X-Request-ID"] = req_id
+    response.headers["X-Process-Time-Ms"] = f"{elapsed_ms:.2f}"
     response.headers["Strict-Transport-Security"] = "max-age=63072000; includeSubDomains; preload"
     response.headers["X-Content-Type-Options"] = "nosniff"
     response.headers["X-Frame-Options"] = "DENY"

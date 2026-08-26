@@ -32,7 +32,11 @@ async def health(
 
     redis_status = "ok"
     try:
-        redis = Redis.from_url(settings.redis_url)
+        redis = Redis.from_url(
+            settings.redis_url,
+            socket_connect_timeout=0.2,
+            socket_timeout=0.2,
+        )
         await redis.ping()
         await redis.aclose()
     except Exception:
@@ -40,7 +44,11 @@ async def health(
 
     celery_broker_status = "ok"
     try:
-        broker = Redis.from_url(settings.celery_broker_url)
+        broker = Redis.from_url(
+            settings.celery_broker_url,
+            socket_connect_timeout=0.2,
+            socket_timeout=0.2,
+        )
         await broker.ping()
         await broker.aclose()
     except Exception:

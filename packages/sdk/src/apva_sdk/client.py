@@ -2,14 +2,18 @@
 
 from __future__ import annotations
 
+import logging
 import os
 import queue
 import threading
+import time
 import uuid
 from typing import Any
 
 import httpx
 from pydantic import BaseModel, ConfigDict, Field
+
+logger = logging.getLogger(__name__)
 
 
 class TelemetryEventPayload(BaseModel):
@@ -55,7 +59,7 @@ class APVATelemetryClient:
         api_key: str | None = None,
         app_name: str = "apva-sdk-client",
         session_id: str | None = None,
-        queue_size: int = 1000,
+        queue_size: int = 2000,
     ) -> None:
         """Initialize the telemetry client.
 
@@ -95,7 +99,26 @@ class APVATelemetryClient:
             self._queue.put_nowait(payload)
             return True
         except queue.Full:
+            logger.warning("[APVA] Telemetry queue full; dropping event %s", payload.run_id)
             return False
+
+    def ingest_batch(
+        self,
+        payloads: list[TelemetryEventPayload],
+    ) -> int:
+        """Enqueue multiple telemetry payloads asynchronously.
+
+        Args:
+            payloads: List of validated telemetry payloads.
+
+        Returns:
+            int: Number of successfully enqueued payloads.
+        """
+        enqueued = 0
+        for p in payloads:
+            if self.ingest_async(p):
+                enqueued += 1
+        return enqueued
 
     def ingest(self, payload: TelemetryEventPayload) -> None:
         """Send a telemetry payload synchronously.
@@ -105,8 +128,14 @@ class APVATelemetryClient:
         """
         self._send(payload)
 
+    def flush(self, timeout: float = 2.0) -> None:
+        """Drain the queue and wait for pending sends."""
+        deadline = time.time() + timeout
+        while not self._queue.empty() and time.time() < deadline:
+            time.sleep(0.05)
+
     def close(self, timeout: float = 2.0) -> None:
-        """Stop the background sender thread.
+        """Stop the background sender thread and flush pending events.
 
         Args:
             timeout: Maximum seconds to wait for queued events to drain.
@@ -119,22 +148,27 @@ class APVATelemetryClient:
         headers = {"Content-Type": "application/json"}
         if self.api_key:
             headers["Authorization"] = f"Bearer {self.api_key}"
-            
+
         with httpx.Client(timeout=5.0, headers=headers) as client:
             while not self._stop_event.is_set() or not self._queue.empty():
                 try:
                     payload = self._queue.get(timeout=0.2)
                 except queue.Empty:
                     continue
-                
-                try:
-                    response = client.post(self.endpoint, json=payload.model_dump())
-                    response.raise_for_status()
-                except Exception:
-                    pass # In a production system, we might log this or retry
+
+                for attempt in range(2):
+                    try:
+                        response = client.post(self.endpoint, json=payload.model_dump())
+                        response.raise_for_status()
+                        break
+                    except Exception as exc:
+                        if attempt == 0:
+                            time.sleep(0.1)
+                        else:
+                            logger.debug("[APVA] Ingestion send error: %s", exc)
 
     def _send(self, payload: TelemetryEventPayload) -> None:
-        """Send one payload to the backend.
+        """Send one payload to the backend synchronously.
 
         Args:
             payload: Validated telemetry payload.
@@ -142,16 +176,18 @@ class APVATelemetryClient:
         headers = {"Content-Type": "application/json"}
         if self.api_key:
             headers["Authorization"] = f"Bearer {self.api_key}"
-            
+
         with httpx.Client(timeout=5.0, headers=headers) as client:
             response = client.post(self.endpoint, json=payload.model_dump())
             response.raise_for_status()
 
+
 _default_client: APVATelemetryClient | None = None
+
 
 def get_default_client() -> APVATelemetryClient:
     """Return a lazy-initialized default global telemetry client.
-    
+
     Returns:
         APVATelemetryClient: The default global client instance.
     """
@@ -159,4 +195,3 @@ def get_default_client() -> APVATelemetryClient:
     if _default_client is None:
         _default_client = APVATelemetryClient()
     return _default_client
-

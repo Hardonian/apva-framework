@@ -50,7 +50,7 @@ async def test_rate_limiter_active():
         async with AsyncClient(transport=transport, base_url="http://testserver") as client:
             codes = []
             for _ in range(8):
-                resp = await client.get("/api/v1/health")
+                resp = await client.get("/api/v1/auth/sso/callback?code=c&state=s")
                 codes.append(resp.status_code)
         assert codes[:3] == [200, 200, 200], f"first 3 should pass: {codes}"
         assert all(c == 429 for c in codes[3:]), f"remaining should be 429: {codes}"

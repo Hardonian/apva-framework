@@ -42,7 +42,13 @@ apva_framework.egg-info/SOURCES.txt
 apva_framework.egg-info/dependency_links.txt
 apva_framework.egg-info/requires.txt
 apva_framework.egg-info/top_level.txt
+tests/test_batch_client.py
+tests/test_billing.py
 tests/test_calculator.py
 tests/test_cli.py
 tests/test_ingestion.py
+tests/test_integrations.py
+tests/test_metrics.py
+tests/test_proxy.py
+tests/test_safeguards.py
 tests/test_sdk.py
