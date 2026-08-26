@@ -58,3 +58,9 @@ def rate_limit(request: Request) -> None:
     if _hits[bucket] > LIMIT:
         # Clean up the current window bucket to avoid unbounded growth.
         raise RateLimitError("global")
+
+
+def reset_limits() -> None:
+    """Reset the in-memory rate limit counter state."""
+    _hits.clear()
+

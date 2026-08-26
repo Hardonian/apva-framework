@@ -42,6 +42,7 @@ async def test_rate_limiter_active():
     """
     import apps.backend.apps.backend.limiter as limiter_mod
 
+    limiter_mod.reset_limits()
     original = limiter_mod.LIMIT
     limiter_mod.LIMIT = 3  # tighten so the test is fast and deterministic
     try:
@@ -55,3 +56,4 @@ async def test_rate_limiter_active():
         assert all(c == 429 for c in codes[3:]), f"remaining should be 429: {codes}"
     finally:
         limiter_mod.LIMIT = original
+        limiter_mod.reset_limits()
