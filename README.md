@@ -34,7 +34,7 @@ $$\text{TVY} = (\text{Gross Time Saved} \times \text{RAG Reliability}) - \text{G
 ## The Three Pillars
 
 | Pillar | Captures | Key inputs |
-|---|---|---|
+| :--- | :--- | :--- |
 | **Productivity** | Skill-stratified human baselines + epistemic verification | reference baseline, skill tier, AI generation time, verification time |
 | **RAG Reliability** | Deterministic exact-span recall + SLM judge faithfulness | exact span recall, faithfulness score, retrieval coverage |
 | **Value / Friction** | Operational friction, guardrail latency tax, and hourly rates | base latency tax, false-positive penalty, hourly practitioner wage |
@@ -48,13 +48,16 @@ These fuse into **TVY (True Value Yield)** — a defensible, time-denominated RO
 ### 1. Leveraging in the AIAS Repository ([AI Automated Systems](https://aiautomatedsystems.ca))
 
 #### A. Turnkey AI ROI & Valuation Audits
+
 When auditing client AI systems, APVA provides the mathematical and auditable backbone to generate client scorecards:
+
 * **Gross Time Saved**: Human baseline vs. AI generation and verification time.
 * **RAG Reliability Discount**: Factored by exact span recall and SLM judge faithfulness.
 * **Guardrail Latency Tax**: Quantified cost of slow semantic routers and false-positive blocks.
 * **Diagnostic Directives**: Actionable prescriptions generated from `/api/v1/metrics/insights`.
 
 #### B. Automated CI/CD Regression Gate
+
 Integrate the `apva` CLI into GitHub Actions to fail PR builds if retrieval faithfulness degrades:
 
 ```yaml
@@ -82,6 +85,7 @@ jobs:
 ```
 
 #### C. Zero-Code Client Agent Telemetry
+
 Equip AIAS client agents with native, non-blocking telemetry hooks:
 
 ```python
@@ -113,7 +117,7 @@ agent.invoke({"input": user_prompt}, config={"callbacks": [handler]})
 ### 3. Hardonia Stack Architecture Matrix
 
 | Layer | Repository | Role |
-|---|---|---|
+| :--- | :--- | :--- |
 | **Routing & Local LLM** | [`ollama-router`](https://github.com/Hardonian/ollama-router) | High-throughput local model multiplexing & failover |
 | **ROI & Metric Engine** | [`apva-framework`](https://github.com/Hardonian/apva-framework) | TVY benchmarking, RAG scoring & safeguard policies |
 | **Security & Compliance** | [`ai-lab-audit-api`](https://github.com/Hardonian/ai-lab-audit-api) | Automated security, auth, and vulnerability auditing |
@@ -139,14 +143,14 @@ cp .env.example .env
 
 # 3. Run
 just dev               # Start backend & dashboard
-just test              # Run full pytest suite (41+ tests)
+just test              # Run full pytest suite (44+ tests)
 ```
 
 ---
 
 ## Layout
 
-```
+```text
 apva/            # Core TVY calculation engine & models
 apps/
   backend/       # Enterprise FastAPI service (telemetry, eval, safeguards, metrics)
@@ -172,14 +176,12 @@ MIT — see [LICENSE](LICENSE).
 
 ## Related Hardonia Projects
 
-<p align="center">
-  <a href="https://aiautomatedsystems.ca"><img src="https://img.shields.io/badge/AI_Automated_Systems-Visit-0f766e?style=for-the-badge&logo=cloudflare" alt="AI Automated Systems" /></a>
-  <a href="https://github.com/Hardonian/ollama-router"><img src="https://img.shields.io/badge/ollama--router-181717?style=for-the-badge&logo=github" alt="ollama-router" /></a>
-  <a href="https://github.com/Hardonian/ai-lab-audit-api"><img src="https://img.shields.io/badge/ai--lab--audit--api-181717?style=for-the-badge&logo=github" alt="ai-lab-audit-api" /></a>
-  <a href="https://github.com/Hardonian/ai-lab-command-center"><img src="https://img.shields.io/badge/command--center-181717?style=for-the-badge&logo=github" alt="ai-lab-command-center" /></a>
-  <a href="https://github.com/Hardonian/storefront"><img src="https://img.shields.io/badge/storefront-181717?style=for-the-badge&logo=github" alt="storefront" /></a>
-</p>
+[![AI Automated Systems](https://img.shields.io/badge/AI_Automated_Systems-Visit-0f766e?style=for-the-badge&logo=cloudflare)](https://aiautomatedsystems.ca)
+[![ollama-router](https://img.shields.io/badge/ollama--router-181717?style=for-the-badge&logo=github)](https://github.com/Hardonian/ollama-router)
+[![ai-lab-audit-api](https://img.shields.io/badge/ai--lab--audit--api-181717?style=for-the-badge&logo=github)](https://github.com/Hardonian/ai-lab-audit-api)
+[![ai-lab-command-center](https://img.shields.io/badge/command--center-181717?style=for-the-badge&logo=github)](https://github.com/Hardonian/ai-lab-command-center)
+[![storefront](https://img.shields.io/badge/storefront-181717?style=for-the-badge&logo=github)](https://github.com/Hardonian/storefront)
 
-<p align="center"><strong>Part of the <a href="https://aiautomatedsystems.ca">Hardonia</a> open-source + services stack.</strong></p>
+**Part of the [Hardonia](https://aiautomatedsystems.ca) open-source + services stack.**
 
 > **Need to audit your team's AI ROI?** Run `apva run-eval` or book an [Enterprise TVY Audit on the Hardonia Store](https://aiautomatedsystems.ca/p/repo-rescue-saas-audit).
