@@ -13,16 +13,6 @@ from slowapi import Limiter
 from slowapi.middleware import SlowAPIMiddleware
 from slowapi.util import get_remote_address
 
-<<<<<<< HEAD
-from apps.backend.database import engine
-from apps.backend.models import Base
-from apps.backend.routers.eval import router as eval_router
-from apps.backend.routers.health import router as health_router
-from apps.backend.routers.metrics import router as metrics_router
-from apps.backend.routers.telemetry import router as telemetry_router
-from apps.backend.routers.auth import router as auth_router
-from apps.backend.routers.safeguards import router as safeguards_router
-=======
 from .database import engine
 from .limiter import RateLimitError, rate_limit
 from .models import Base
@@ -30,8 +20,8 @@ from .routers.auth import router as auth_router
 from .routers.eval import router as eval_router
 from .routers.health import router as health_router
 from .routers.metrics import router as metrics_router
+from .routers.safeguards import router as safeguards_router
 from .routers.telemetry import router as telemetry_router
->>>>>>> 7897cecd3e73a856d2e186a3de5f39b7e810a42e
 
 logger = logging.getLogger(__name__)
 
@@ -129,20 +119,12 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-<<<<<<< HEAD
-app.include_router(telemetry_router, prefix="/api/v1")
-app.include_router(eval_router, prefix="/api/v1")
-app.include_router(metrics_router, prefix="/api/v1")
-app.include_router(health_router, prefix="/api/v1")
-app.include_router(auth_router, prefix="/api/v1")
-app.include_router(safeguards_router, prefix="/api/v1")
-=======
 app.include_router(telemetry_router, prefix="/api/v1", dependencies=[Depends(rate_limit)])
 app.include_router(eval_router, prefix="/api/v1", dependencies=[Depends(rate_limit)])
 app.include_router(metrics_router, prefix="/api/v1", dependencies=[Depends(rate_limit)])
 app.include_router(health_router, prefix="/api/v1", dependencies=[Depends(rate_limit)])
 app.include_router(auth_router, prefix="/api/v1", dependencies=[Depends(rate_limit)])
->>>>>>> 7897cecd3e73a856d2e186a3de5f39b7e810a42e
+app.include_router(safeguards_router, prefix="/api/v1", dependencies=[Depends(rate_limit)])
 
 
 @app.exception_handler(Exception)

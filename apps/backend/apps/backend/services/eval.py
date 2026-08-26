@@ -207,7 +207,7 @@ async def run_local_or_target_score(
     try:
         return await score_with_mock_target(request, target_app_url)
     except httpx.HTTPError:
-        from apps.backend.services.slm import ProprietarySLM
+        from .slm import ProprietarySLM
         recall = exact_span_recall(request.answer, request.expected_answer)
         precision = mock_precision_score(request.answer, request.expected_answer)
         faithfulness = await ProprietarySLM.evaluate_rag(

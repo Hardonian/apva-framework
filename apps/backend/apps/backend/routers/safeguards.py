@@ -7,7 +7,7 @@ from typing import Any
 from fastapi import APIRouter, Depends
 from pydantic import BaseModel
 
-from apps.backend.dependencies import get_tenant_context
+from ..dependencies import get_tenant_context
 
 router = APIRouter(prefix="/safeguards", tags=["safeguards"])
 
