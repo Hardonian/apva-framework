@@ -46,11 +46,13 @@ def apva_track_latency(
 ) -> Callable[[Callable[P, Awaitable[T] | T]], Callable[P, Awaitable[T]]]:
     """Track AI-augmented latency and stream APVA telemetry.
 
+    Generates a unique ``run_id`` per invocation unless explicitly provided.
+
     Args:
-        client: Telemetry client. Defaults to a new SDK client.
+        client: Telemetry client. Defaults to global default client.
         app_name: Client application name.
         session_id: Client session ID.
-        run_id: Client run ID.
+        run_id: Optional client run ID override.
         human_baseline_time: Human baseline time in minutes.
         hourly_rate_usd: Optional hourly rate.
         is_shadow: Shadow mode flag.
@@ -62,18 +64,10 @@ def apva_track_latency(
     telemetry_client = client or get_default_client()
     default_app_name = app_name or telemetry_client.app_name
     default_session_id = session_id or telemetry_client.session_id
-    default_run_id = run_id or uuid4().hex
     default_metadata = metadata or {}
 
     def decorator(func: Callable[P, Awaitable[T] | T]) -> Callable[P, Awaitable[T]]:
-        """Wrap an async function and send latency telemetry.
-
-        Args:
-            func: Async function to wrap.
-
-        Returns:
-            Callable: Wrapped function.
-        """
+        """Wrap an async or sync function and send latency telemetry."""
 
         @wraps(func)
         async def wrapper(*args: P.args, **kwargs: P.kwargs) -> T:
@@ -82,10 +76,14 @@ def apva_track_latency(
             result = func(*args, **kwargs)
             awaited = await _ensure_async_result(result)
             elapsed_min = (time.perf_counter() - start) / 60.0
+
+            # Generate fresh run_id per invocation if not overridden
+            current_run_id = run_id or uuid4().hex
+
             payload = TelemetryEventPayload(
                 app_name=default_app_name,
                 session_id=default_session_id,
-                run_id=default_run_id,
+                run_id=current_run_id,
                 human_baseline_time=float(human_baseline_time or 0.0),
                 ai_augmented_time=elapsed_min,
                 guardrail_latency_tax=0.0,
@@ -117,11 +115,13 @@ def apva_guardrail_check(
 ) -> Callable[[Callable[P, Awaitable[T] | T]], Callable[P, Awaitable[T]]]:
     """Track guardrail latency tax and stream APVA telemetry.
 
+    Generates a unique ``run_id`` per invocation unless explicitly provided.
+
     Args:
-        client: Telemetry client. Defaults to a new SDK client.
+        client: Telemetry client. Defaults to global default client.
         app_name: Client application name.
         session_id: Client session ID.
-        run_id: Client run ID.
+        run_id: Optional client run ID override.
         human_baseline_time: Human baseline time in minutes.
         ai_augmented_time: AI-augmented time in minutes.
         session_iterations: Session iteration count.
@@ -135,18 +135,10 @@ def apva_guardrail_check(
     telemetry_client = client or get_default_client()
     default_app_name = app_name or telemetry_client.app_name
     default_session_id = session_id or telemetry_client.session_id
-    default_run_id = run_id or uuid4().hex
     default_metadata = metadata or {}
 
     def decorator(func: Callable[P, Awaitable[T] | T]) -> Callable[P, Awaitable[T]]:
-        """Wrap an async function and send guardrail telemetry.
-
-        Args:
-            func: Async function to wrap.
-
-        Returns:
-            Callable: Wrapped function.
-        """
+        """Wrap an async or sync function and send guardrail telemetry."""
 
         @wraps(func)
         async def wrapper(*args: P.args, **kwargs: P.kwargs) -> T:
@@ -155,10 +147,14 @@ def apva_guardrail_check(
             result = func(*args, **kwargs)
             awaited = await _ensure_async_result(result)
             guardrail_latency_tax = (time.perf_counter() - start) / 60.0
+
+            # Generate fresh run_id per invocation if not overridden
+            current_run_id = run_id or uuid4().hex
+
             payload = TelemetryEventPayload(
                 app_name=default_app_name,
                 session_id=default_session_id,
-                run_id=default_run_id,
+                run_id=current_run_id,
                 human_baseline_time=float(human_baseline_time or 0.0),
                 ai_augmented_time=float(ai_augmented_time or 0.0),
                 guardrail_latency_tax=guardrail_latency_tax,

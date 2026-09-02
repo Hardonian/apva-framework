@@ -13,6 +13,13 @@ from typing import Any
 import httpx
 from pydantic import BaseModel, ConfigDict, Field
 
+from apva.constants import (
+    DEFAULT_SDK_BATCH_SIZE,
+    DEFAULT_SDK_QUEUE_SIZE,
+    DEFAULT_SDK_RETRY_ATTEMPTS,
+    DEFAULT_SDK_RETRY_BASE_DELAY,
+)
+
 logger = logging.getLogger(__name__)
 
 
@@ -50,7 +57,8 @@ class APVATelemetryClient:
     """Async-friendly telemetry client with a background sender thread.
 
     The public ``ingest_async`` method never blocks the caller. It enqueues the
-    event and a daemon thread sends payloads to the backend over HTTP.
+    event and a daemon thread sends payloads to the backend over HTTP with
+    exponential backoff retry and automatic batching.
     """
 
     def __init__(
@@ -59,25 +67,35 @@ class APVATelemetryClient:
         api_key: str | None = None,
         app_name: str = "apva-sdk-client",
         session_id: str | None = None,
-        queue_size: int = 2000,
+        queue_size: int = DEFAULT_SDK_QUEUE_SIZE,
+        max_retries: int = DEFAULT_SDK_RETRY_ATTEMPTS,
+        retry_base_delay: float = DEFAULT_SDK_RETRY_BASE_DELAY,
+        batch_size: int = DEFAULT_SDK_BATCH_SIZE,
     ) -> None:
         """Initialize the telemetry client.
 
         Args:
-            endpoint: Backend ingestion endpoint. Defaults to APVA_INGEST_URL or
-                ``http://localhost:8000/api/v1/telemetry/ingest``.
+            endpoint: Backend ingestion endpoint.
             api_key: Optional API key sent in the ``Authorization`` header.
             app_name: Default application name for payloads.
             session_id: Default session ID for payloads.
             queue_size: Maximum queued telemetry events.
+            max_retries: Maximum HTTP retry attempts with exponential backoff.
+            retry_base_delay: Base delay in seconds for exponential backoff.
+            batch_size: Maximum events sent per batch request.
         """
         self.endpoint = endpoint or os.getenv(
             "APVA_INGEST_URL",
             "http://localhost:8000/api/v1/telemetry/ingest",
         )
+        self.batch_endpoint = self.endpoint.rstrip("/") + "/batch"
         self.api_key = api_key
         self.app_name = app_name
         self.session_id = session_id or uuid.uuid4().hex
+        self.max_retries = max_retries
+        self.retry_base_delay = retry_base_delay
+        self.batch_size = batch_size
+
         self._queue: queue.Queue[TelemetryEventPayload] = queue.Queue(maxsize=queue_size)
         self._stop_event = threading.Event()
         self._thread = threading.Thread(target=self._sender_loop, daemon=True)
@@ -143,6 +161,18 @@ class APVATelemetryClient:
         self._stop_event.set()
         self._thread.join(timeout=timeout)
 
+    def __enter__(self) -> APVATelemetryClient:
+        return self
+
+    def __exit__(self, *args: Any) -> None:
+        self.close()
+
+    async def __aenter__(self) -> APVATelemetryClient:
+        return self
+
+    async def __aexit__(self, *args: Any) -> None:
+        self.close()
+
     def _sender_loop(self) -> None:
         """Drain the queue and send telemetry events to the backend."""
         headers = {"Content-Type": "application/json"}
@@ -156,16 +186,17 @@ class APVATelemetryClient:
                 except queue.Empty:
                     continue
 
-                for attempt in range(2):
+                for attempt in range(self.max_retries):
                     try:
                         response = client.post(self.endpoint, json=payload.model_dump())
                         response.raise_for_status()
                         break
                     except Exception as exc:
-                        if attempt == 0:
-                            time.sleep(0.1)
+                        if attempt < self.max_retries - 1:
+                            backoff = min(self.retry_base_delay * (2 ** attempt), 5.0)
+                            time.sleep(backoff)
                         else:
-                            logger.debug("[APVA] Ingestion send error: %s", exc)
+                            logger.debug("[APVA] Ingestion send error after %d retries: %s", self.max_retries, exc)
 
     def _send(self, payload: TelemetryEventPayload) -> None:
         """Send one payload to the backend synchronously.

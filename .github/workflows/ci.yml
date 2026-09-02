@@ -12,14 +12,19 @@ permissions:
 jobs:
   test:
     runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: ["3.10", "3.11", "3.12"]
     steps:
       - uses: actions/checkout@v7
       - uses: actions/setup-python@v7
         with:
-          python-version: "3.11"
+          python-version: ${{ matrix.python-version }}
       - name: Install uv
         run: python -m pip install uv
-      - name: Install locked dependencies
-        run: uv sync --frozen --extra dev
-      - name: Run tests
-        run: uv run pytest
+      - name: Install dependencies
+        run: uv sync --extra dev
+      - name: Run test suite
+        run: uv run pytest tests/ -v
+      - name: APVA Evaluation Gate
+        run: uv run apva run-eval --golden-set data/golden_dataset.json --threshold 0.85

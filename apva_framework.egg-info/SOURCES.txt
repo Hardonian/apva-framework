@@ -17,6 +17,7 @@ apps/backend/apps/backend/schemas.py
 apps/backend/apps/backend/worker.py
 apps/backend/apps/backend/routers/__init__.py
 apps/backend/apps/backend/routers/auth.py
+apps/backend/apps/backend/routers/billing.py
 apps/backend/apps/backend/routers/eval.py
 apps/backend/apps/backend/routers/health.py
 apps/backend/apps/backend/routers/metrics.py
@@ -26,6 +27,7 @@ apps/backend/apps/backend/services/__init__.py
 apps/backend/apps/backend/services/billing.py
 apps/backend/apps/backend/services/clickhouse.py
 apps/backend/apps/backend/services/eval.py
+apps/backend/apps/backend/services/metrics.py
 apps/backend/apps/backend/services/policy.py
 apps/backend/apps/backend/services/slm.py
 apps/backend/apps/backend/services/streaming.py
@@ -36,7 +38,13 @@ apps/mock_target/app.py
 apva/__init__.py
 apva/calculator.py
 apva/cli.py
+apva/constants.py
+apva/datasets.py
+apva/evaluation.py
+apva/exceptions.py
+apva/formatters.py
 apva/models.py
+apva/scoring.py
 apva_framework.egg-info/PKG-INFO
 apva_framework.egg-info/SOURCES.txt
 apva_framework.egg-info/dependency_links.txt
@@ -47,9 +55,13 @@ tests/test_batch_client.py
 tests/test_billing.py
 tests/test_calculator.py
 tests/test_cli.py
+tests/test_datasets.py
+tests/test_evaluation.py
+tests/test_exceptions.py
 tests/test_ingestion.py
 tests/test_integrations.py
 tests/test_metrics.py
 tests/test_proxy.py
 tests/test_safeguards.py
+tests/test_scoring.py
 tests/test_sdk.py

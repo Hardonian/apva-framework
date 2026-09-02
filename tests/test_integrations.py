@@ -1,4 +1,4 @@
-"""Tests for APVA SDK Integrations: LangChain, LlamaIndex, and OpenAI native wrappers."""
+"""Tests for APVA SDK Integrations: LangChain, LlamaIndex, OpenAI, and Anthropic wrappers."""
 
 from __future__ import annotations
 
@@ -11,7 +11,7 @@ import pytest
 
 from apva_langchain import APVACallbackHandler as LangChainCallbackHandler
 from apva_llamaindex import APVACallbackHandler as LlamaIndexCallbackHandler
-from apva_sdk.integrations.openai_wrapper import APVAOpenAI
+from apva_sdk.integrations import APVAAnthropic, APVAOpenAI
 
 
 class MockTelemetryClient:
@@ -183,3 +183,74 @@ async def test_openai_wrapper_async():
     assert p.app_name == "openai-async-test"
     assert p.human_baseline_time == 15.0
     assert p.metadata.get("total_tokens") == 30
+
+
+def test_anthropic_wrapper_sync():
+    mock_client = MockTelemetryClient()
+
+    class MockAnthropicResponse:
+        id = "msg-anthropic-789"
+        class usage:
+            input_tokens = 45
+            output_tokens = 60
+
+    class MockAnthropicClient:
+        class messages:
+            @staticmethod
+            def create(*args, **kwargs):
+                return MockAnthropicResponse()
+
+    wrapped = APVAAnthropic(
+        client=MockAnthropicClient(),
+        app_name="claude-test",
+        human_baseline_time=20.0,
+        guardrail_latency_tax=0.2,
+        apva_client=mock_client,
+    )
+
+    res = wrapped.messages.create(
+        model="claude-3-5-sonnet",
+        messages=[{"role": "user", "content": "Benchmark APVA"}],
+    )
+    assert res.id == "msg-anthropic-789"
+    assert len(mock_client.payloads) == 1
+    p = mock_client.payloads[0]
+    assert p.app_name == "claude-test"
+    assert p.human_baseline_time == 20.0
+    assert p.guardrail_latency_tax == 0.2
+    assert p.metadata.get("provider") == "anthropic"
+    assert p.metadata.get("total_tokens") == 105
+
+
+@pytest.mark.anyio
+async def test_anthropic_wrapper_async():
+    mock_client = MockTelemetryClient()
+
+    class MockAnthropicResponse:
+        id = "msg-async-999"
+        class usage:
+            input_tokens = 25
+            output_tokens = 35
+
+    class MockAsyncAnthropicClient:
+        class messages:
+            @staticmethod
+            async def create(*args, **kwargs):
+                return MockAnthropicResponse()
+
+    wrapped = APVAAnthropic(
+        client=MockAsyncAnthropicClient(),
+        app_name="claude-async",
+        human_baseline_time=18.0,
+        apva_client=mock_client,
+    )
+
+    res = await wrapped.messages.create(
+        model="claude-3-5-haiku",
+        messages=[{"role": "user", "content": "Async Claude"}],
+    )
+    assert res.id == "msg-async-999"
+    assert len(mock_client.payloads) == 1
+    p = mock_client.payloads[0]
+    assert p.app_name == "claude-async"
+    assert p.metadata.get("total_tokens") == 60

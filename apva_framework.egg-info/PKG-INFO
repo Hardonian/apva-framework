@@ -1,32 +1,43 @@
 Metadata-Version: 2.4
 Name: apva-framework
-Version: 2.1.0
+Version: 3.0.0
 Summary: AI Productivity & Value Architecture: local-first TVY benchmarking, telemetry, CLI, and SDK.
+Author-email: Hardonia AI Labs <engineering@hardonia.ca>
+License: Apache-2.0
+Project-URL: Homepage, https://aiautomatedsystems.ca
+Project-URL: Documentation, https://docs.apva.ai
+Project-URL: Repository, https://github.com/Hardonian/apva-framework
+Project-URL: Changelog, https://github.com/Hardonian/apva-framework/blob/main/CHANGELOG.md
+Classifier: Development Status :: 5 - Production/Stable
+Classifier: Intended Audience :: Developers
+Classifier: Intended Audience :: Information Technology
+Classifier: License :: OSI Approved :: Apache Software License
+Classifier: Programming Language :: Python :: 3
+Classifier: Programming Language :: Python :: 3.10
+Classifier: Programming Language :: Python :: 3.11
+Classifier: Programming Language :: Python :: 3.12
+Classifier: Topic :: Scientific/Engineering :: Artificial Intelligence
+Classifier: Topic :: Software Development :: Quality Assurance
 Requires-Python: >=3.10
 Description-Content-Type: text/markdown
 License-File: LICENSE
-Requires-Dist: pydantic<3.0,>=2.12.0
-Requires-Dist: slowapi>=0.1.9
-Requires-Dist: fastapi<1.0,>=0.124.0
-Requires-Dist: uvicorn[standard]<1.0,>=0.38.0
-Requires-Dist: pydantic-settings<3.0,>=2.12.0
-Requires-Dist: sqlalchemy[asyncio]<3.0,>=2.0.45
-Requires-Dist: aiosqlite<1.0,>=0.21.0
-Requires-Dist: celery[redis]<6.0,>=5.6.0
-Requires-Dist: redis<8.2
-Requires-Dist: httpx<1.0,>=0.28.1
+Requires-Dist: pydantic<3.0,>=2.10.0
+Requires-Dist: fastapi<1.0,>=0.115.0
+Requires-Dist: uvicorn[standard]<1.0,>=0.30.0
+Requires-Dist: pydantic-settings<3.0,>=2.6.0
+Requires-Dist: sqlalchemy[asyncio]<3.0,>=2.0.30
+Requires-Dist: aiosqlite<1.0,>=0.20.0
+Requires-Dist: celery[redis]<6.0,>=5.4.0
+Requires-Dist: redis<8.2,>=5.0.0
+Requires-Dist: httpx<1.0,>=0.27.0
 Requires-Dist: asyncpg<1.0,>=0.29.0
 Provides-Extra: dev
 Requires-Dist: pytest>=8.0.0; extra == "dev"
 Requires-Dist: pytest-asyncio>=1.3.0; extra == "dev"
-Requires-Dist: httpx<1.0,>=0.28.1; extra == "dev"
-Requires-Dist: fastapi<1.0,>=0.124.0; extra == "dev"
-Requires-Dist: uvicorn[standard]<1.0,>=0.38.0; extra == "dev"
-Requires-Dist: pydantic-settings<3.0,>=2.12.0; extra == "dev"
-Requires-Dist: sqlalchemy[asyncio]<3.0,>=2.0.45; extra == "dev"
-Requires-Dist: aiosqlite<1.0,>=0.21.0; extra == "dev"
-Requires-Dist: celery[redis]<6.0,>=5.6.0; extra == "dev"
-Requires-Dist: redis<8.2; extra == "dev"
+Requires-Dist: pytest-cov>=5.0.0; extra == "dev"
+Requires-Dist: ruff>=0.8.0; extra == "dev"
+Requires-Dist: mypy>=1.13.0; extra == "dev"
+Requires-Dist: httpx<1.0,>=0.27.0; extra == "dev"
 Dynamic: license-file
 
 # APVA — AI Productivity & Value Architecture
@@ -65,7 +76,7 @@ $$\text{TVY} = (\text{Gross Time Saved} \times \text{RAG Reliability}) - \text{G
 ## The Three Pillars
 
 | Pillar | Captures | Key inputs |
-|---|---|---|
+| :--- | :--- | :--- |
 | **Productivity** | Skill-stratified human baselines + epistemic verification | reference baseline, skill tier, AI generation time, verification time |
 | **RAG Reliability** | Deterministic exact-span recall + SLM judge faithfulness | exact span recall, faithfulness score, retrieval coverage |
 | **Value / Friction** | Operational friction, guardrail latency tax, and hourly rates | base latency tax, false-positive penalty, hourly practitioner wage |
@@ -79,13 +90,16 @@ These fuse into **TVY (True Value Yield)** — a defensible, time-denominated RO
 ### 1. Leveraging in the AIAS Repository ([AI Automated Systems](https://aiautomatedsystems.ca))
 
 #### A. Turnkey AI ROI & Valuation Audits
+
 When auditing client AI systems, APVA provides the mathematical and auditable backbone to generate client scorecards:
+
 * **Gross Time Saved**: Human baseline vs. AI generation and verification time.
 * **RAG Reliability Discount**: Factored by exact span recall and SLM judge faithfulness.
 * **Guardrail Latency Tax**: Quantified cost of slow semantic routers and false-positive blocks.
 * **Diagnostic Directives**: Actionable prescriptions generated from `/api/v1/metrics/insights`.
 
 #### B. Automated CI/CD Regression Gate
+
 Integrate the `apva` CLI into GitHub Actions to fail PR builds if retrieval faithfulness degrades:
 
 ```yaml
@@ -113,6 +127,7 @@ jobs:
 ```
 
 #### C. Zero-Code Client Agent Telemetry
+
 Equip AIAS client agents with native, non-blocking telemetry hooks:
 
 ```python
@@ -144,7 +159,7 @@ agent.invoke({"input": user_prompt}, config={"callbacks": [handler]})
 ### 3. Hardonia Stack Architecture Matrix
 
 | Layer | Repository | Role |
-|---|---|---|
+| :--- | :--- | :--- |
 | **Routing & Local LLM** | [`ollama-router`](https://github.com/Hardonian/ollama-router) | High-throughput local model multiplexing & failover |
 | **ROI & Metric Engine** | [`apva-framework`](https://github.com/Hardonian/apva-framework) | TVY benchmarking, RAG scoring & safeguard policies |
 | **Security & Compliance** | [`ai-lab-audit-api`](https://github.com/Hardonian/ai-lab-audit-api) | Automated security, auth, and vulnerability auditing |
@@ -170,14 +185,14 @@ cp .env.example .env
 
 # 3. Run
 just dev               # Start backend & dashboard
-just test              # Run full pytest suite (41+ tests)
+just test              # Run full pytest suite (44+ tests)
 ```
 
 ---
 
 ## Layout
 
-```
+```text
 apva/            # Core TVY calculation engine & models
 apps/
   backend/       # Enterprise FastAPI service (telemetry, eval, safeguards, metrics)
@@ -203,14 +218,12 @@ MIT — see [LICENSE](LICENSE).
 
 ## Related Hardonia Projects
 
-<p align="center">
-  <a href="https://aiautomatedsystems.ca"><img src="https://img.shields.io/badge/AI_Automated_Systems-Visit-0f766e?style=for-the-badge&logo=cloudflare" alt="AI Automated Systems" /></a>
-  <a href="https://github.com/Hardonian/ollama-router"><img src="https://img.shields.io/badge/ollama--router-181717?style=for-the-badge&logo=github" alt="ollama-router" /></a>
-  <a href="https://github.com/Hardonian/ai-lab-audit-api"><img src="https://img.shields.io/badge/ai--lab--audit--api-181717?style=for-the-badge&logo=github" alt="ai-lab-audit-api" /></a>
-  <a href="https://github.com/Hardonian/ai-lab-command-center"><img src="https://img.shields.io/badge/command--center-181717?style=for-the-badge&logo=github" alt="ai-lab-command-center" /></a>
-  <a href="https://github.com/Hardonian/storefront"><img src="https://img.shields.io/badge/storefront-181717?style=for-the-badge&logo=github" alt="storefront" /></a>
-</p>
+[![AI Automated Systems](https://img.shields.io/badge/AI_Automated_Systems-Visit-0f766e?style=for-the-badge&logo=cloudflare)](https://aiautomatedsystems.ca)
+[![ollama-router](https://img.shields.io/badge/ollama--router-181717?style=for-the-badge&logo=github)](https://github.com/Hardonian/ollama-router)
+[![ai-lab-audit-api](https://img.shields.io/badge/ai--lab--audit--api-181717?style=for-the-badge&logo=github)](https://github.com/Hardonian/ai-lab-audit-api)
+[![ai-lab-command-center](https://img.shields.io/badge/command--center-181717?style=for-the-badge&logo=github)](https://github.com/Hardonian/ai-lab-command-center)
+[![storefront](https://img.shields.io/badge/storefront-181717?style=for-the-badge&logo=github)](https://github.com/Hardonian/storefront)
 
-<p align="center"><strong>Part of the <a href="https://aiautomatedsystems.ca">Hardonia</a> open-source + services stack.</strong></p>
+**Part of the [Hardonia](https://aiautomatedsystems.ca) open-source + services stack.**
 
 > **Need to audit your team's AI ROI?** Run `apva run-eval` or book an [Enterprise TVY Audit on the Hardonia Store](https://aiautomatedsystems.ca/p/repo-rescue-saas-audit).

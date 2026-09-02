@@ -1,12 +1,11 @@
-version: '3.8'
-
 services:
   postgres:
     image: postgres:15-alpine
+    restart: unless-stopped
     environment:
-      POSTGRES_USER: apva
-      POSTGRES_PASSWORD: enterprise_password_override_in_prod
-      POSTGRES_DB: apva_db
+      POSTGRES_USER: ${POSTGRES_USER:-apva}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-enterprise_password_override_in_prod}
+      POSTGRES_DB: ${POSTGRES_DB:-apva_db}
     ports:
       - "5434:5432"
     volumes:
@@ -16,9 +15,12 @@ services:
       interval: 5s
       timeout: 5s
       retries: 5
+    networks:
+      - apva_net
 
   redis:
     image: redis:6.2-alpine
+    restart: unless-stopped
     ports:
       - "6381:6379"
     healthcheck:
@@ -26,43 +28,63 @@ services:
       interval: 5s
       timeout: 5s
       retries: 5
+    networks:
+      - apva_net
 
   backend:
     build:
       context: .
       dockerfile: ./apps/backend/Dockerfile
+    restart: unless-stopped
     ports:
       - "8001:8000"
     environment:
-      - ENVIRONMENT=development
-      - DATABASE_URL=postgresql+asyncpg://apva:enterprise_password_override_in_prod@postgres:5432/apva_db
-      - REDIS_URL=redis://redis:6379/0
+      - APVA_ENVIRONMENT=development
+      - APVA_DATABASE_URL=postgresql+asyncpg://apva:${POSTGRES_PASSWORD:-enterprise_password_override_in_prod}@postgres:5432/apva_db
+      - APVA_REDIS_URL=redis://redis:6379/0
+      - APVA_CELERY_BROKER_URL=redis://redis:6379/0
+      - APVA_CELERY_RESULT_BACKEND=redis://redis:6379/1
     depends_on:
       postgres:
         condition: service_healthy
       redis:
         condition: service_healthy
+    networks:
+      - apva_net
+
   celery_worker:
     build:
       context: .
       dockerfile: ./apps/backend/Dockerfile
+    restart: unless-stopped
     command: ["celery", "-A", "apps.backend.apps.backend.worker.celery_app", "worker", "--loglevel=info"]
     environment:
-      - ENVIRONMENT=development
-      - DATABASE_URL=postgresql+asyncpg://apva:enterprise_password_override_in_prod@postgres:5432/apva_db
-      - REDIS_URL=redis://redis:6379/0
+      - APVA_ENVIRONMENT=development
+      - APVA_DATABASE_URL=postgresql+asyncpg://apva:${POSTGRES_PASSWORD:-enterprise_password_override_in_prod}@postgres:5432/apva_db
+      - APVA_REDIS_URL=redis://redis:6379/0
+      - APVA_CELERY_BROKER_URL=redis://redis:6379/0
+      - APVA_CELERY_RESULT_BACKEND=redis://redis:6379/1
     depends_on:
       redis:
         condition: service_healthy
+    networks:
+      - apva_net
 
   dashboard:
     build:
       context: ./apps/dashboard
       dockerfile: Dockerfile
+    restart: unless-stopped
     ports:
       - "5174:80"
     depends_on:
       - backend
+    networks:
+      - apva_net
+
+networks:
+  apva_net:
+    driver: bridge
 
 volumes:
   postgres_data:

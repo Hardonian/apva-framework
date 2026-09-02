@@ -1,5 +1,4 @@
-import { APVATelemetryClient, TelemetryEventPayload, getDefaultClient } from './client';
-import { randomUUID } from 'crypto';
+import { APVATelemetryClient, TelemetryEventPayload, generateUUID, getDefaultClient } from './client';
 
 export interface TrackerOptions {
   client?: APVATelemetryClient;
@@ -25,7 +24,7 @@ export function ApvaTrackLatency(options?: TrackerOptions) {
       const client = options?.client || getDefaultClient();
       const appName = options?.appName || client.appName;
       const sessionId = options?.sessionId || client.sessionId;
-      const runId = options?.runId || randomUUID().replace(/-/g, '');
+      const runId = options?.runId || generateUUID().replace(/-/g, '');
       const metadata = options?.metadata || {};
 
       const start = performance.now();
@@ -42,7 +41,7 @@ export function ApvaTrackLatency(options?: TrackerOptions) {
         session_iterations: 1,
         hourly_rate_usd: options?.hourlyRateUsd,
         is_shadow: options?.isShadow || false,
-        metadata: { ...metadata }
+        metadata: { ...metadata },
       };
 
       client.ingestAsync(payload);
@@ -60,7 +59,7 @@ export function ApvaGuardrailCheck(options?: GuardrailOptions) {
       const client = options?.client || getDefaultClient();
       const appName = options?.appName || client.appName;
       const sessionId = options?.sessionId || client.sessionId;
-      const runId = options?.runId || randomUUID().replace(/-/g, '');
+      const runId = options?.runId || generateUUID().replace(/-/g, '');
       const metadata = options?.metadata || {};
 
       const start = performance.now();
@@ -77,7 +76,7 @@ export function ApvaGuardrailCheck(options?: GuardrailOptions) {
         session_iterations: options?.sessionIterations || 1,
         hourly_rate_usd: options?.hourlyRateUsd,
         is_shadow: options?.isShadow || false,
-        metadata: { ...metadata }
+        metadata: { ...metadata },
       };
 
       client.ingestAsync(payload);

@@ -244,20 +244,21 @@ def build_parser() -> argparse.ArgumentParser:
         prog="apva",
         description=f"APVA v{FRAMEWORK_VERSION}: AI Productivity & Value Architecture benchmark & evaluation engine.",
     )
-    parser.add_argument("-o", "--output", default=None, help="Write output to file.")
-    parser.add_argument("--format", choices=["json", "table", "markdown", "csv"], default="json", help="Output format.")
-    parser.add_argument("--indent", type=int, default=2, help="JSON indent.")
+    common = argparse.ArgumentParser(add_help=False)
+    common.add_argument("-o", "--output", default=None, help="Write output to file.")
+    common.add_argument("--format", choices=["json", "table", "markdown", "csv"], default="json", help="Output format.")
+    common.add_argument("--indent", type=int, default=2, help="JSON indent.")
 
     sub = parser.add_subparsers(dest="command", required=True)
 
     # version
-    sub.add_parser("version", help="Print APVA framework version and runtime info.")
+    sub.add_parser("version", parents=[common], help="Print APVA framework version and runtime info.")
 
     # demo
-    sub.add_parser("demo", help="Run built-in demo benchmark simulation.")
+    sub.add_parser("demo", parents=[common], help="Run built-in demo benchmark simulation.")
 
     # run
-    run = sub.add_parser("run", help="Run benchmark from explicit parameters.")
+    run = sub.add_parser("run", parents=[common], help="Run benchmark from explicit parameters.")
     run.add_argument("--name", required=True, help="Benchmark name.")
     run.add_argument("--human-baseline", type=float, required=True, help="Human baseline in minutes.")
     run.add_argument("--skill", choices=[s.value for s in SkillLevel], default=SkillLevel.MID.value)
@@ -272,32 +273,32 @@ def build_parser() -> argparse.ArgumentParser:
     run.add_argument("--cra", type=float, required=True, help="CRA drop penalty (min).")
 
     # run-file
-    run_file = sub.add_parser("run-file", help="Run benchmark from JSON file.")
+    run_file = sub.add_parser("run-file", parents=[common], help="Run benchmark from JSON file.")
     run_file.add_argument("path", help="Path to BenchmarkInput JSON file.")
     run_file.add_argument("--sensitivity", action="store_true", help="Include sensitivity analysis.")
     run_file.add_argument("--ci", action="store_true", help="Include Monte Carlo confidence interval.")
 
     # sensitivity
-    sens = sub.add_parser("sensitivity", help="Run sensitivity analysis on a benchmark.")
+    sens = sub.add_parser("sensitivity", parents=[common], help="Run sensitivity analysis on a benchmark.")
     sens.add_argument("path", help="Path to BenchmarkInput JSON file.")
     sens.add_argument("--delta", type=float, default=0.05, help="Perturbation fraction (default: 0.05).")
 
     # compare
-    comp = sub.add_parser("compare", help="Compare multiple benchmark JSON files.")
+    comp = sub.add_parser("compare", parents=[common], help="Compare multiple benchmark JSON files.")
     comp.add_argument("files", nargs="+", help="Paths to BenchmarkInput JSON files to compare.")
 
     # validate
-    val = sub.add_parser("validate", help="Validate a golden dataset file structure.")
+    val = sub.add_parser("validate", parents=[common], help="Validate a golden dataset file structure.")
     val.add_argument("--golden-set", required=True, help="Path to golden dataset JSON.")
 
     # run-eval
-    run_eval = sub.add_parser("run-eval", help="Run golden set evaluation gate.")
+    run_eval = sub.add_parser("run-eval", parents=[common], help="Run golden set evaluation gate.")
     run_eval.add_argument("--golden-set", required=True, help="Path to golden dataset JSON.")
     run_eval.add_argument("--target-url", default=None, help="Optional live target RAG URL.")
     run_eval.add_argument("--threshold", type=float, default=0.85, help="Pass threshold.")
 
     # audit
-    audit = sub.add_parser("audit", help="Generate executive enterprise TVY audit scorecard.")
+    audit = sub.add_parser("audit", parents=[common], help="Generate executive enterprise TVY audit scorecard.")
     audit.add_argument("--golden-set", required=True, help="Path to golden dataset JSON.")
     audit.add_argument("--target-url", default=None, help="Optional live target RAG URL.")
     audit.add_argument("--hourly-rate", type=float, default=85.0, help="Practitioner hourly rate in USD.")

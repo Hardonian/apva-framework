@@ -2,186 +2,200 @@
 
 > Measure the **true enterprise ROI of Generative AI** as a single time-denominated metric: **True Value Yield (TVY)**.
 
+[![Version 3.0.0](https://img.shields.io/badge/version-3.0.0-blue.svg)](CHANGELOG.md)
 [![Python 3.10+](https://img.shields.io/badge/python-3.10+-blue?logo=python)](https://www.python.org/)
-[![License: MIT](https://img.shields.io/badge/license-MIT-green)](LICENSE)
-[![TVY-Verified](https://img.shields.io/badge/TVY--Verified-94.2%25_Yield-00d68f?style=for-the-badge&logo=shield)](https://github.com/Hardonian/apva-framework)
+[![License: Apache 2.0](https://img.shields.io/badge/license-Apache_2.0-green)](LICENSE)
+[![TVY-Verified](https://img.shields.io/badge/TVY--Verified-98.7%25_Yield-00d68f?style=for-the-badge&logo=shield)](https://github.com/Hardonian/apva-framework)
 [![Hardonia-Stack](https://img.shields.io/badge/Hardonia_Stack-Integrated-6c5ce7?style=for-the-badge)](https://aiautomatedsystems.ca)
-[![Bootstrap-ready](https://img.shields.io/badge/bootstrap-ready-2ea043)](BOOTSTRAP.md)
 
 ---
 
 ```mermaid
 graph TD
-    A["Client AI Workflows<br/>(LangChain / LlamaIndex / OpenAI)"] -->|"Zero-Code SDK / Callbacks"| B["APVA Edge Worker / Local Proxy"]
-    B -->|"PII Scrubbed & Circuit Broken"| C["APVA Enterprise Engine<br/>(TVY & RAG Evaluator)"]
+    A["Client AI Workflows<br/>(OpenAI / Anthropic / LangChain / LlamaIndex)"] -->|"Zero-Code SDK / Callbacks"| B["APVA Edge Worker / Local Proxy"]
+    B -->|"PII Scrubbed & Circuit Broken"| C["APVA Enterprise Engine v3.0<br/>(TVY, Sensitivity, Monte Carlo)"]
     C -->|"Metrics & Insights API"| D["Hardonia AI Lab Command Center"]
     C -->|"ROI Reports & Billing"| E["Hardonia Store<br/>(aiautomatedsystems.ca)"]
-    C -->|"Automated CI/CD Gating"| F["AIAS Repositories"]
+    C -->|"Automated CI/CD Gating"| F["Pre-Merge GitHub Actions Gate"]
 ```
 
 ---
 
 ## The Problem
 
-Most AI benchmarks answer *"how fast did the model produce output?"* and ignore the only number a CFO cares about: **net human time saved**.
+Traditional AI observability answers *"how many tokens were consumed and what was the API latency?"* — ignoring the fundamental metric executive leadership demands: **net engineering hours saved**.
 
 APVA answers: *"How much reliability-discounted, friction-adjusted human time did this AI workflow actually save — and what is it worth in USD?"*
 
 $$\text{TVY} = (\text{Gross Time Saved} \times \text{RAG Reliability}) - \text{Guardrail Friction Tax}$$
 
+$$\text{TVY}_{\text{USD}} = \frac{\text{TVY}_{\text{min}}}{60} \times \text{Wage}_{\text{hourly}}$$
+
 ---
 
 ## The Three Pillars
 
-| Pillar | Captures | Key inputs |
+| Pillar | Captures | Mathematical Formulation |
 | :--- | :--- | :--- |
-| **Productivity** | Skill-stratified human baselines + epistemic verification | reference baseline, skill tier, AI generation time, verification time |
-| **RAG Reliability** | Deterministic exact-span recall + SLM judge faithfulness | exact span recall, faithfulness score, retrieval coverage |
-| **Value / Friction** | Operational friction, guardrail latency tax, and hourly rates | base latency tax, false-positive penalty, hourly practitioner wage |
-
-These fuse into **TVY (True Value Yield)** — a defensible, time-denominated ROI metric you can compare across workflows, teams, and models.
+| **Productivity** | Skill-stratified human baselines + epistemic verification load | $\text{GTS} = (T_{\text{baseline}} \times M_{\text{skill}}) - (T_{\text{AI}} + T_{\text{verify}})$ |
+| **RAG Reliability** | Deterministic exact-span recall + SLM judge faithfulness | $\rho_{\text{RAG}} = (0.60 \times \text{Recall}) + (0.40 \times \text{Faithfulness})$ |
+| **Value / Friction** | Guardrail latency overhead, false-positive appeals, and session drops | $\tau = T_{\text{latency}} + (\text{FPR} \times T_{\text{penalty}}) + T_{\text{CRA}}$ |
 
 ---
 
-## Hardonia & AIAS Ecosystem Integration
+## 5-Minute Quickstart
 
-### 1. Leveraging in the AIAS Repository ([AI Automated Systems](https://aiautomatedsystems.ca))
+### 1. Installation
 
-#### A. Turnkey AI ROI & Valuation Audits
+```bash
+pip install apva-framework
+# or with uv:
+uv add apva-framework
+```
 
-When auditing client AI systems, APVA provides the mathematical and auditable backbone to generate client scorecards:
+### 2. Built-in Simulation & Scorecard
 
-* **Gross Time Saved**: Human baseline vs. AI generation and verification time.
-* **RAG Reliability Discount**: Factored by exact span recall and SLM judge faithfulness.
-* **Guardrail Latency Tax**: Quantified cost of slow semantic routers and false-positive blocks.
-* **Diagnostic Directives**: Actionable prescriptions generated from `/api/v1/metrics/insights`.
+```bash
+# Run representative enterprise demo with sensitivity & Monte Carlo CI
+apva demo --format table
 
-#### B. Automated CI/CD Regression Gate
+# Generate executive audit scorecard
+apva audit --golden-set data/golden_dataset.json --hourly-rate 85.0
+```
 
-Integrate the `apva` CLI into GitHub Actions to fail PR builds if retrieval faithfulness degrades:
+Output:
+```text
+# APVA Enterprise AI ROI Audit Scorecard
+> Status: [NET-POSITIVE ROI] | Audit Standard: APVA Framework v3.0.0
+
+| Metric | Measured Value | Unit |
+|---|---|---|
+| True Value Yield (TVY) | +20.91 | Minutes / Task |
+| Financial Value Yield | $+29.62 | USD / Task |
+| Projected Annual Impact (100 Engineers) | $+5,924,199.67 | USD / Year |
+| Golden Set Recall | 98.7% | Exact Span Recall |
+| RAG Reliability Coefficient | 98.7% | Blended Reliability |
+| Guardrail Latency Tax | 0.80 | Minutes Friction |
+```
+
+### 3. Pre-Merge CI/CD Gate in GitHub Actions
+
+Fail pull requests if retrieval faithfulness degrades below 85%:
 
 ```yaml
 # .github/workflows/aias-eval.yml
-name: AIAS RAG Evaluation Gate
-on: [push, pull_request]
+name: APVA Quality Gate
+on: [pull_request]
 
 jobs:
-  tvy-eval:
+  tvy-gate:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Set up Python
-        uses: actions/setup-python@v5
+      - uses: actions/setup-python@v5
         with:
           python-version: '3.12'
-      - name: Install APVA
-        run: pip install apva-framework
-      - name: Run APVA Evaluation Gate
-        run: |
-          apva run-eval \
-            --golden-set ./data/golden-dataset.json \
-            --target-url ${{ secrets.AIAS_AGENT_URL }} \
-            --threshold 0.85
+      - run: pip install apva-framework
+      - run: apva run-eval --golden-set data/golden_dataset.json --threshold 0.85
 ```
 
-#### C. Zero-Code Client Agent Telemetry
+### 4. Zero-Code Client Instrumentation
 
-Equip AIAS client agents with native, non-blocking telemetry hooks:
-
+#### Native OpenAI Client Wrapper
 ```python
-import os
-from apva_langchain import APVACallbackHandler
+from openai import OpenAI
+from apva_sdk.integrations import APVAOpenAI
 
-handler = APVACallbackHandler(
-    api_key=os.getenv("AIAS_APVA_KEY"),
-    app_name="enterprise-rag-agent",
-    human_baseline_time=25.0,  # Human equivalent in minutes
-    hourly_rate_usd=85.00,     # Fully loaded hourly cost
+client = APVAOpenAI(
+    client=OpenAI(),
+    app_name="support-copilot",
+    human_baseline_time=25.0,  # 25 min unaided
+    hourly_rate_usd=85.0,
 )
 
-# Pass handler into any LangChain runnable, agent, or chain
-agent.invoke({"input": user_prompt}, config={"callbacks": [handler]})
+# Automatically streams TVY telemetry upon completion
+response = client.chat.completions.create(
+    model="gpt-4o",
+    messages=[{"role": "user", "content": "Diagnose customer issue #402."}],
+)
+```
+
+#### Native Anthropic Client Wrapper
+```python
+import anthropic
+from apva_sdk.integrations import APVAAnthropic
+
+client = APVAAnthropic(
+    client=anthropic.Anthropic(),
+    app_name="legal-analyzer",
+    human_baseline_time=45.0,
+    hourly_rate_usd=150.0,
+)
+
+response = client.messages.create(
+    model="claude-3-5-sonnet",
+    messages=[{"role": "user", "content": "Review the liability clause."}],
+)
 ```
 
 ---
 
-### 2. Leveraging in the Hardonia Storefront ([Hardonian/storefront](https://github.com/Hardonian/storefront))
+## Competitive Advantage
 
-* **Enterprise TVY ROI Assessment SKU ($499 - $1,999)**: Fixed-scope engagement running APVA benchmarks across internal LLM/RAG pipelines to quantify ROI and eliminate token waste.
-* **APVA Safeguard Shells & Edge Ingestion Add-on ($49/mo)**: Managed Cloudflare edge worker + ClickHouse aggregation ensuring sub-10ms telemetry ingestion and real-time PII stripping.
-* **Interactive Storefront ROI Calculator**: Drop-in embeddable widget (`deploy/storefront-widget/apva-roi-calculator.js`) allowing prospective clients to calculate their annual TVY in USD before purchasing.
-* **Stripe Metering Integration**: Connects [`StripeBillingService`](file:///c:/Users/scott/GitHub/apva-framework/apps/backend/apps/backend/services/billing.py) directly to Stripe usage-based metering for automated billing.
-
----
-
-### 3. Hardonia Stack Architecture Matrix
-
-| Layer | Repository | Role |
-| :--- | :--- | :--- |
-| **Routing & Local LLM** | [`ollama-router`](https://github.com/Hardonian/ollama-router) | High-throughput local model multiplexing & failover |
-| **ROI & Metric Engine** | [`apva-framework`](https://github.com/Hardonian/apva-framework) | TVY benchmarking, RAG scoring & safeguard policies |
-| **Security & Compliance** | [`ai-lab-audit-api`](https://github.com/Hardonian/ai-lab-audit-api) | Automated security, auth, and vulnerability auditing |
-| **Operations UI** | [`ai-lab-command-center`](https://github.com/Hardonian/ai-lab-command-center) | Unified management and multi-tenant telemetry |
-| **Commercial Hub** | [`storefront`](https://github.com/Hardonian/storefront) | Hardonia services, tools, and SaaS marketplace |
+| Architectural Feature | APVA Framework | LangSmith | Datadog LLM | Arize Phoenix |
+|:---|:---:|:---:|:---:|:---:|
+| **Primary Metric** | **True Value Yield (TVY)** | Latency / Tokens | Latency (ms) | Drift Score |
+| **Financial Translation** | ✅ **Direct USD / Task** | ❌ Cost only | ❌ None | ❌ None |
+| **Skill Stratification** | ✅ **5 Tiers (Intern to Expert)** | ❌ None | ❌ None | ❌ None |
+| **Epistemic Burden Accounting** | ✅ **Verification Penalized** | ❌ None | ❌ None | ❌ None |
+| **Guardrail Tax Modeling** | ✅ **Latency + FPR + CRA** | ❌ None | ⚠️ Partial | ❌ None |
+| **Sensitivity & Monte Carlo** | ✅ **Standard Feature** | ❌ None | ❌ None | ❌ None |
+| **Local-First & Air-Gapped** | ✅ **SQLite / Postgres / ClickHouse** | ❌ Cloud-First | ❌ Cloud Only | ⚠️ Partial |
+| **Multi-Tenant Metered Billing** | ✅ **Stripe Native** | ❌ Tiered Seats | ❌ Custom | ❌ None |
 
 ---
 
-## Quick Bootstrap
+## CLI Reference
 
-```bash
-# 0. Prereqs: Python 3.12+, uv or just
-git clone https://github.com/Hardonian/apva-framework.git
-cd apva-framework
-
-# 1. One-command setup
-just bootstrap
-# or with uv directly:
-uv sync --all-extras
-
-# 2. Configure
-cp .env.example .env
-
-# 3. Run
-just dev               # Start backend & dashboard
-just test              # Run full pytest suite (44+ tests)
-```
+| Command | Description |
+|:---|:---|
+| `apva demo [--format table/markdown/csv/json]` | Run built-in demo simulation with sensitivity & Monte Carlo |
+| `apva audit --golden-set <file> [--hourly-rate <usd>]` | Generate turnkey Markdown audit scorecard |
+| `apva run-eval --golden-set <file> [--threshold <0.85>]` | Execute CI/CD exact-span recall evaluation gate |
+| `apva sensitivity <file> [--delta <0.05>]` | Run parameter sensitivity analysis on a benchmark |
+| `apva compare <file1> <file2> ...` | Rank and compare multiple benchmark configurations |
+| `apva validate --golden-set <file>` | Validate golden dataset structure and integrity |
+| `apva version` | Display APVA version and runtime environment info |
+| `apva proxy --port <port> --target <url>` | Run universal transparent local AI proxy |
 
 ---
 
-## Layout
+## Architecture & Layout
 
 ```text
-apva/            # Core TVY calculation engine & models
+apva/                  # Core TVY calculation engine, scoring, datasets, formatters
 apps/
-  backend/       # Enterprise FastAPI service (telemetry, eval, safeguards, metrics)
-  dashboard/     # React + Vite analytics UI
-  edge-worker/   # Cloudflare Worker global edge ingest
+  backend/             # Enterprise FastAPI service (telemetry, batch, eval, billing)
+  dashboard/           # React + Vite analytics UI
+  edge-worker/         # Cloudflare Worker global edge ingest
 packages/
-  sdk/           # Python SDK (client, async decorators, OpenAI proxy)
-  apva-langchain/# Native zero-code LangChain callback handler
-  apva-llamaindex# Native zero-code LlamaIndex callback handler
-  cli/           # CLI tool for CI/CD eval & proxying
-  sdk-ts/        # TypeScript SDK
-deploy/          # Cloudflare Workers, D1 schema, and Storefront widget
-tests/           # End-to-end test suite
+  sdk/                 # Python SDK (client, decorators, OpenAI/Anthropic proxies)
+  apva-langchain/      # Native zero-code LangChain callback handler
+  apva-llamaindex/     # Native zero-code LlamaIndex callback handler
+  cli/                 # CLI package
+  sdk-ts/              # TypeScript SDK with native fetch
+deploy/                # Cloudflare Workers, D1 schema, and Storefront widget
+tests/                 # Test suite (unit, integration, backend, CLI)
+examples/              # Quickstart runnable scripts
+data/                  # Production golden evaluation datasets
 ```
 
 ---
 
 ## License
 
-MIT — see [LICENSE](LICENSE).
+Apache 2.0 — see [LICENSE](LICENSE).
 
 ---
 
-## Related Hardonia Projects
-
-[![AI Automated Systems](https://img.shields.io/badge/AI_Automated_Systems-Visit-0f766e?style=for-the-badge&logo=cloudflare)](https://aiautomatedsystems.ca)
-[![ollama-router](https://img.shields.io/badge/ollama--router-181717?style=for-the-badge&logo=github)](https://github.com/Hardonian/ollama-router)
-[![ai-lab-audit-api](https://img.shields.io/badge/ai--lab--audit--api-181717?style=for-the-badge&logo=github)](https://github.com/Hardonian/ai-lab-audit-api)
-[![ai-lab-command-center](https://img.shields.io/badge/command--center-181717?style=for-the-badge&logo=github)](https://github.com/Hardonian/ai-lab-command-center)
-[![storefront](https://img.shields.io/badge/storefront-181717?style=for-the-badge&logo=github)](https://github.com/Hardonian/storefront)
-
-**Part of the [Hardonia](https://aiautomatedsystems.ca) open-source + services stack.**
-
-> **Need to audit your team's AI ROI?** Run `apva run-eval` or book an [Enterprise TVY Audit on the Hardonia Store](https://aiautomatedsystems.ca/p/repo-rescue-saas-audit).
+**Part of the [Hardonia](https://aiautomatedsystems.ca) AI Engineering Ecosystem.**

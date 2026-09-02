@@ -1,1 +1,179 @@
-{"examples": [{"query": "Define APVA in one sentence.", "context": "APVA measures true enterprise ROI of AI.", "answer": "APVA measures true enterprise ROI of AI.", "expected_answer": "APVA measures true enterprise ROI of AI."}, {"query": "List the three pillars of APVA.", "context": "The three pillars are Productivity, RAG Reliability, and Guardrail Tax.", "answer": "Productivity, RAG Reliability, and Guardrail Tax.", "expected_answer": "Productivity, RAG Reliability, Guardrail Tax."}, {"query": "What does TVY stand for?", "context": "TVY stands for True Value Yield.", "answer": "True Value Yield.", "expected_answer": "True Value Yield"}]}
+{
+  "examples": [
+    {
+      "query": "Define APVA in one sentence.",
+      "context": "APVA measures true enterprise ROI of AI.",
+      "answer": "APVA measures true enterprise ROI of AI.",
+      "expected_answer": "APVA measures true enterprise ROI of AI.",
+      "metadata": {"category": "definitions", "difficulty": "easy"}
+    },
+    {
+      "query": "List the three pillars of APVA.",
+      "context": "The three pillars are Productivity, RAG Reliability, and Guardrail Tax.",
+      "answer": "Productivity, RAG Reliability, and Guardrail Tax.",
+      "expected_answer": "Productivity, RAG Reliability, Guardrail Tax.",
+      "metadata": {"category": "architecture", "difficulty": "easy"}
+    },
+    {
+      "query": "What does TVY stand for?",
+      "context": "TVY stands for True Value Yield.",
+      "answer": "True Value Yield.",
+      "expected_answer": "True Value Yield",
+      "metadata": {"category": "definitions", "difficulty": "easy"}
+    },
+    {
+      "query": "What is the core formula for True Value Yield (TVY)?",
+      "context": "TVY = (Gross_Time_Saved * RAG_Reliability_Coefficient) - Guardrail_Friction_Tax",
+      "answer": "TVY = (Gross_Time_Saved * RAG_Reliability_Coefficient) - Guardrail_Friction_Tax",
+      "expected_answer": "TVY = (Gross_Time_Saved * RAG_Reliability_Coefficient) - Guardrail_Friction_Tax",
+      "metadata": {"category": "math", "difficulty": "medium"}
+    },
+    {
+      "query": "How is Gross Time Saved calculated under skill stratification?",
+      "context": "Gross Time Saved equals Skill Adjusted Human Baseline minus AI Generation Time plus Epistemic Verification Time.",
+      "answer": "Gross Time Saved = Skill Adjusted Human Baseline - (AI Generation Time + Epistemic Verification Time)",
+      "expected_answer": "Skill Adjusted Human Baseline minus AI Generation Time and Epistemic Verification Time",
+      "metadata": {"category": "math", "difficulty": "medium"}
+    },
+    {
+      "query": "What are the default convex weights in the RAG Reliability blend?",
+      "context": "The RAG Reliability blend applies 60% weight to Exact Span Recall and 40% weight to LLM Faithfulness Score.",
+      "answer": "60% Exact Span Recall and 40% LLM Faithfulness Score.",
+      "expected_answer": "60% Exact Span Recall and 40% LLM Faithfulness Score",
+      "metadata": {"category": "math", "difficulty": "medium"}
+    },
+    {
+      "query": "What components make up the Guardrail Friction Tax?",
+      "context": "Guardrail Tax is composed of Base Latency Overhead plus False Positive Rate times Resolution Penalty plus CRA Session Drop Penalty.",
+      "answer": "Base Latency Overhead, False Positive Rate multiplied by Resolution Penalty, and CRA Session Drop Penalty.",
+      "expected_answer": "Base Latency Overhead, False Positive Rate times Resolution Penalty, and CRA Session Drop Penalty",
+      "metadata": {"category": "math", "difficulty": "hard"}
+    },
+    {
+      "query": "What does CRA stand for in APVA guardrails?",
+      "context": "CRA stands for Conversational Risk Accumulation penalty charged when high-risk sessions are reset.",
+      "answer": "Conversational Risk Accumulation.",
+      "expected_answer": "Conversational Risk Accumulation",
+      "metadata": {"category": "definitions", "difficulty": "easy"}
+    },
+    {
+      "query": "What baseline multiplier does a junior developer receive in APVA?",
+      "context": "A Junior practitioner receives a 1.5x baseline multiplier reflecting longer unaided completion times.",
+      "answer": "A junior developer has a 1.5 multiplier.",
+      "expected_answer": "1.5 multiplier",
+      "metadata": {"category": "skills", "difficulty": "easy"}
+    },
+    {
+      "query": "What baseline multiplier does a senior developer receive in APVA?",
+      "context": "A Senior practitioner receives a 0.7x baseline multiplier encoding faster unaided completion.",
+      "answer": "A senior developer has a 0.7 multiplier.",
+      "expected_answer": "0.7 multiplier",
+      "metadata": {"category": "skills", "difficulty": "easy"}
+    },
+    {
+      "query": "Why can TVY be negative in enterprise deployments?",
+      "context": "TVY becomes negative when epistemic verification time and guardrail latency tax exceed the gross human time saved.",
+      "answer": "TVY is negative when verification overhead and guardrail taxes exceed human time saved.",
+      "expected_answer": "Verification overhead and guardrail taxes exceed human time saved",
+      "metadata": {"category": "analysis", "difficulty": "hard"}
+    },
+    {
+      "query": "What is epistemic verification time?",
+      "context": "Epistemic verification time is the cognitive burden spent by human reviewers auditing AI-generated outputs for hallucinations.",
+      "answer": "Cognitive burden spent by humans auditing AI outputs for hallucinations and errors.",
+      "expected_answer": "Cognitive burden spent by humans auditing AI outputs for hallucinations",
+      "metadata": {"category": "definitions", "difficulty": "medium"}
+    },
+    {
+      "query": "What is the purpose of APVA edge worker telemetry?",
+      "context": "APVA edge workers intercept inference traffic and offload PII redaction and telemetry streaming from application servers.",
+      "answer": "Edge workers intercept traffic and offload PII redaction and telemetry streaming.",
+      "expected_answer": "Intercept traffic and offload PII redaction and telemetry streaming",
+      "metadata": {"category": "architecture", "difficulty": "medium"}
+    },
+    {
+      "query": "How is financial ROI calculated from TVY?",
+      "context": "Financial ROI in USD equals TVY in minutes divided by 60 multiplied by the practitioner hourly wage rate.",
+      "answer": "TVY in minutes divided by 60 multiplied by the hourly rate in USD.",
+      "expected_answer": "TVY in minutes divided by 60 multiplied by hourly rate in USD",
+      "metadata": {"category": "finance", "difficulty": "easy"}
+    },
+    {
+      "query": "What is the default CI/CD evaluation pass threshold in APVA?",
+      "context": "The default exact span recall evaluation threshold is 0.85 (85%).",
+      "answer": "The pass threshold is 0.85 or 85 percent.",
+      "expected_answer": "0.85",
+      "metadata": {"category": "cicd", "difficulty": "easy"}
+    },
+    {
+      "query": "Which database engine does APVA use for high-throughput OLAP analytics?",
+      "context": "APVA uses ClickHouse for high-throughput OLAP telemetry analytics and PostgreSQL for transactional storage.",
+      "answer": "ClickHouse is used for OLAP analytics.",
+      "expected_answer": "ClickHouse",
+      "metadata": {"category": "architecture", "difficulty": "easy"}
+    },
+    {
+      "query": "What qualitative grade is assigned to a TVY exceeding 30 minutes?",
+      "context": "TVY values of 30 minutes or greater receive the EXCEPTIONAL qualitative grade.",
+      "answer": "EXCEPTIONAL.",
+      "expected_answer": "EXCEPTIONAL",
+      "metadata": {"category": "grading", "difficulty": "easy"}
+    },
+    {
+      "query": "What qualitative grade is assigned to negative TVY?",
+      "context": "TVY values below zero receive the NEGATIVE qualitative grade indicating net loss.",
+      "answer": "NEGATIVE.",
+      "expected_answer": "NEGATIVE",
+      "metadata": {"category": "grading", "difficulty": "easy"}
+    },
+    {
+      "query": "What role does the Safeguard Circuit Breaker play?",
+      "context": "The Safeguard Circuit Breaker trips and alerts when guardrail latency tax exceeds acceptable SLA thresholds.",
+      "answer": "Trips and alerts when guardrail latency tax exceeds SLA thresholds.",
+      "expected_answer": "Trips and alerts when guardrail latency tax exceeds SLA thresholds",
+      "metadata": {"category": "safeguards", "difficulty": "medium"}
+    },
+    {
+      "query": "What scoring metrics are calculated by the APVA scoring pipeline?",
+      "context": "The scoring pipeline calculates Exact Span Recall, Token Precision, F1 Score, ROUGE-L, and BLEU.",
+      "answer": "Exact Span Recall, Token Precision, F1 Score, ROUGE-L, and BLEU.",
+      "expected_answer": "Exact Span Recall, Token Precision, F1 Score, ROUGE-L, and BLEU",
+      "metadata": {"category": "scoring", "difficulty": "hard"}
+    },
+    {
+      "query": "How does APVA handle PII in telemetry metadata?",
+      "context": "PII like emails, SSNs, and credit cards are automatically detected and replaced with redaction tokens before persistence.",
+      "answer": "Automatically detects and replaces emails, SSNs, and credit cards with redaction tokens.",
+      "expected_answer": "Automatically detects and replaces emails, SSNs, and credit cards with redaction tokens",
+      "metadata": {"category": "security", "difficulty": "medium"}
+    },
+    {
+      "query": "What is the purpose of APVA shadow mode evaluations?",
+      "context": "Shadow mode runs candidate models alongside production traffic to benchmark TVY without impacting end-user responses.",
+      "answer": "Runs candidate models alongside production traffic to benchmark TVY without impacting users.",
+      "expected_answer": "Runs candidate models alongside production traffic to benchmark TVY without impacting users",
+      "metadata": {"category": "operations", "difficulty": "medium"}
+    },
+    {
+      "query": "What is the unit of measurement for True Value Yield?",
+      "context": "True Value Yield is time-denominated and measured in minutes saved per task.",
+      "answer": "Minutes saved per task.",
+      "expected_answer": "Minutes saved per task",
+      "metadata": {"category": "definitions", "difficulty": "easy"}
+    },
+    {
+      "query": "How does Monte Carlo confidence interval estimation work in APVA?",
+      "context": "Monte Carlo applies Gaussian noise across input parameters to simulate thousands of iterations and extract empirical percentile bounds.",
+      "answer": "Applies Gaussian noise across parameters to simulate iterations and extract empirical percentile bounds.",
+      "expected_answer": "Applies Gaussian noise across parameters to simulate iterations and extract empirical percentile bounds",
+      "metadata": {"category": "math", "difficulty": "hard"}
+    },
+    {
+      "query": "How does exact span recall penalize hallucinated answers?",
+      "context": "Exact span recall measures the proportion of expected tokens captured; token precision penalizes non-grounded hallucinated tokens.",
+      "answer": "Recall checks required tokens; precision penalizes extra hallucinated tokens.",
+      "expected_answer": "Recall checks required tokens while precision penalizes extra hallucinated tokens",
+      "metadata": {"category": "scoring", "difficulty": "hard"}
+    }
+  ]
+}

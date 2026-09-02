@@ -1,6 +1,3 @@
-import axios, { AxiosInstance } from 'axios';
-import { randomUUID } from 'crypto';
-
 export interface TelemetryEventPayload {
   app_name: string;
   session_id: string;
@@ -14,6 +11,17 @@ export interface TelemetryEventPayload {
   metadata?: Record<string, any>;
 }
 
+export function generateUUID(): string {
+  if (typeof globalThis !== 'undefined' && (globalThis as any).crypto?.randomUUID) {
+    return (globalThis as any).crypto.randomUUID();
+  }
+  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, (c) => {
+    const r = (Math.random() * 16) | 0;
+    const v = c === 'x' ? r : (r & 0x3) | 0x8;
+    return v.toString(16);
+  });
+}
+
 export class APVATelemetryClient {
   private endpoint: string;
   private apiKey?: string;
@@ -22,8 +30,8 @@ export class APVATelemetryClient {
   private queue: TelemetryEventPayload[] = [];
   private maxQueueSize: number;
   private isFlushing: boolean = false;
-  private httpClient: AxiosInstance;
-  private intervalId?: NodeJS.Timeout;
+  private intervalId?: any;
+  private maxRetries: number;
 
   constructor(options?: {
     endpoint?: string;
@@ -31,31 +39,20 @@ export class APVATelemetryClient {
     appName?: string;
     sessionId?: string;
     queueSize?: number;
+    maxRetries?: number;
   }) {
-    this.endpoint = options?.endpoint || process.env.APVA_INGEST_URL || 'http://localhost:8000/api/v1/telemetry/ingest';
+    const envEndpoint = (globalThis as any).process?.env?.APVA_INGEST_URL;
+    this.endpoint = options?.endpoint || envEndpoint || 'http://localhost:8000/api/v1/telemetry/ingest';
     this.apiKey = options?.apiKey;
     this.appName = options?.appName || 'apva-sdk-ts';
-    this.sessionId = options?.sessionId || randomUUID().replace(/-/g, '');
-    this.maxQueueSize = options?.queueSize || 1000;
-    
-    const headers: Record<string, string> = {
-      'Content-Type': 'application/json',
-    };
-    if (this.apiKey) {
-      headers['Authorization'] = `Bearer ${this.apiKey}`;
-    }
-    
-    // Create an axios instance with HTTP Keep-Alive
-    this.httpClient = axios.create({
-      timeout: 5000,
-      headers
-    });
+    this.sessionId = options?.sessionId || generateUUID().replace(/-/g, '');
+    this.maxQueueSize = options?.queueSize || 2000;
+    this.maxRetries = options?.maxRetries || 3;
 
-    // Start background flusher loop every 200ms
+    // Background flusher loop every 200ms
     this.intervalId = setInterval(() => this.flush(), 200);
-    // Ensure the interval doesn't keep the Node.js process alive if it's the only thing left
-    if (this.intervalId.unref) {
-        this.intervalId.unref();
+    if (this.intervalId && typeof (this.intervalId as any).unref === 'function') {
+      (this.intervalId as any).unref();
     }
   }
 
@@ -69,6 +66,16 @@ export class APVATelemetryClient {
 
   public async ingest(payload: TelemetryEventPayload): Promise<void> {
     await this.send(payload);
+  }
+
+  public ingestBatch(payloads: TelemetryEventPayload[]): number {
+    let enqueued = 0;
+    for (const p of payloads) {
+      if (this.ingestAsync(p)) {
+        enqueued++;
+      }
+    }
+    return enqueued;
   }
 
   public async close(timeoutMs: number = 2000): Promise<void> {
@@ -92,9 +99,9 @@ export class APVATelemetryClient {
         const payload = this.queue.shift();
         if (payload) {
           try {
-            await this.send(payload);
+            await this.sendWithRetry(payload);
           } catch (error) {
-            // Drop on error to prevent queue buildup
+            // Drop on permanent failure to prevent queue buildup
           }
         }
       }
@@ -103,14 +110,48 @@ export class APVATelemetryClient {
     }
   }
 
+  private async sendWithRetry(payload: TelemetryEventPayload): Promise<void> {
+    for (let attempt = 0; attempt < this.maxRetries; attempt++) {
+      try {
+        await this.send(payload);
+        return;
+      } catch (error) {
+        if (attempt === this.maxRetries - 1) {
+          throw error;
+        }
+        const delay = Math.min(100 * Math.pow(2, attempt), 2000);
+        await new Promise(res => setTimeout(res, delay));
+      }
+    }
+  }
+
   private async send(payload: TelemetryEventPayload): Promise<void> {
-    await this.httpClient.post(this.endpoint, {
+    const headers: Record<string, string> = {
+      'Content-Type': 'application/json',
+    };
+    if (this.apiKey) {
+      headers['Authorization'] = `Bearer ${this.apiKey}`;
+    }
+
+    const body = JSON.stringify({
       ...payload,
       session_iterations: payload.session_iterations ?? 1,
       hourly_rate_usd: payload.hourly_rate_usd ?? null,
       is_shadow: payload.is_shadow ?? false,
-      metadata: payload.metadata ?? {}
+      metadata: payload.metadata ?? {},
     });
+
+    const fetchFn = (globalThis as any).fetch;
+    if (typeof fetchFn === 'function') {
+      const res = await fetchFn(this.endpoint, {
+        method: 'POST',
+        headers,
+        body,
+      });
+      if (!res.ok) {
+        throw new Error(`APVA ingest HTTP error: ${res.status}`);
+      }
+    }
   }
 }
 
