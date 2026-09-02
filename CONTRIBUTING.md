@@ -60,13 +60,17 @@ just eval-gate         # Test the CI/CD pull request gate threshold
 Before opening a Pull Request:
 
 1. **Verify All Tests Pass**:
+
    ```bash
    uv run pytest tests/ -v
    ```
+
 2. **Verify CI Quality Gate**:
+
    ```bash
    uv run apva run-eval --golden-set data/golden_dataset.json --threshold 0.85
    ```
+
 3. **Add Tests**: All bug fixes and new features must be accompanied by comprehensive tests in `tests/`.
 
 ---
