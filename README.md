@@ -64,6 +64,7 @@ apva audit --golden-set data/golden_dataset.json --hourly-rate 85.0
 ```
 
 Output:
+
 ```text
 # APVA Enterprise AI ROI Audit Scorecard
 > Status: [NET-POSITIVE ROI] | Audit Standard: APVA Framework v3.0.0
@@ -102,6 +103,7 @@ jobs:
 ### 4. Zero-Code Client Instrumentation
 
 #### Native OpenAI Client Wrapper
+
 ```python
 from openai import OpenAI
 from apva_sdk.integrations import APVAOpenAI
@@ -121,6 +123,7 @@ response = client.chat.completions.create(
 ```
 
 #### Native Anthropic Client Wrapper
+
 ```python
 import anthropic
 from apva_sdk.integrations import APVAAnthropic
@@ -143,7 +146,7 @@ response = client.messages.create(
 ## Competitive Advantage
 
 | Architectural Feature | APVA Framework | LangSmith | Datadog LLM | Arize Phoenix |
-|:---|:---:|:---:|:---:|:---:|
+| :--- | :---: | :---: | :---: | :---: |
 | **Primary Metric** | **True Value Yield (TVY)** | Latency / Tokens | Latency (ms) | Drift Score |
 | **Financial Translation** | ✅ **Direct USD / Task** | ❌ Cost only | ❌ None | ❌ None |
 | **Skill Stratification** | ✅ **5 Tiers (Intern to Expert)** | ❌ None | ❌ None | ❌ None |
@@ -158,7 +161,7 @@ response = client.messages.create(
 ## CLI Reference
 
 | Command | Description |
-|:---|:---|
+| :--- | :--- |
 | `apva demo [--format table/markdown/csv/json]` | Run built-in demo simulation with sensitivity & Monte Carlo |
 | `apva audit --golden-set <file> [--hourly-rate <usd>]` | Generate turnkey Markdown audit scorecard |
 | `apva run-eval --golden-set <file> [--threshold <0.85>]` | Execute CI/CD exact-span recall evaluation gate |
