@@ -1,34 +1,20 @@
-"""APVA CLI."""
+"""APVA CLI package entry point."""
 
 from __future__ import annotations
 
 import argparse
 import asyncio
 import json
-import re
 import sys
 from pathlib import Path
 from typing import Any
 
-
-def tokenize(text: str) -> list[str]:
-    return re.findall(r"[a-zA-Z0-9]+(?:[-'][a-zA-Z0-9]+)?", text.lower())
-
-
-def exact_span_recall(answer: str, expected_answer: str) -> float:
-    expected_tokens = tokenize(expected_answer)
-    answer_tokens = tokenize(answer)
-    if not expected_tokens:
-        return 1.0 if not answer_tokens else 0.0
-    found = 0
-    for token in expected_tokens:
-        if token in answer_tokens:
-            found += 1
-    return found / len(expected_tokens)
+from apva.scoring import exact_span_recall, tokenize
 
 
 def load_golden_set(path: Path) -> list[dict[str, str]]:
-    data = json.loads(path.read_text())
+    """Load and validate a golden dataset JSON file."""
+    data = json.loads(path.read_text(encoding="utf-8"))
     examples = data.get("examples") if isinstance(data, dict) else data
     if not isinstance(examples, list):
         raise ValueError("Golden dataset must be a list or contain an 'examples' list")
@@ -37,15 +23,16 @@ def load_golden_set(path: Path) -> list[dict[str, str]]:
         if not isinstance(item, dict):
             raise ValueError(f"Example {index} is not an object")
         parsed.append({
-            "query": str(item["query"]),
+            "query": str(item.get("query", "")),
             "context": str(item.get("context", "")),
-            "answer": str(item["answer"]),
-            "expected_answer": str(item["expected_answer"]),
+            "answer": str(item.get("answer", "")),
+            "expected_answer": str(item.get("expected_answer", "")),
         })
     return parsed
 
 
 async def fetch_answer(target_url: str, example: dict[str, str]) -> str:
+    """Fetch response from target RAG URL."""
     import httpx
     payload = {"query": example["query"], "context": example["context"]}
     async with httpx.AsyncClient(timeout=10.0) as client:
@@ -60,6 +47,7 @@ async def fetch_answer(target_url: str, example: dict[str, str]) -> str:
 
 
 async def evaluate_examples(examples: list[dict[str, str]], target_url: str | None = None) -> list[dict[str, Any]]:
+    """Evaluate golden dataset examples."""
     results: list[dict[str, Any]] = []
     for index, example in enumerate(examples):
         answer = example["answer"]
@@ -77,6 +65,7 @@ async def evaluate_examples(examples: list[dict[str, str]], target_url: str | No
 
 
 def summarize(results: list[dict[str, Any]]) -> dict[str, Any]:
+    """Summarize evaluation results."""
     recalls = [float(item["exact_span_recall"]) for item in results]
     avg = sum(recalls) / len(recalls) if recalls else 0.0
     return {
@@ -88,28 +77,31 @@ def summarize(results: list[dict[str, Any]]) -> dict[str, Any]:
 
 
 def build_parser() -> argparse.ArgumentParser:
+    """Build CLI argument parser."""
     parser = argparse.ArgumentParser(prog="apva", description="APVA CI/CD evaluation runner")
     sub = parser.add_subparsers(dest="command", required=True)
     run_eval = sub.add_parser("run-eval", help="Run exact span recall evaluation")
     run_eval.add_argument("--golden-set", required=True, help="Path to golden dataset JSON")
     run_eval.add_argument("--target-url", default=None, help="Optional target RAG system base URL")
     run_eval.add_argument("--threshold", type=float, default=0.85, help="Pass threshold")
-    
+
     proxy = sub.add_parser("proxy", help="Run universal local AI proxy")
     proxy.add_argument("--port", type=int, default=8080, help="Proxy listen port")
     proxy.add_argument("--target", default="http://localhost:11434/v1", help="Target base URL (e.g., Ollama or vLLM)")
-    
+
     return parser
 
+
 def main(argv: list[str] | None = None) -> int:
+    """CLI entry point."""
     parser = build_parser()
     args = parser.parse_args(argv)
-    
+
     if args.command == "proxy":
         from apva_cli.proxy import run_proxy
         run_proxy(args.port, args.target)
         return 0
-        
+
     if args.command != "run-eval":
         parser.error("Unsupported command")
     examples = load_golden_set(Path(args.golden_set))

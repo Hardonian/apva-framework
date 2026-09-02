@@ -26,7 +26,6 @@ from __future__ import annotations
 import argparse
 import asyncio
 import json
-import re
 import sys
 from pathlib import Path
 from typing import Any, Sequence
@@ -34,6 +33,16 @@ from typing import Any, Sequence
 from pydantic import ValidationError
 
 from apva.calculator import APVACalculator
+from apva.constants import FRAMEWORK_VERSION
+from apva.datasets import GoldenExample, load_golden_set, validate_golden_set
+from apva.evaluation import evaluate_examples, summarize_evaluation
+from apva.formatters import (
+    format_audit_scorecard,
+    format_json,
+    format_report_markdown,
+    format_reports_csv,
+    format_table,
+)
 from apva.models import (
     BenchmarkInput,
     GuardrailMetrics,
@@ -41,6 +50,7 @@ from apva.models import (
     RAGMetrics,
     SkillLevel,
 )
+from apva.scoring import exact_span_recall, tokenize
 
 
 def _demo_benchmark() -> BenchmarkInput:
@@ -64,44 +74,13 @@ def _demo_benchmark() -> BenchmarkInput:
     )
 
 
-def tokenize(text: str) -> list[str]:
-    """Tokenize text into alphanumeric words."""
-    return re.findall(r"[a-zA-Z0-9]+(?:[-'][a-zA-Z0-9]+)?", text.lower())
-
-
-def exact_span_recall(answer: str, expected_answer: str) -> float:
-    """Compute exact span recall between answer and golden answer."""
-    expected_tokens = tokenize(expected_answer)
-    answer_tokens = tokenize(answer)
-    if not expected_tokens:
-        return 1.0 if not answer_tokens else 0.0
-    found = sum(1 for token in expected_tokens if token in answer_tokens)
-    return found / len(expected_tokens)
-
-
-def load_golden_set(path: Path) -> list[dict[str, str]]:
-    """Load and validate a golden dataset JSON file."""
-    data = json.loads(path.read_text(encoding="utf-8"))
-    examples = data.get("examples") if isinstance(data, dict) else data
-    if not isinstance(examples, list):
-        raise ValueError("Golden dataset must be a list or contain an 'examples' list")
-    parsed: list[dict[str, str]] = []
-    for index, item in enumerate(examples):
-        if not isinstance(item, dict):
-            raise ValueError(f"Example {index} is not an object")
-        parsed.append({
-            "query": str(item.get("query", "")),
-            "context": str(item.get("context", "")),
-            "answer": str(item.get("answer", "")),
-            "expected_answer": str(item.get("expected_answer", "")),
-        })
-    return parsed
-
-
-async def fetch_target_answer(target_url: str, example: dict[str, str]) -> str:
+async def fetch_target_answer(target_url: str, example: dict[str, str] | GoldenExample) -> str:
     """Fetch generated answer from a live target RAG endpoint."""
     import httpx
-    payload = {"query": example["query"], "context": example["context"]}
+
+    query = example.query if isinstance(example, GoldenExample) else example["query"]
+    context = example.context if isinstance(example, GoldenExample) else example.get("context", "")
+    payload = {"query": query, "context": context}
     async with httpx.AsyncClient(timeout=15.0) as client:
         response = await client.post(f"{target_url.rstrip('/')}/evaluate", json=payload)
         response.raise_for_status()
@@ -111,26 +90,6 @@ async def fetch_target_answer(target_url: str, example: dict[str, str]) -> str:
     if isinstance(data, str):
         return data
     return str(data)
-
-
-async def evaluate_examples(
-    examples: list[dict[str, str]], target_url: str | None = None
-) -> list[dict[str, Any]]:
-    """Run exact span recall across golden examples."""
-    results: list[dict[str, Any]] = []
-    for index, example in enumerate(examples):
-        answer = example["answer"]
-        if target_url:
-            answer = await fetch_target_answer(target_url, example)
-        recall = exact_span_recall(answer, example["expected_answer"])
-        results.append({
-            "index": str(index),
-            "query": example["query"],
-            "answer": answer,
-            "expected_answer": example["expected_answer"],
-            "exact_span_recall": recall,
-        })
-    return results
 
 
 def summarize_eval(results: list[dict[str, Any]], threshold: float = 0.85) -> dict[str, Any]:
@@ -168,7 +127,7 @@ def generate_audit_scorecard(
 
     scorecard = f"""# APVA Enterprise AI ROI Audit Scorecard
 
-> **Status**: {status_badge} | **Audit Standard**: APVA Framework v2.1.0
+> **Status**: {status_badge} | **Audit Standard**: APVA Framework v{FRAMEWORK_VERSION}
 
 ---
 
@@ -230,6 +189,31 @@ def _emit(report_text: str, output: str | None) -> None:
             sys.stdout.buffer.write(report_text.encode("utf-8") + b"\n")
 
 
+def _format_report(report: Any, fmt: str, indent: int = 2) -> str:
+    """Format an APVAReport according to the requested format."""
+    if fmt == "markdown":
+        return format_report_markdown(report)
+    elif fmt == "csv":
+        return format_reports_csv([report])
+    elif fmt == "table":
+        headers = ["Metric", "Value", "Unit"]
+        rows = [
+            ["Benchmark Name", report.benchmark_name, ""],
+            ["Human Baseline", f"{report.skill_adjusted_human_baseline_min:.2f}", "min"],
+            ["Gross Time Saved", f"{report.gross_time_saved_min:.2f}", "min"],
+            ["RAG Reliability (rho)", f"{report.rag_reliability_coefficient:.4f}", "coefficient"],
+            ["Guardrail Tax", f"{report.guardrail_friction_tax_min:.2f}", "min"],
+            ["True Value Yield (TVY)", f"{report.true_value_yield_min:+.2f}", "min"],
+            ["TVY (USD)", f"${report.true_value_yield_usd:.2f}" if report.true_value_yield_usd is not None else "N/A", "USD"],
+            ["TVY Grade", report.tvy_grade.value.upper(), ""],
+            ["Net Positive", "YES" if report.is_net_positive else "NO", ""],
+        ]
+        return format_table(headers, rows)
+    else:
+        # Default json
+        return json.dumps(report.model_dump(mode="json"), indent=indent)
+
+
 def _build_from_args(args: argparse.Namespace) -> BenchmarkInput:
     """Construct BenchmarkInput from parsed CLI flags."""
     return BenchmarkInput(
@@ -258,13 +242,18 @@ def build_parser() -> argparse.ArgumentParser:
     """Construct the unified argparse CLI parser."""
     parser = argparse.ArgumentParser(
         prog="apva",
-        description="APVA: AI Productivity & Value Architecture benchmark & evaluation engine.",
+        description=f"APVA v{FRAMEWORK_VERSION}: AI Productivity & Value Architecture benchmark & evaluation engine.",
     )
     parser.add_argument("-o", "--output", default=None, help="Write output to file.")
+    parser.add_argument("--format", choices=["json", "table", "markdown", "csv"], default="json", help="Output format.")
     parser.add_argument("--indent", type=int, default=2, help="JSON indent.")
 
     sub = parser.add_subparsers(dest="command", required=True)
 
+    # version
+    sub.add_parser("version", help="Print APVA framework version and runtime info.")
+
+    # demo
     sub.add_parser("demo", help="Run built-in demo benchmark simulation.")
 
     # run
@@ -285,6 +274,21 @@ def build_parser() -> argparse.ArgumentParser:
     # run-file
     run_file = sub.add_parser("run-file", help="Run benchmark from JSON file.")
     run_file.add_argument("path", help="Path to BenchmarkInput JSON file.")
+    run_file.add_argument("--sensitivity", action="store_true", help="Include sensitivity analysis.")
+    run_file.add_argument("--ci", action="store_true", help="Include Monte Carlo confidence interval.")
+
+    # sensitivity
+    sens = sub.add_parser("sensitivity", help="Run sensitivity analysis on a benchmark.")
+    sens.add_argument("path", help="Path to BenchmarkInput JSON file.")
+    sens.add_argument("--delta", type=float, default=0.05, help="Perturbation fraction (default: 0.05).")
+
+    # compare
+    comp = sub.add_parser("compare", help="Compare multiple benchmark JSON files.")
+    comp.add_argument("files", nargs="+", help="Paths to BenchmarkInput JSON files to compare.")
+
+    # validate
+    val = sub.add_parser("validate", help="Validate a golden dataset file structure.")
+    val.add_argument("--golden-set", required=True, help="Path to golden dataset JSON.")
 
     # run-eval
     run_eval = sub.add_parser("run-eval", help="Run golden set evaluation gate.")
@@ -314,37 +318,99 @@ def main(argv: Sequence[str] | None = None) -> int:
     args = parser.parse_args(argv)
 
     try:
-        if args.command == "demo":
+        if args.command == "version":
+            info = {
+                "apva_version": FRAMEWORK_VERSION,
+                "python_version": sys.version.split()[0],
+                "platform": sys.platform,
+            }
+            _emit(json.dumps(info, indent=args.indent), args.output)
+            return 0
+
+        elif args.command == "demo":
             benchmark = _demo_benchmark()
-            report = APVACalculator.evaluate(benchmark)
-            _emit(json.dumps(report.model_dump(), indent=args.indent), args.output)
+            report = APVACalculator.evaluate(benchmark, include_sensitivity=True, include_confidence_interval=True)
+            _emit(_format_report(report, args.format, args.indent), args.output)
             return 0
 
         elif args.command == "run":
             benchmark = _build_from_args(args)
             report = APVACalculator.evaluate(benchmark)
-            _emit(json.dumps(report.model_dump(), indent=args.indent), args.output)
+            _emit(_format_report(report, args.format, args.indent), args.output)
             return 0
 
         elif args.command == "run-file":
             with open(args.path, "r", encoding="utf-8") as handle:
                 payload = json.load(handle)
             benchmark = BenchmarkInput.model_validate(payload)
-            report = APVACalculator.evaluate(benchmark)
-            _emit(json.dumps(report.model_dump(), indent=args.indent), args.output)
+            report = APVACalculator.evaluate(
+                benchmark,
+                include_sensitivity=getattr(args, "sensitivity", False),
+                include_confidence_interval=getattr(args, "ci", False),
+            )
+            _emit(_format_report(report, args.format, args.indent), args.output)
             return 0
+
+        elif args.command == "sensitivity":
+            with open(args.path, "r", encoding="utf-8") as handle:
+                payload = json.load(handle)
+            benchmark = BenchmarkInput.model_validate(payload)
+            vectors = APVACalculator.sensitivity_analysis(benchmark, delta_fraction=args.delta)
+            if args.format == "table":
+                headers = ["Parameter", "Base Value", "Delta", "TVY Lower", "TVY Upper", "TVY Impact"]
+                rows = [
+                    [v.parameter, f"{v.base_value:.4f}", f"{v.delta:.4f}", f"{v.tvy_at_lower:.4f}", f"{v.tvy_at_upper:.4f}", f"{v.tvy_impact:.4f}"]
+                    for v in vectors
+                ]
+                _emit(format_table(headers, rows), args.output)
+            else:
+                _emit(json.dumps([v.model_dump() for v in vectors], indent=args.indent), args.output)
+            return 0
+
+        elif args.command == "compare":
+            benchmarks = []
+            for filepath in args.files:
+                with open(filepath, "r", encoding="utf-8") as handle:
+                    data = json.load(handle)
+                benchmarks.append(BenchmarkInput.model_validate(data))
+            reports = APVACalculator.evaluate_batch(benchmarks)
+            comparison = APVACalculator.compare(reports)
+            _emit(json.dumps(comparison, indent=args.indent), args.output)
+            return 0
+
+        elif args.command == "validate":
+            examples = load_golden_set(Path(args.golden_set))
+            warnings = validate_golden_set(examples)
+            result = {
+                "count": len(examples),
+                "valid": len(warnings) == 0,
+                "warnings": warnings,
+            }
+            _emit(json.dumps(result, indent=args.indent), args.output)
+            return 0 if len(warnings) == 0 else 1
 
         elif args.command == "run-eval":
             examples = load_golden_set(Path(args.golden_set))
             results = asyncio.run(evaluate_examples(examples, args.target_url))
-            summary = summarize_eval(results, args.threshold)
-            _emit(json.dumps(summary, indent=args.indent), args.output)
-            return 0 if summary["passed"] else 1
+            summary = summarize_evaluation(results, args.threshold)
+            _emit(json.dumps(summary.to_dict(), indent=args.indent), args.output)
+            return 0 if summary.passed else 1
 
         elif args.command == "audit":
             examples = load_golden_set(Path(args.golden_set))
-            results = asyncio.run(evaluate_examples(examples, args.target_url))
-            summary = summarize_eval(results, 0.85)
+            raw_eval_results = []
+            for index, example in enumerate(examples):
+                ans = example.answer
+                if args.target_url:
+                    ans = asyncio.run(fetch_target_answer(args.target_url, example))
+                raw_eval_results.append({
+                    "index": str(index),
+                    "query": example.query,
+                    "answer": ans,
+                    "expected_answer": example.expected_answer,
+                    "exact_span_recall": exact_span_recall(ans, example.expected_answer),
+                })
+            summary = summarize_eval(raw_eval_results, 0.85)
             scorecard = generate_audit_scorecard(
                 summary,
                 human_baseline_min=args.human_baseline,

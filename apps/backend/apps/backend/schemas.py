@@ -3,9 +3,11 @@
 from __future__ import annotations
 
 from datetime import datetime
-from typing import Any
+from typing import Any, Generic, TypeVar
 
 from pydantic import BaseModel, ConfigDict, Field
+
+T = TypeVar("T")
 
 
 class TelemetryIngestRequest(BaseModel):
@@ -19,6 +21,8 @@ class TelemetryIngestRequest(BaseModel):
         ai_augmented_time: AI-augmented time in minutes.
         guardrail_latency_tax: Guardrail latency tax in minutes.
         session_iterations: Number of session iterations.
+        hourly_rate_usd: Optional hourly rate for practitioner.
+        is_shadow: Shadow mode evaluation flag.
         metadata: Optional structured metadata.
     """
 
@@ -30,34 +34,34 @@ class TelemetryIngestRequest(BaseModel):
     human_baseline_time: float = Field(..., ge=0.0)
     ai_augmented_time: float = Field(..., ge=0.0)
     guardrail_latency_tax: float = Field(..., ge=0.0)
-    session_iterations: int = Field(..., ge=0)
+    session_iterations: int = Field(default=1, ge=0)
     hourly_rate_usd: float | None = Field(default=None, ge=0.0)
     is_shadow: bool = Field(default=False)
     metadata: dict[str, Any] = Field(default_factory=dict)
 
 
 class TelemetryIngestResponse(BaseModel):
-    """Response returned after telemetry ingestion.
-
-    Attributes:
-        event_id: Persisted event ID.
-        accepted: Whether the event was accepted.
-    """
+    """Response returned after telemetry ingestion."""
 
     event_id: int
     accepted: bool = True
 
 
-class EvalTriggerRequest(BaseModel):
-    """Request to enqueue an async RAG evaluation job.
+class BatchTelemetryIngestRequest(BaseModel):
+    """Batch ingestion request containing up to 100 events."""
 
-    Attributes:
-        transcript_id: Client-provided transcript identifier.
-        query: User query.
-        context: Retrieved context.
-        answer: RAG system answer.
-        expected_answer: Golden expected answer.
-    """
+    events: list[TelemetryIngestRequest] = Field(..., min_length=1, max_length=100)
+
+
+class BatchTelemetryIngestResponse(BaseModel):
+    """Response for batch telemetry ingestion."""
+
+    accepted_count: int
+    event_ids: list[int]
+
+
+class EvalTriggerRequest(BaseModel):
+    """Request to enqueue an async RAG evaluation job."""
 
     model_config = ConfigDict(extra="forbid")
 
@@ -69,31 +73,28 @@ class EvalTriggerRequest(BaseModel):
 
 
 class EvalTriggerResponse(BaseModel):
-    """Response returned when an async evaluation is queued.
-
-    Attributes:
-        job_id: Persisted job ID.
-        status: Current job status.
-        celery_task_id: Celery task identifier.
-    """
+    """Response returned when an async evaluation is queued."""
 
     job_id: int
     status: str
     celery_task_id: str
 
 
-class TvyMetricResponse(BaseModel):
-    """Macro TVY dashboard response.
+class BatchEvalTriggerRequest(BaseModel):
+    """Request to enqueue multiple evaluation jobs."""
 
-    Attributes:
-        telemetry_count: Number of telemetry events included.
-        evaluation_count: Number of completed evaluation jobs included.
-        avg_gross_time_saved_min: Average gross time saved in minutes.
-        avg_guardrail_tax_min: Average guardrail tax in minutes.
-        avg_rag_reliability_coefficient: Average RAG reliability coefficient.
-        macro_tvy_min: Macro True Value Yield in minutes.
-        is_net_positive: Whether macro TVY is positive.
-    """
+    jobs: list[EvalTriggerRequest] = Field(..., min_length=1, max_length=50)
+
+
+class BatchEvalTriggerResponse(BaseModel):
+    """Response for batch evaluation submission."""
+
+    submitted_count: int
+    job_ids: list[int]
+
+
+class TvyMetricResponse(BaseModel):
+    """Macro TVY dashboard response."""
 
     telemetry_count: int
     evaluation_count: int
@@ -106,15 +107,7 @@ class TvyMetricResponse(BaseModel):
 
 
 class HealthResponse(BaseModel):
-    """Health check response.
-
-    Attributes:
-        status: Overall health status.
-        service: Service name.
-        database: Database health status.
-        redis: Redis health status.
-        celery_broker: Celery broker health status.
-    """
+    """Health check response."""
 
     status: str
     service: str
@@ -124,19 +117,7 @@ class HealthResponse(BaseModel):
 
 
 class EvaluationJobRead(BaseModel):
-    """Persisted evaluation job read model.
-
-    Attributes:
-        id: Job ID.
-        transcript_id: Transcript ID.
-        status: Job status.
-        exact_span_recall: Exact span recall score.
-        llm_faithfulness_score: LLM faithfulness score.
-        precision_score: Precision score.
-        rag_reliability_coefficient: RAG reliability coefficient.
-        created_at: Creation timestamp.
-        completed_at: Completion timestamp.
-    """
+    """Persisted evaluation job read model."""
 
     id: int
     transcript_id: str
@@ -145,5 +126,32 @@ class EvaluationJobRead(BaseModel):
     llm_faithfulness_score: float | None = None
     precision_score: float | None = None
     rag_reliability_coefficient: float | None = None
+    error_message: str | None = None
     created_at: datetime
+    updated_at: datetime | None = None
     completed_at: datetime | None = None
+
+
+class PaginatedEvaluationJobs(BaseModel):
+    """Paginated list of evaluation jobs."""
+
+    items: list[EvaluationJobRead]
+    total: int
+    page: int
+    page_size: int
+    total_pages: int
+
+
+class BillingUsageResponse(BaseModel):
+    """Current tenant billing usage."""
+
+    tenant_id: int
+    usage: dict[str, int]
+
+
+class BillingEstimateResponse(BaseModel):
+    """Estimated bill breakdown for tenant."""
+
+    tenant_id: int
+    line_items: dict[str, Any]
+    total_estimated_usd: float

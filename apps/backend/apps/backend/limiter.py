@@ -7,11 +7,11 @@ route. Additionally, SlowAPI's default ``get_remote_address`` returns an empty
 string when a request has no ``client`` (behind some proxies / in the ASGI test
 transport), which makes its ``all(args)`` check falsy and disables the limit.
 
-To get reliable, verifiable enforcement we use a small self-contained fixed
--window limiter as a FastAPI dependency (``rate_limit``). It is mounted on every
-router via ``dependencies=[Depends(rate_limit)]`` in ``main.py``. The previous
-SlowAPI limiter/middleware is kept registered only for backward compatibility
-and does not perform enforcement.
+To get reliable, verifiable enforcement we use a self-contained fixed-window
+limiter as a FastAPI dependency (``rate_limit``). It is mounted on every
+router via ``dependencies=[Depends(rate_limit)]`` in ``main.py``.
+Expired window buckets are automatically pruned on each access to prevent
+unbounded memory leaks.
 """
 
 from __future__ import annotations
@@ -21,11 +21,12 @@ from collections import defaultdict
 
 from fastapi import Request
 
+from apva.constants import DEFAULT_RATE_LIMIT, DEFAULT_RATE_WINDOW_SECONDS
+
 # (key, window_start) -> count
 _hits: dict[tuple[str, int], int] = defaultdict(int)
-# default: 100 requests per 60 seconds per client
-LIMIT = 100
-WINDOW = 60
+LIMIT = DEFAULT_RATE_LIMIT
+WINDOW = DEFAULT_RATE_WINDOW_SECONDS
 
 
 class RateLimitError(Exception):
@@ -50,17 +51,24 @@ def rate_limit(request: Request) -> None:
 
     Raises ``RateLimitError`` (mapped to HTTP 429 by the registered
     exception handler in ``main.py``) when the client exceeds the limit.
+    Also evicts expired window buckets to prevent unbounded memory growth.
     """
     key = _client_key(request)
-    window = int(time.time() // WINDOW)
+    current_time = time.time()
+    window = int(current_time // WINDOW)
     bucket = (key, window)
     _hits[bucket] += 1
+
+    # Clean up expired buckets older than the previous window
+    stale_cutoff = window - 1
+    stale_keys = [k for k in _hits if k[1] < stale_cutoff]
+    for k in stale_keys:
+        del _hits[k]
+
     if _hits[bucket] > LIMIT:
-        # Clean up the current window bucket to avoid unbounded growth.
         raise RateLimitError("global")
 
 
 def reset_limits() -> None:
     """Reset the in-memory rate limit counter state."""
     _hits.clear()
-

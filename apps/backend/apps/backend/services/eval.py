@@ -4,12 +4,12 @@ from __future__ import annotations
 
 import asyncio
 import logging
-import re
 from dataclasses import dataclass
 from typing import Any
 
 import httpx
 
+from apva.scoring import exact_span_recall, token_precision, tokenize
 from ..schemas import EvalTriggerRequest
 
 SPAN_RECALL_WEIGHT = 0.60
@@ -23,7 +23,7 @@ class RagScoreResult:
     Attributes:
         exact_span_recall: Deterministic exact span recall score.
         llm_faithfulness_score: Mock LLM-as-judge faithfulness score.
-        precision_score: Mock precision score.
+        precision_score: Token precision score.
         rag_reliability_coefficient: Blended RAG reliability coefficient.
     """
 
@@ -33,41 +33,9 @@ class RagScoreResult:
     rag_reliability_coefficient: float
 
 
-def tokenize(text: str) -> list[str]:
-    """Tokenize text into lower-case word spans.
-
-    Args:
-        text: Input text.
-
-    Returns:
-        list[str]: Normalized word tokens.
-    """
-    return re.findall(r"[a-zA-Z0-9]+(?:[-'][a-zA-Z0-9]+)?", text.lower())
-
-
-def exact_span_recall(answer: str, expected_answer: str) -> float:
-    """Compute deterministic exact span recall.
-
-    The metric counts exact token spans from the expected answer that appear in
-    the generated answer.
-
-    Args:
-        answer: Generated answer text.
-        expected_answer: Golden expected answer text.
-
-    Returns:
-        float: Fraction of expected spans found exactly in the answer.
-    """
-    expected_tokens = tokenize(expected_answer)
-    answer_tokens = tokenize(answer)
-    if not expected_tokens:
-        return 1.0 if not answer_tokens else 0.0
-
-    found = 0
-    for token in expected_tokens:
-        if token in answer_tokens:
-            found += 1
-    return found / len(expected_tokens)
+def mock_precision_score(answer: str, expected_answer: str) -> float:
+    """Return token precision score."""
+    return token_precision(answer, expected_answer)
 
 
 def mock_llm_judge_score(answer: str, expected_answer: str) -> float:
@@ -85,32 +53,8 @@ def mock_llm_judge_score(answer: str, expected_answer: str) -> float:
         float: Faithfulness score in ``[0, 1]``.
     """
     recall = exact_span_recall(answer, expected_answer)
-    expected_tokens = set(tokenize(expected_answer))
-    answer_tokens = set(tokenize(answer))
-    if not expected_tokens:
-        precision = 1.0 if not answer_tokens else 0.0
-    else:
-        precision = len(expected_tokens & answer_tokens) / len(answer_tokens or expected_tokens)
+    precision = token_precision(answer, expected_answer)
     return min(1.0, max(0.0, 0.75 * recall + 0.25 * precision))
-
-
-def mock_precision_score(answer: str, expected_answer: str) -> float:
-    """Return a deterministic mock precision score.
-
-    Args:
-        answer: Generated answer text.
-        expected_answer: Golden expected answer text.
-
-    Returns:
-        float: Precision score in ``[0, 1]``.
-    """
-    expected_tokens = set(tokenize(expected_answer))
-    answer_tokens = set(tokenize(answer))
-    if not expected_tokens:
-        return 1.0 if not answer_tokens else 0.0
-    if not answer_tokens:
-        return 0.0
-    return len(expected_tokens & answer_tokens) / len(answer_tokens)
 
 
 def compute_rag_scores(answer: str, expected_answer: str) -> RagScoreResult:
@@ -125,7 +69,7 @@ def compute_rag_scores(answer: str, expected_answer: str) -> RagScoreResult:
     """
     recall = exact_span_recall(answer, expected_answer)
     faithfulness = mock_llm_judge_score(answer, expected_answer)
-    precision = mock_precision_score(answer, expected_answer)
+    precision = token_precision(answer, expected_answer)
     reliability = SPAN_RECALL_WEIGHT * recall + FAITHFULNESS_WEIGHT * faithfulness
     return RagScoreResult(
         exact_span_recall=recall,
@@ -209,7 +153,7 @@ async def run_local_or_target_score(
     except httpx.HTTPError:
         from .slm import ProprietarySLM
         recall = exact_span_recall(request.answer, request.expected_answer)
-        precision = mock_precision_score(request.answer, request.expected_answer)
+        precision = token_precision(request.answer, request.expected_answer)
         faithfulness = await ProprietarySLM.evaluate_rag(
             query=request.query,
             context=request.context,
@@ -227,11 +171,7 @@ async def run_local_or_target_score(
 
 
 async def main() -> None:
-    """CLI smoke helper for local scoring.
-
-    This function is intentionally small and only exists to make the module
-    executable for smoke checks.
-    """
+    """CLI smoke helper for local scoring."""
     request = EvalTriggerRequest(
         transcript_id="smoke",
         query="What is APVA?",
