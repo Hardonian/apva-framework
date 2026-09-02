@@ -1,4 +1,4 @@
-"""Tests for APVA SDK Integrations: LangChain, LlamaIndex, OpenAI, and Anthropic wrappers."""
+"""Tests for APVA SDK Integrations: LangChain, LlamaIndex, OpenAI, Anthropic, CrewAI, and OpenTelemetry."""
 
 from __future__ import annotations
 
@@ -12,6 +12,8 @@ import pytest
 from apva_langchain import APVACallbackHandler as LangChainCallbackHandler
 from apva_llamaindex import APVACallbackHandler as LlamaIndexCallbackHandler
 from apva_sdk.integrations import APVAAnthropic, APVAOpenAI
+from apva_sdk.integrations.crewai_handler import APVACrewAI
+from apva_sdk.opentelemetry import APVASpanExporter, convert_span_to_apva_payload
 
 
 class MockTelemetryClient:
@@ -29,6 +31,9 @@ class MockTelemetryClient:
     def ingest_batch(self, payloads: list[Any]) -> int:
         self.payloads.extend(payloads)
         return len(payloads)
+
+    def flush(self) -> None:
+        pass
 
     def close(self, timeout: float = 2.0) -> None:
         pass
@@ -254,3 +259,74 @@ async def test_anthropic_wrapper_async():
     p = mock_client.payloads[0]
     assert p.app_name == "claude-async"
     assert p.metadata.get("total_tokens") == 60
+
+
+def test_crewai_wrapper():
+    mock_client = MockTelemetryClient()
+
+    class MockCrew:
+        agents = ["researcher", "writer"]
+        tasks = ["gather", "summarize"]
+
+        def kickoff(self):
+            class Result:
+                class token_usage:
+                    total_tokens = 350
+            return Result()
+
+    crew_wrapper = APVACrewAI(
+        crew=MockCrew(),
+        app_name="market-research-crew",
+        human_baseline_time=90.0,
+        guardrail_latency_tax=1.5,
+        hourly_rate_usd=110.0,
+        client=mock_client,
+    )
+
+    crew_wrapper.kickoff()
+    assert len(mock_client.payloads) == 1
+    p = mock_client.payloads[0]
+    assert p.app_name == "market-research-crew"
+    assert p.human_baseline_time == 90.0
+    assert p.guardrail_latency_tax == 1.5
+    assert p.hourly_rate_usd == 110.0
+    assert p.metadata.get("agents_count") == 2
+    assert p.metadata.get("tasks_count") == 2
+    assert p.metadata.get("total_tokens") == 350
+
+
+def test_opentelemetry_bridge():
+    mock_client = MockTelemetryClient()
+    exporter = APVASpanExporter(
+        client=mock_client,
+        default_app_name="otel-rag-service",
+        default_human_baseline_min=25.0,
+    )
+
+    class MockContext:
+        trace_id = 0x1234567890abcdef1234567890abcdef
+        span_id = 0xabcdef1234567890
+
+    class MockSpan:
+        context = MockContext()
+        name = "chat_generation"
+        start_time = 1_000_000_000
+        end_time = 1_600_000_000  # 0.6 seconds -> 0.01 min
+        attributes = {
+            "gen_ai.system": "openai",
+            "gen_ai.request.model": "gpt-4o",
+            "gen_ai.usage.prompt_tokens": 40,
+            "gen_ai.usage.completion_tokens": 80,
+            "apva.human_baseline_time": 30.0,
+            "apva.hourly_rate_usd": 95.0,
+        }
+
+    status = exporter.export([MockSpan()])
+    assert status == 0
+    assert len(mock_client.payloads) == 1
+    p = mock_client.payloads[0]
+    assert p.app_name == "otel-rag-service"
+    assert p.human_baseline_time == 30.0
+    assert p.hourly_rate_usd == 95.0
+    assert p.metadata.get("model") == "gpt-4o"
+    assert p.metadata.get("total_tokens") == 120
