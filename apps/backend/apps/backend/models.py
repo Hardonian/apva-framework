@@ -28,6 +28,7 @@ class Tenant(Base):
     name: Mapped[str] = mapped_column(String(255), nullable=False)
     api_key_hash: Mapped[str] = mapped_column(String(255), nullable=False, index=True, unique=True)
     stripe_customer_id: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    tier: Mapped[str] = mapped_column(String(50), nullable=False, default="community")
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),
         default=lambda: datetime.now(timezone.utc),

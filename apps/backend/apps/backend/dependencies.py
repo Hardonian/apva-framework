@@ -8,8 +8,12 @@ from typing import Any
 
 from fastapi import Depends, HTTPException, status
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
+from sqlalchemy import select
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from .config import settings
+from .database import get_db
+from .models import Tenant
 
 security = HTTPBearer(auto_error=True)
 
@@ -19,22 +23,24 @@ def hash_api_key(key: str) -> str:
     return hashlib.sha256(key.strip().encode("utf-8")).hexdigest()
 
 
-def get_tenant_context(
+async def get_current_tenant(
     credentials: HTTPAuthorizationCredentials = Depends(security),
-) -> dict[str, Any]:
-    """Validate API key and resolve to a multi-tenant Organization context.
+    db: AsyncSession = Depends(get_db),
+) -> Tenant:
+    """Resolve the authenticated Tenant model from the Bearer API key.
 
-    Supports both raw dev keys in development and SHA-256 hashed keys
-    in production.
+    Performs secure SHA-256 hash lookup in the tenants database table with
+    timing-safe fallback to configured settings API key.
 
     Args:
         credentials: Bearer token from the Authorization header.
+        db: Async database session.
 
     Returns:
-        dict: The tenant context mapping (e.g. tenant_id, name).
+        Tenant: The resolved Tenant SQLAlchemy model.
 
     Raises:
-        HTTPException: If the API key is missing or invalid.
+        HTTPException: 401 if authentication fails.
     """
     if credentials.scheme.lower() != "bearer":
         raise HTTPException(
@@ -44,26 +50,40 @@ def get_tenant_context(
         )
 
     token = credentials.credentials.strip()
-    is_valid = False
+    provided_hash = hash_api_key(token)
 
-    # 1. Check plain dev key if configured
-    if settings.api_key and secrets.compare_digest(token, settings.api_key):
-        is_valid = True
+    # 1. Database lookup by hashed API key
+    stmt = select(Tenant).where(Tenant.api_key_hash == provided_hash)
+    result = await db.execute(stmt)
+    tenant = result.scalar_one_or_none()
+    if tenant is not None:
+        return tenant
 
-    # 2. Check hashed key against configured key hash
-    if not is_valid and settings.api_key:
-        expected_hash = hash_api_key(settings.api_key)
-        provided_hash = hash_api_key(token)
-        if secrets.compare_digest(provided_hash, expected_hash):
-            is_valid = True
+    # 2. Check dev key fallback from settings
+    if settings.api_key:
+        matches_plain = secrets.compare_digest(token, settings.api_key)
+        matches_hash = secrets.compare_digest(provided_hash, hash_api_key(settings.api_key))
+        if matches_plain or matches_hash:
+            # Return tenant id=1 if exists, or create a mock tenant representation
+            stmt_default = select(Tenant).where(Tenant.id == 1)
+            res_default = await db.execute(stmt_default)
+            tenant_default = res_default.scalar_one_or_none()
+            if tenant_default:
+                return tenant_default
 
-    if not is_valid:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Invalid or missing API Key.",
-            headers={"WWW-Authenticate": "Bearer"},
-        )
+    raise HTTPException(
+        status_code=status.HTTP_401_UNAUTHORIZED,
+        detail="Invalid or missing API Key.",
+        headers={"WWW-Authenticate": "Bearer"},
+    )
 
-    # Multi-tenant resolution: In a full database-backed setup, this looks up
-    # the tenant associated with the hashed API key.
-    return {"tenant_id": 1, "name": "Acme Corp"}
+
+async def get_tenant_context(
+    current_tenant: Tenant = Depends(get_current_tenant),
+) -> dict[str, Any]:
+    """Provide tenant context dictionary for compatibility with legacy routes."""
+    return {
+        "tenant_id": current_tenant.id,
+        "name": current_tenant.name,
+        "tier": getattr(current_tenant, "tier", "community"),
+    }

@@ -20,10 +20,13 @@ from .models import Base
 from .routers.auth import router as auth_router
 from .routers.billing import router as billing_router
 from .routers.eval import router as eval_router
+from .routers.export import router as export_router
 from .routers.health import router as health_router
 from .routers.metrics import router as metrics_router
 from .routers.safeguards import router as safeguards_router
 from .routers.telemetry import router as telemetry_router
+from .routers.tenants import router as tenants_router
+from .routers.webhooks import router as webhooks_router
 
 logger = logging.getLogger(__name__)
 
@@ -114,6 +117,9 @@ app.include_router(billing_router, prefix="/api/v1", dependencies=[Depends(rate_
 app.include_router(health_router, prefix="/api/v1", dependencies=[Depends(rate_limit)])
 app.include_router(auth_router, prefix="/api/v1", dependencies=[Depends(rate_limit)])
 app.include_router(safeguards_router, prefix="/api/v1", dependencies=[Depends(rate_limit)])
+app.include_router(tenants_router, prefix="/api/v1", dependencies=[Depends(rate_limit)])
+app.include_router(export_router, prefix="/api/v1", dependencies=[Depends(rate_limit)])
+app.include_router(webhooks_router, prefix="/api/v1")
 
 
 @app.exception_handler(Exception)

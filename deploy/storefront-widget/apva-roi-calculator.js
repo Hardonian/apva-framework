@@ -1,5 +1,5 @@
 /**
- * APVA Interactive TVY & ROI Calculator Widget
+ * APVA Interactive TVY & ROI Calculator Widget v3.0
  * Hardonia Storefront Integration (https://aiautomatedsystems.ca)
  * 
  * Embed anywhere with:
@@ -64,7 +64,7 @@
         color: #94a3b8;
         font-weight: 500;
       }
-      .apva-input {
+      .apva-input, .apva-select {
         background: #1e293b;
         border: 1px solid #475569;
         color: white;
@@ -74,7 +74,7 @@
         outline: none;
         transition: border-color 0.2s;
       }
-      .apva-input:focus {
+      .apva-input:focus, .apva-select:focus {
         border-color: #38bdf8;
       }
       .apva-result-card {
@@ -84,6 +84,17 @@
         padding: 20px;
         text-align: center;
         margin-bottom: 20px;
+        position: relative;
+      }
+      .apva-grade-pill {
+        display: inline-block;
+        font-size: 0.75rem;
+        font-weight: 800;
+        padding: 3px 10px;
+        border-radius: 9999px;
+        margin-bottom: 8px;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
       }
       .apva-yield-title {
         font-size: 0.9rem;
@@ -150,7 +161,7 @@
       <div class="apva-header">
         <div class="apva-title">
           <span>APVA True Value Yield Calculator</span>
-          <span class="apva-badge">Hardonia Standard</span>
+          <span class="apva-badge">v3.0 Enterprise</span>
         </div>
       </div>
 
@@ -168,12 +179,27 @@
           <input type="number" id="apva-human-baseline" class="apva-input" value="30" min="1" max="480" />
         </div>
         <div class="apva-field">
+          <label class="apva-label">Skill Level Tier</label>
+          <select id="apva-skill-level" class="apva-select">
+            <option value="2.0">Intern (2.0x Baseline)</option>
+            <option value="1.5">Junior (1.5x Baseline)</option>
+            <option value="1.0" selected>Mid-level (1.0x Baseline)</option>
+            <option value="0.7">Senior (0.7x Baseline)</option>
+            <option value="0.5">Staff / Expert (0.5x Baseline)</option>
+          </select>
+        </div>
+        <div class="apva-field">
           <label class="apva-label">RAG Reliability SLA (%)</label>
           <input type="number" id="apva-rag-reliability" class="apva-input" value="92" min="10" max="100" />
+        </div>
+        <div class="apva-field">
+          <label class="apva-label">Guardrail Friction Tax (min/task)</label>
+          <input type="number" id="apva-guardrail-tax" class="apva-input" value="0.8" step="0.1" min="0" max="30" />
         </div>
       </div>
 
       <div class="apva-result-card">
+        <div id="apva-grade-badge" class="apva-grade-pill" style="background:#15803d;color:#ffffff;">STRONG YIELD</div>
         <div class="apva-yield-title">Estimated Annual Net Value Yield</div>
         <div class="apva-yield-value" id="apva-annual-yield">$378,675 / yr</div>
         <div class="apva-yield-sub" id="apva-tvy-mins">+17.78 minutes net saved per developer task</div>
@@ -204,19 +230,45 @@
     const teamSize = parseFloat(document.getElementById('apva-team-size').value) || 1;
     const hourlyRate = parseFloat(document.getElementById('apva-hourly-rate').value) || 50;
     const humanBase = parseFloat(document.getElementById('apva-human-baseline').value) || 30;
+    const skillMultiplier = parseFloat(document.getElementById('apva-skill-level').value) || 1.0;
     const reliability = (parseFloat(document.getElementById('apva-rag-reliability').value) || 90) / 100.0;
+    const guardrailTax = parseFloat(document.getElementById('apva-guardrail-tax').value) || 0.8;
 
     const aiGenTime = 3.0;
     const verifyTime = 5.0;
-    const guardrailTax = 0.8;
 
-    const grossSaved = Math.max(0, humanBase - (aiGenTime + verifyTime));
+    const adjustedHuman = humanBase * skillMultiplier;
+    const grossSaved = Math.max(0, adjustedHuman - (aiGenTime + verifyTime));
     const tvyMin = (grossSaved * reliability) - guardrailTax;
     const yieldPerTaskUsd = (tvyMin / 60.0) * hourlyRate;
 
     // Assuming 4 tasks/day * 250 work days = 1,000 tasks/year per person
     const tasksPerYearPerDev = 1000;
     const annualTotalUsd = yieldPerTaskUsd * tasksPerYearPerDev * teamSize;
+
+    // Determine TVY Grade
+    const badge = document.getElementById('apva-grade-badge');
+    if (tvyMin >= 30.0) {
+      badge.textContent = 'EXCEPTIONAL YIELD';
+      badge.style.background = '#047857';
+      badge.style.color = '#ffffff';
+    } else if (tvyMin >= 15.0) {
+      badge.textContent = 'STRONG YIELD';
+      badge.style.background = '#15803d';
+      badge.style.color = '#ffffff';
+    } else if (tvyMin >= 5.0) {
+      badge.textContent = 'MODERATE YIELD';
+      badge.style.background = '#b45309';
+      badge.style.color = '#ffffff';
+    } else if (tvyMin >= 0.0) {
+      badge.textContent = 'MARGINAL YIELD';
+      badge.style.background = '#ca8a04';
+      badge.style.color = '#0f172a';
+    } else {
+      badge.textContent = 'NEGATIVE YIELD';
+      badge.style.background = '#b91c1c';
+      badge.style.color = '#ffffff';
+    }
 
     document.getElementById('apva-annual-yield').textContent = 
       (annualTotalUsd >= 0 ? '+$' : '-$') + Math.abs(Math.round(annualTotalUsd)).toLocaleString() + ' / yr';
@@ -227,8 +279,9 @@
     document.getElementById('apva-stat-unit').textContent = '$' + yieldPerTaskUsd.toFixed(2);
   }
 
-  ['apva-team-size', 'apva-hourly-rate', 'apva-human-baseline', 'apva-rag-reliability'].forEach(id => {
+  ['apva-team-size', 'apva-hourly-rate', 'apva-human-baseline', 'apva-skill-level', 'apva-rag-reliability', 'apva-guardrail-tax'].forEach(id => {
     document.getElementById(id).addEventListener('input', calculate);
+    document.getElementById(id).addEventListener('change', calculate);
   });
 
   calculate();
