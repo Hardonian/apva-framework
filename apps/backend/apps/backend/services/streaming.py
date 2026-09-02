@@ -29,20 +29,26 @@ class EventStreamer:
         circuit_breaker = SafeguardCircuitBreaker(tenant_id)
 
         # Sanitize metadata if PII redaction is enabled
-        if "event_metadata" in payload:
+        if "event_metadata" in payload and payload["event_metadata"]:
             payload["event_metadata"] = circuit_breaker.sanitize_metadata(payload["event_metadata"])
 
         # Check circuit breaker on latency tax
         tax = payload.get("guardrail_latency_tax", 0.0)
         circuit_breaker.validate_guardrail_latency(tax)
 
-        # 1. Fire to Billing Meter
-        StripeBillingService.record_usage(tenant_id, "telemetry_ingest", 1)
+        # 1. Fire to Billing Meter (isolated)
+        try:
+            StripeBillingService.record_usage(tenant_id, "telemetry_ingest", 1)
+        except Exception as exc:
+            logger.warning("[EventStreamer] Failed to record billing usage: %s", exc)
 
-        # 2. Fire to ClickHouse (OLAP Engine)
-        await ClickHouseClient.insert_telemetry(payload)
+        # 2. Fire to ClickHouse OLAP Engine (isolated)
+        try:
+            await ClickHouseClient.insert_telemetry(payload)
+        except Exception as exc:
+            logger.warning("[EventStreamer] Failed to insert ClickHouse telemetry: %s", exc)
 
-        # 3. Write to persistent store (simulating Kafka consumer sinking to Postgres)
+        # 3. Write to persistent store
         event = TelemetryEvent(
             tenant_id=tenant_id,
             **payload,
@@ -68,18 +74,24 @@ class EventStreamer:
         circuit_breaker = SafeguardCircuitBreaker(tenant_id)
 
         # Sanitize text fields if PII redaction is enabled
-        if "query" in payload:
+        if "query" in payload and payload["query"]:
             payload["query"] = circuit_breaker.redact_pii(payload["query"])
-        if "context" in payload:
+        if "context" in payload and payload["context"]:
             payload["context"] = circuit_breaker.redact_pii(payload["context"])
-        if "answer" in payload:
+        if "answer" in payload and payload["answer"]:
             payload["answer"] = circuit_breaker.redact_pii(payload["answer"])
 
-        # 1. Fire to Billing Meter
-        StripeBillingService.record_usage(tenant_id, "rag_eval", 1)
+        # 1. Fire to Billing Meter (isolated)
+        try:
+            StripeBillingService.record_usage(tenant_id, "rag_eval", 1)
+        except Exception as exc:
+            logger.warning("[EventStreamer] Failed to record eval billing usage: %s", exc)
 
-        # 2. Fire to ClickHouse (OLAP Engine)
-        await ClickHouseClient.insert_evaluation(payload)
+        # 2. Fire to ClickHouse OLAP Engine (isolated)
+        try:
+            await ClickHouseClient.insert_evaluation(payload)
+        except Exception as exc:
+            logger.warning("[EventStreamer] Failed to insert ClickHouse evaluation: %s", exc)
 
         # 3. Write to persistent store
         job = EvaluationJob(

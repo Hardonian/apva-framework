@@ -9,11 +9,15 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from ..database import get_session
 from ..dependencies import get_tenant_context
-from ..schemas import TelemetryIngestRequest, TelemetryIngestResponse
+from ..schemas import (
+    BatchTelemetryIngestRequest,
+    BatchTelemetryIngestResponse,
+    TelemetryIngestRequest,
+    TelemetryIngestResponse,
+)
 from ..services.streaming import EventStreamer
 
 router = APIRouter(prefix="/telemetry", tags=["telemetry"])
-
 
 
 @router.post(
@@ -49,11 +53,52 @@ async def ingest_telemetry(
         "event_metadata": payload.metadata,
         "created_at": datetime.now(timezone.utc),
     }
-    
+
     event = await EventStreamer.publish_telemetry(
         session=session,
         tenant_id=tenant_context["tenant_id"],
-        payload=event_payload
+        payload=event_payload,
     )
-    
+
     return TelemetryIngestResponse(event_id=event.id)
+
+
+@router.post(
+    "/ingest/batch",
+    response_model=BatchTelemetryIngestResponse,
+    status_code=status.HTTP_201_CREATED,
+)
+async def ingest_telemetry_batch(
+    payload: BatchTelemetryIngestRequest,
+    session: AsyncSession = Depends(get_session),
+    tenant_context: dict = Depends(get_tenant_context),
+) -> BatchTelemetryIngestResponse:
+    """Ingest a batch of up to 100 telemetry events in a single HTTP request."""
+    tenant_id = tenant_context["tenant_id"]
+    event_ids: list[int] = []
+
+    for item in payload.events:
+        event_payload = {
+            "app_name": item.app_name,
+            "session_id": item.session_id,
+            "run_id": item.run_id,
+            "human_baseline_time": item.human_baseline_time,
+            "ai_augmented_time": item.ai_augmented_time,
+            "guardrail_latency_tax": item.guardrail_latency_tax,
+            "session_iterations": item.session_iterations,
+            "hourly_rate_usd": item.hourly_rate_usd,
+            "is_shadow": item.is_shadow,
+            "event_metadata": item.metadata,
+            "created_at": datetime.now(timezone.utc),
+        }
+        event = await EventStreamer.publish_telemetry(
+            session=session,
+            tenant_id=tenant_id,
+            payload=event_payload,
+        )
+        event_ids.append(event.id)
+
+    return BatchTelemetryIngestResponse(
+        accepted_count=len(event_ids),
+        event_ids=event_ids,
+    )
