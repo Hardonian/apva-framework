@@ -59,13 +59,13 @@ jobs:
         working-directory: deploy/workers
         run: wrangler deploy --minify
         env:
-          CLOUDFLARE_API_TOKEN: ${{ secrets[format('{0}', 'CF_API_TOKEN')] }}
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CF_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CF_ACCOUNT_ID }}
 
       - name: Smoke test
         run: |
           sleep 5
-          curl -s https://${{ vars[format('{0}', 'DOMAIN')] }}/health | python3 -m json.tool || echo "Health check skipped"
+          curl -s https://${{ vars.DOMAIN }}/health | python3 -m json.tool || echo "Health check skipped"
 
   deploy-frontend:
     needs: test
@@ -78,7 +78,7 @@ jobs:
       - name: Deploy to Cloudflare Pages
         uses: cloudflare/pages-action@v1
         with:
-          apiToken: ${{ secrets[format('{0}', 'CF_API_TOKEN')] }}
+          apiToken: ${{ secrets.CF_API_TOKEN }}
           accountId: ${{ secrets.CF_ACCOUNT_ID }}
           projectName: ${{ github.event.repository.name }}
           directory: deploy/frontend
