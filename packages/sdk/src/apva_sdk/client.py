@@ -84,11 +84,12 @@ class APVATelemetryClient:
             retry_base_delay: Base delay in seconds for exponential backoff.
             batch_size: Maximum events sent per batch request.
         """
-        self.endpoint = endpoint or os.getenv(
+        ingest_url = endpoint or os.getenv(
             "APVA_INGEST_URL",
             "http://localhost:8000/api/v1/telemetry/ingest",
         )
-        self.batch_endpoint = self.endpoint.rstrip("/") + "/batch"
+        self.endpoint: str = ingest_url or "http://localhost:8000/api/v1/telemetry/ingest"
+        self.batch_endpoint: str = self.endpoint.rstrip("/") + "/batch"
         self.api_key = api_key
         self.app_name = app_name
         self.session_id = session_id or uuid.uuid4().hex

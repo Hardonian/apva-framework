@@ -411,9 +411,9 @@ def main(argv: Sequence[str] | None = None) -> int:
                     "expected_answer": example.expected_answer,
                     "exact_span_recall": exact_span_recall(ans, example.expected_answer),
                 })
-            summary = summarize_eval(raw_eval_results, 0.85)
+            eval_summary = summarize_eval(raw_eval_results, 0.85)
             scorecard = generate_audit_scorecard(
-                summary,
+                eval_summary,
                 human_baseline_min=args.human_baseline,
                 guardrail_tax_min=args.guardrail_tax,
                 hourly_rate_usd=args.hourly_rate,

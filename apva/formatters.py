@@ -79,7 +79,7 @@ def format_table(headers: list[str], rows: list[list[Any]]) -> str:
         str: ASCII-formatted table.
     """
     str_rows = [[str(cell) for cell in row] for row in rows]
-    widths = [max(len(h), *(len(r[i]) for r in str_rows) if str_rows else 0) for i, h in enumerate(headers)]
+    widths = [max([len(h)] + [len(r[i]) for r in str_rows]) for i, h in enumerate(headers)]
 
     line = "+-" + "-+-".join("-" * w for w in widths) + "-+"
     header_row = "| " + " | ".join(h.ljust(w) for h, w in zip(headers, widths)) + " |"

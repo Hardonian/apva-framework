@@ -11,9 +11,9 @@ try:
     from llama_index.core.callbacks.base_handler import BaseCallbackHandler
     from llama_index.core.callbacks.schema import CBEventType
 except ImportError:
-    class BaseCallbackHandler:
+    class BaseCallbackHandler:  # type: ignore[no-redef]
         def __init__(self, *args, **kwargs): pass
-    CBEventType = Any
+    CBEventType = Any  # type: ignore[misc, assignment]
 
 class APVALlamaIndexCallback(BaseCallbackHandler):
     """Zero-code LlamaIndex callback for automatic APVA telemetry."""
