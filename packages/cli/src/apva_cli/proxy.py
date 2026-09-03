@@ -8,11 +8,10 @@ import time
 import uuid
 from typing import Any
 
+import httpx
+from apva_sdk.client import TelemetryEventPayload, get_default_client
 from fastapi import FastAPI, Request
 from fastapi.responses import JSONResponse, StreamingResponse
-import httpx
-
-from apva_sdk.client import TelemetryEventPayload, get_default_client
 
 logger = logging.getLogger(__name__)
 
@@ -47,13 +46,13 @@ async def proxy_request(request: Request, path: str) -> Any:
         pass
 
     # Filter headers (e.g. host) that could break the target server
-    headers = {k: v for k, v in request.headers.items() if k.lower() not in ("host", "content-length")}
+    headers = {
+        k: v for k, v in request.headers.items() if k.lower() not in ("host", "content-length")
+    }
 
     try:
         async with httpx.AsyncClient(timeout=60.0) as client:
-            req = client.build_request(
-                request.method, url, content=body, headers=headers
-            )
+            req = client.build_request(request.method, url, content=body, headers=headers)
             response = await client.send(req, stream=True)
 
             async def streaming_generator():
@@ -78,10 +77,13 @@ async def proxy_request(request: Request, path: str) -> Any:
             return StreamingResponse(
                 streaming_generator(),
                 status_code=response.status_code,
-                headers={k: v for k, v in response.headers.items() if k.lower() not in ("content-encoding", "content-length")},
+                headers={
+                    k: v
+                    for k, v in response.headers.items()
+                    if k.lower() not in ("content-encoding", "content-length")
+                },
             )
     except httpx.HTTPError as exc:
-        duration_min = (time.perf_counter() - start_time) / 60.0
         return JSONResponse(
             status_code=502,
             content={"detail": f"Target proxy connection error: {str(exc)}", "target_url": url},
@@ -91,6 +93,7 @@ async def proxy_request(request: Request, path: str) -> Any:
 def run_proxy(port: int, target: str) -> None:
     """Run the proxy server."""
     import uvicorn
+
     global TARGET_URL
     TARGET_URL = target
     logger.info("Starting APVA proxy on port %d targeting %s", port, target)

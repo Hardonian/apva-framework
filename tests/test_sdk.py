@@ -2,9 +2,7 @@
 
 from __future__ import annotations
 
-
 import pytest
-
 from apva_sdk.client import APVATelemetryClient, TelemetryEventPayload
 
 
@@ -26,9 +24,7 @@ def test_ingest_sync(monkeypatch: pytest.MonkeyPatch):
             posted.append(json)
             return FakeResponse()
 
-    monkeypatch.setattr(
-        "apva_sdk.client.httpx.Client", lambda **kwargs: FakeClient()
-    )
+    monkeypatch.setattr("apva_sdk.client.httpx.Client", lambda **kwargs: FakeClient())
     client = APVATelemetryClient(
         endpoint="http://backend/ingest",
         app_name="app",

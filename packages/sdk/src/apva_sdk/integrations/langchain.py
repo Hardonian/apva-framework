@@ -16,7 +16,13 @@ except ImportError:
 class APVALangChainCallbackHandler(BaseCallbackHandler):
     """Zero-code LangChain callback for automatic APVA telemetry."""
 
-    def __init__(self, app_name: str, session_id: str, human_baseline_time: float, guardrail_latency_tax: float = 0.0) -> None:
+    def __init__(
+        self,
+        app_name: str,
+        session_id: str,
+        human_baseline_time: float,
+        guardrail_latency_tax: float = 0.0,
+    ) -> None:
         self.app_name = app_name
         self.session_id = session_id
         self.human_baseline_time = human_baseline_time
@@ -24,7 +30,9 @@ class APVALangChainCallbackHandler(BaseCallbackHandler):
         self.start_times: dict[str, float] = {}
         self.client = get_default_client()
 
-    def on_chain_start(self, serialized: dict[str, Any], inputs: dict[str, Any], *, run_id: str, **kwargs: Any) -> None:
+    def on_chain_start(
+        self, serialized: dict[str, Any], inputs: dict[str, Any], *, run_id: str, **kwargs: Any
+    ) -> None:
         self.start_times[str(run_id)] = time.time()
 
     def on_chain_end(self, outputs: dict[str, Any], *, run_id: str, **kwargs: Any) -> None:

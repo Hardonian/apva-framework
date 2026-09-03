@@ -38,7 +38,9 @@ def main() -> None:
     print("=== 1. Primary Evaluation ===")
     report = APVACalculator.evaluate(benchmark)
     print(f"Benchmark: {report.benchmark_name}")
-    print(f"True Value Yield: {report.true_value_yield_min:+.2f} min (${report.true_value_yield_usd:.2f})")
+    print(
+        f"True Value Yield: {report.true_value_yield_min:+.2f} min (${report.true_value_yield_usd:.2f})"
+    )
     print(f"Grade: {report.tvy_grade.value.upper()}")
 
     print("\n=== 2. Sensitivity Analysis (Top 5 Impact Drivers) ===")

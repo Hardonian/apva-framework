@@ -7,7 +7,6 @@ functions shared by the CLI and backend services.
 
 from __future__ import annotations
 
-import asyncio
 from dataclasses import dataclass, field
 from typing import Any
 
@@ -124,9 +123,7 @@ async def fetch_target_answer(
 
     payload = {"query": example.query, "context": example.context}
     async with httpx.AsyncClient(timeout=timeout) as client:
-        response = await client.post(
-            f"{target_url.rstrip('/')}/evaluate", json=payload
-        )
+        response = await client.post(f"{target_url.rstrip('/')}/evaluate", json=payload)
         response.raise_for_status()
         data = response.json()
     if isinstance(data, dict) and "answer" in data:

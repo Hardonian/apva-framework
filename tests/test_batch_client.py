@@ -2,9 +2,7 @@
 
 from __future__ import annotations
 
-import time
 import pytest
-
 from apva_sdk.client import APVATelemetryClient, TelemetryEventPayload
 
 

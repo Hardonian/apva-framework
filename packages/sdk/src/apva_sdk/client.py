@@ -194,10 +194,14 @@ class APVATelemetryClient:
                         break
                     except Exception as exc:
                         if attempt < self.max_retries - 1:
-                            backoff = min(self.retry_base_delay * (2 ** attempt), 5.0)
+                            backoff = min(self.retry_base_delay * (2**attempt), 5.0)
                             time.sleep(backoff)
                         else:
-                            logger.debug("[APVA] Ingestion send error after %d retries: %s", self.max_retries, exc)
+                            logger.debug(
+                                "[APVA] Ingestion send error after %d retries: %s",
+                                self.max_retries,
+                                exc,
+                            )
 
     def _send(self, payload: TelemetryEventPayload) -> None:
         """Send one payload to the backend synchronously.

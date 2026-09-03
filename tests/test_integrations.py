@@ -8,12 +8,11 @@ from typing import Any
 from unittest.mock import MagicMock
 
 import pytest
-
 from apva_langchain import APVACallbackHandler as LangChainCallbackHandler
 from apva_llamaindex import APVACallbackHandler as LlamaIndexCallbackHandler
 from apva_sdk.integrations import APVAAnthropic, APVAOpenAI
 from apva_sdk.integrations.crewai_handler import APVACrewAI
-from apva_sdk.opentelemetry import APVASpanExporter, convert_span_to_apva_payload
+from apva_sdk.opentelemetry import APVASpanExporter
 
 
 class MockTelemetryClient:
@@ -121,6 +120,7 @@ def test_openai_wrapper_sync():
 
     class MockRawResponse:
         id = "chatcmpl-test-123"
+
         class usage:
             prompt_tokens = 15
             completion_tokens = 25
@@ -159,6 +159,7 @@ async def test_openai_wrapper_async():
 
     class MockRawResponse:
         id = "chatcmpl-async-456"
+
         class usage:
             prompt_tokens = 10
             completion_tokens = 20
@@ -195,6 +196,7 @@ def test_anthropic_wrapper_sync():
 
     class MockAnthropicResponse:
         id = "msg-anthropic-789"
+
         class usage:
             input_tokens = 45
             output_tokens = 60
@@ -233,6 +235,7 @@ async def test_anthropic_wrapper_async():
 
     class MockAnthropicResponse:
         id = "msg-async-999"
+
         class usage:
             input_tokens = 25
             output_tokens = 35
@@ -272,6 +275,7 @@ def test_crewai_wrapper():
             class Result:
                 class token_usage:
                     total_tokens = 350
+
             return Result()
 
     crew_wrapper = APVACrewAI(
@@ -304,8 +308,8 @@ def test_opentelemetry_bridge():
     )
 
     class MockContext:
-        trace_id = 0x1234567890abcdef1234567890abcdef
-        span_id = 0xabcdef1234567890
+        trace_id = 0x1234567890ABCDEF1234567890ABCDEF
+        span_id = 0xABCDEF1234567890
 
     class MockSpan:
         context = MockContext()

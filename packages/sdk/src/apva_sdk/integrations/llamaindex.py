@@ -11,14 +11,24 @@ try:
     from llama_index.core.callbacks.base_handler import BaseCallbackHandler
     from llama_index.core.callbacks.schema import CBEventType
 except ImportError:
+
     class BaseCallbackHandler:  # type: ignore[no-redef]
-        def __init__(self, *args, **kwargs): pass
+        def __init__(self, *args, **kwargs):
+            pass
+
     CBEventType = Any  # type: ignore[misc, assignment]
+
 
 class APVALlamaIndexCallback(BaseCallbackHandler):
     """Zero-code LlamaIndex callback for automatic APVA telemetry."""
 
-    def __init__(self, app_name: str, session_id: str, human_baseline_time: float, guardrail_latency_tax: float = 0.0) -> None:
+    def __init__(
+        self,
+        app_name: str,
+        session_id: str,
+        human_baseline_time: float,
+        guardrail_latency_tax: float = 0.0,
+    ) -> None:
         super().__init__(event_starts_to_ignore=[], event_ends_to_ignore=[])
         self.app_name = app_name
         self.session_id = session_id
@@ -52,7 +62,7 @@ class APVALlamaIndexCallback(BaseCallbackHandler):
         if str(event_type) == "CBEventType.QUERY" and event_id in self.start_times:
             start_time = self.start_times.pop(event_id)
             ai_augmented_time = (time.time() - start_time) / 60.0
-            
+
             telemetry = TelemetryEventPayload(
                 app_name=self.app_name,
                 session_id=self.session_id,
@@ -67,6 +77,8 @@ class APVALlamaIndexCallback(BaseCallbackHandler):
         """No-op."""
         pass
 
-    def end_trace(self, trace_id: str | None = None, trace_map: dict[str, list[str]] | None = None) -> None:
+    def end_trace(
+        self, trace_id: str | None = None, trace_map: dict[str, list[str]] | None = None
+    ) -> None:
         """No-op."""
         pass

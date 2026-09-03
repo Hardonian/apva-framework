@@ -9,6 +9,7 @@ from typing import Any
 try:  # Celery is optional for local tests and lightweight installs.
     from celery import Celery  # type: ignore[import-not-found]
 except ModuleNotFoundError:  # pragma: no cover - exercised when celery extra is absent
+
     class Celery:  # type: ignore[no-redef]
         """Tiny local fallback that preserves the @task decorator contract."""
 
@@ -20,7 +21,9 @@ except ModuleNotFoundError:  # pragma: no cover - exercised when celery extra is
             def decorator(fn):
                 fn.delay = fn  # type: ignore[attr-defined]
                 return fn
+
             return decorator
+
 
 from .config import settings
 from .database import AsyncSessionLocal
@@ -37,11 +40,11 @@ celery_app = Celery(
 
 
 @celery_app.task(
-    bind=True, 
-    name="apva.evaluate_rag_transcript", 
+    bind=True,
+    name="apva.evaluate_rag_transcript",
     max_retries=3,
     acks_late=True,
-    reject_on_worker_lost=True
+    reject_on_worker_lost=True,
 )
 def evaluate_rag_transcript(self, payload: dict[str, Any]) -> dict[str, Any]:
     """Run async RAG evaluation without blocking FastAPI request threads.
@@ -53,7 +56,6 @@ def evaluate_rag_transcript(self, payload: dict[str, Any]) -> dict[str, Any]:
         dict[str, Any]: Completed evaluation scores and job ID.
     """
     return asyncio.run(_evaluate_rag_transcript_async(self, payload))
-
 
 
 async def _evaluate_rag_transcript_async(task: Any, payload: dict[str, Any]) -> dict[str, Any]:
@@ -84,9 +86,7 @@ async def _evaluate_rag_transcript_async(task: Any, payload: dict[str, Any]) -> 
             job.exact_span_recall = float(scores["exact_span_recall"])
             job.llm_faithfulness_score = float(scores["llm_faithfulness_score"])
             job.precision_score = float(scores["precision_score"])
-            job.rag_reliability_coefficient = float(
-                scores["rag_reliability_coefficient"]
-            )
+            job.rag_reliability_coefficient = float(scores["rag_reliability_coefficient"])
             job.completed_at = datetime.now(timezone.utc)
             await session.commit()
         return {
@@ -101,7 +101,7 @@ async def _evaluate_rag_transcript_async(task: Any, payload: dict[str, Any]) -> 
                 is_last_retry = True
         else:
             is_last_retry = True
-            
+
         if is_last_retry:
             async with AsyncSessionLocal() as session:
                 job = await session.get(EvaluationJob, payload["job_id"])

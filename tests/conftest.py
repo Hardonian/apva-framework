@@ -55,9 +55,7 @@ def pytest_sessionstart(session):  # type: ignore[no-untyped-def]
     # Rebuild the eager engine against the forced SQLite URL so tests never
     # touch a real Postgres instance.
     database.engine = database.build_engine(os.environ["APVA_DATABASE_URL"])
-    database.AsyncSessionLocal = async_sessionmaker(
-        database.engine, expire_on_commit=False
-    )
+    database.AsyncSessionLocal = async_sessionmaker(database.engine, expire_on_commit=False)
     database.async_session_maker = database.AsyncSessionLocal
 
     async def create_schema() -> None:

@@ -6,9 +6,8 @@ import secrets
 from datetime import datetime, timezone
 from typing import Any
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, status
 from pydantic import BaseModel, Field
-from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from ..database import get_db
@@ -20,7 +19,9 @@ router = APIRouter(prefix="/tenants", tags=["tenants"])
 
 class TenantCreateRequest(BaseModel):
     name: str = Field(..., min_length=2, max_length=100, description="Organization name")
-    tier: str = Field(default="community", description="Subscription tier: community, team, business, enterprise")
+    tier: str = Field(
+        default="community", description="Subscription tier: community, team, business, enterprise"
+    )
 
 
 class TenantResponse(BaseModel):
@@ -31,7 +32,9 @@ class TenantResponse(BaseModel):
 
 
 class TenantCreateResponse(TenantResponse):
-    api_key: str = Field(..., description="Raw API key. Store securely; this cannot be retrieved again.")
+    api_key: str = Field(
+        ..., description="Raw API key. Store securely; this cannot be retrieved again."
+    )
 
 
 class KeyRotationResponse(BaseModel):

@@ -5,7 +5,6 @@ from __future__ import annotations
 from pathlib import Path
 
 import pytest
-
 from apva_cli.main import exact_span_recall, load_golden_set, summarize
 
 
@@ -18,14 +17,30 @@ def test_exact_span_recall_partial():
 
 
 def test_summarize_pass(tmp_path: Path):
-    results = [{"index": "0", "query": "q", "answer": "a b c", "expected_answer": "a b c", "exact_span_recall": 1.0}]
+    results = [
+        {
+            "index": "0",
+            "query": "q",
+            "answer": "a b c",
+            "expected_answer": "a b c",
+            "exact_span_recall": 1.0,
+        }
+    ]
     summary = summarize(results)
     assert summary["passed"] is True
     assert summary["count"] == 1
 
 
 def test_summarize_low_recall(tmp_path: Path):
-    results = [{"index": "0", "query": "q", "answer": "", "expected_answer": "a b c", "exact_span_recall": 0.0}]
+    results = [
+        {
+            "index": "0",
+            "query": "q",
+            "answer": "",
+            "expected_answer": "a b c",
+            "exact_span_recall": 0.0,
+        }
+    ]
     summary = summarize(results)
     assert summary["passed"] is False
     assert summary["average_exact_span_recall"] == pytest.approx(0.0)
@@ -41,6 +56,7 @@ def test_load_golden_set(tmp_path: Path):
 
 def test_apva_cli_main_demo(capsys: pytest.CaptureFixture[str]):
     from apva.cli import main
+
     exit_code = main(["demo"])
     assert exit_code == 0
     captured = capsys.readouterr()
@@ -49,7 +65,10 @@ def test_apva_cli_main_demo(capsys: pytest.CaptureFixture[str]):
 
 def test_apva_cli_main_run_eval(capsys: pytest.CaptureFixture[str]):
     from apva.cli import main
-    exit_code = main(["run-eval", "--golden-set", "data/golden_dataset.json", "--threshold", "0.80"])
+
+    exit_code = main(
+        ["run-eval", "--golden-set", "data/golden_dataset.json", "--threshold", "0.80"]
+    )
     assert exit_code == 0
     captured = capsys.readouterr()
     assert '"passed": true' in captured.out
@@ -57,8 +76,8 @@ def test_apva_cli_main_run_eval(capsys: pytest.CaptureFixture[str]):
 
 def test_apva_cli_main_audit(capsys: pytest.CaptureFixture[str]):
     from apva.cli import main
+
     exit_code = main(["audit", "--golden-set", "data/golden_dataset.json", "--hourly-rate", "85.0"])
     assert exit_code == 0
     captured = capsys.readouterr()
     assert "APVA Enterprise AI ROI Audit Scorecard" in captured.out
-

@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import os
+
 from apva_llamaindex import APVACallbackHandler
 
 
@@ -14,11 +15,11 @@ def run_instrumented_llamaindex_rag() -> None:
         app_name="aias-doc-retriever",
         session_id="session-rag-202",
         human_baseline_time=45.0,  # Human takes ~45 mins to research documentation
-        hourly_rate_usd=95.00,     # Senior analyst wage
+        hourly_rate_usd=95.00,  # Senior analyst wage
     )
 
     print(f"[AIAS] APVA LlamaIndex Handler initialized for '{apva_handler.app_name}'")
-    print(f"[AIAS] Context chunk capturing and TVY discount enabled.")
+    print("[AIAS] Context chunk capturing and TVY discount enabled.")
 
     # 2. In production with llama-index:
     # callback_manager = CallbackManager([apva_handler])

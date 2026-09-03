@@ -27,9 +27,14 @@ async def stripe_webhook(
     payload = await request.body()
 
     event: dict[str, Any]
-    if settings.stripe_enabled and getattr(settings, "stripe_webhook_secret", None) and stripe_signature:
+    if (
+        settings.stripe_enabled
+        and getattr(settings, "stripe_webhook_secret", None)
+        and stripe_signature
+    ):
         try:
             import stripe
+
             stripe.api_key = settings.stripe_api_key
             event = stripe.Webhook.construct_event(
                 payload, stripe_signature, settings.stripe_webhook_secret
@@ -45,7 +50,9 @@ async def stripe_webhook(
         try:
             event = await request.json()
         except Exception:
-            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid JSON payload")
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid JSON payload"
+            )
 
     event_type = event.get("type", "")
     data_object = event.get("data", {}).get("object", {})
@@ -66,7 +73,10 @@ async def stripe_webhook(
             if tenant:
                 if event_type == "customer.subscription.deleted":
                     tenant.tier = "community"
-                elif event_type in ("customer.subscription.created", "customer.subscription.updated"):
+                elif event_type in (
+                    "customer.subscription.created",
+                    "customer.subscription.updated",
+                ):
                     # Extract tier from plan/product metadata or nickname
                     plan_nickname = data_object.get("plan", {}).get("nickname", "").lower()
                     if "enterprise" in plan_nickname:

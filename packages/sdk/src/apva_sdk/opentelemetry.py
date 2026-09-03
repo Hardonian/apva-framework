@@ -44,9 +44,13 @@ def convert_span_to_apva_payload(
     # Extract OpenTelemetry GenAI Semantic Conventions
     model = attributes.get("gen_ai.request.model") or attributes.get("llm.model_name") or "unknown"
     system = attributes.get("gen_ai.system") or attributes.get("llm.system") or "llm"
-    prompt_tokens = attributes.get("gen_ai.usage.prompt_tokens") or attributes.get("llm.prompt_tokens") or 0
+    prompt_tokens = (
+        attributes.get("gen_ai.usage.prompt_tokens") or attributes.get("llm.prompt_tokens") or 0
+    )
     completion_tokens = (
-        attributes.get("gen_ai.usage.completion_tokens") or attributes.get("llm.completion_tokens") or 0
+        attributes.get("gen_ai.usage.completion_tokens")
+        or attributes.get("llm.completion_tokens")
+        or 0
     )
 
     # Extract APVA specific annotations if present
@@ -61,7 +65,9 @@ def convert_span_to_apva_payload(
     # Context & identifiers
     context = getattr(span, "context", None)
     trace_id = format(getattr(context, "trace_id", 0), "032x") if context else "unknown-trace"
-    span_id = format(getattr(context, "span_id", 0), "016x") if context else getattr(span, "name", "span")
+    span_id = (
+        format(getattr(context, "span_id", 0), "016x") if context else getattr(span, "name", "span")
+    )
 
     metadata: dict[str, Any] = {
         "otel_trace_id": trace_id,
@@ -110,7 +116,10 @@ class APVASpanExporter:
             try:
                 # Only process spans tagged with gen_ai or llm
                 attrs = getattr(span, "attributes", {}) or {}
-                if any(k.startswith("gen_ai.") or k.startswith("llm.") or k.startswith("apva.") for k in attrs):
+                if any(
+                    k.startswith("gen_ai.") or k.startswith("llm.") or k.startswith("apva.")
+                    for k in attrs
+                ):
                     payload = convert_span_to_apva_payload(
                         span,
                         default_app_name=self.default_app_name,

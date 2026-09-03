@@ -4,7 +4,6 @@ from __future__ import annotations
 
 import json
 from pathlib import Path
-import pytest
 
 from apva.datasets import (
     GoldenExample,
@@ -66,7 +65,9 @@ def test_validate_golden_set():
 def test_save_and_reload(tmp_path: Path):
     path = tmp_path / "saved.json"
     original = [
-        GoldenExample(query="q1", expected_answer="a1", context="ctx1", answer="ans1", metadata={"level": 1}),
+        GoldenExample(
+            query="q1", expected_answer="a1", context="ctx1", answer="ans1", metadata={"level": 1}
+        ),
     ]
     save_golden_set(original, path)
     reloaded = load_golden_set(path)

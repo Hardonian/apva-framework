@@ -10,11 +10,9 @@ import csv
 import io
 import json
 import sys
-from datetime import datetime, timezone
-from typing import Any, TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
 if TYPE_CHECKING:
-    from apva.evaluation import EvaluationSummary
     from apva.models import APVAReport
 
 
@@ -26,6 +24,7 @@ def _is_tty() -> bool:
 # ---------------------------------------------------------------------------
 # ANSI helpers (auto-disabled when piped)
 # ---------------------------------------------------------------------------
+
 
 class _Colours:
     """Terminal colour codes — all resolve to empty strings when not a TTY."""
@@ -54,6 +53,7 @@ C = _Colours
 # ---------------------------------------------------------------------------
 # Generic formatters
 # ---------------------------------------------------------------------------
+
 
 def format_json(data: Any, indent: int = 2) -> str:
     """Serialise *data* to indented JSON.
@@ -95,6 +95,7 @@ def format_table(headers: list[str], rows: list[list[Any]]) -> str:
 # ---------------------------------------------------------------------------
 # APVAReport formatters
 # ---------------------------------------------------------------------------
+
 
 def format_report_json(report: APVAReport) -> str:
     """Serialise an APVAReport to JSON."""
@@ -140,15 +141,17 @@ def format_report_csv_row(report: APVAReport) -> str:
     """
     buf = io.StringIO()
     writer = csv.writer(buf)
-    writer.writerow([
-        report.benchmark_name,
-        f"{report.gross_time_saved_min:.4f}",
-        f"{report.rag_reliability_coefficient:.4f}",
-        f"{report.guardrail_friction_tax_min:.4f}",
-        f"{report.true_value_yield_min:.4f}",
-        f"{report.true_value_yield_usd:.2f}" if report.true_value_yield_usd is not None else "",
-        report.is_net_positive,
-    ])
+    writer.writerow(
+        [
+            report.benchmark_name,
+            f"{report.gross_time_saved_min:.4f}",
+            f"{report.rag_reliability_coefficient:.4f}",
+            f"{report.guardrail_friction_tax_min:.4f}",
+            f"{report.true_value_yield_min:.4f}",
+            f"{report.true_value_yield_usd:.2f}" if report.true_value_yield_usd is not None else "",
+            report.is_net_positive,
+        ]
+    )
     return buf.getvalue().strip()
 
 
@@ -169,6 +172,7 @@ def format_reports_csv(reports: list[APVAReport]) -> str:
 # ---------------------------------------------------------------------------
 # Audit scorecard (extracted from apva/cli.py)
 # ---------------------------------------------------------------------------
+
 
 def format_audit_scorecard(
     *,
@@ -217,7 +221,11 @@ def format_audit_scorecard(
     divider = "─" * width
 
     status_icon = f"{C.GREEN}✅ PASS{C.RESET}" if eval_pass else f"{C.RED}❌ FAIL{C.RESET}"
-    net_icon = f"{C.GREEN}✅ NET POSITIVE{C.RESET}" if is_net_positive else f"{C.RED}❌ NET NEGATIVE{C.RESET}"
+    net_icon = (
+        f"{C.GREEN}✅ NET POSITIVE{C.RESET}"
+        if is_net_positive
+        else f"{C.RED}❌ NET NEGATIVE{C.RESET}"
+    )
 
     lines = [
         f"{C.BOLD}╔{border}╗{C.RESET}",

@@ -17,10 +17,13 @@ from apva_sdk.client import APVATelemetryClient, TelemetryEventPayload, get_defa
 try:
     from langchain_core.callbacks.base import BaseCallbackHandler
 except ImportError:
+
     class BaseCallbackHandler:  # type: ignore[no-redef]
         """Fallback callback handler base when langchain_core is not installed."""
+
         def __init__(self, *args: Any, **kwargs: Any) -> None:
             pass
+
 
 logger = logging.getLogger(__name__)
 
@@ -49,8 +52,11 @@ class APVACallbackHandler(BaseCallbackHandler):
         self.hourly_rate_usd = hourly_rate_usd
         self.is_shadow = is_shadow
         self.client = client or (
-            APVATelemetryClient(api_key=api_key, app_name=app_name, session_id=self.session_id, endpoint=endpoint)
-            if (api_key or endpoint) else get_default_client()
+            APVATelemetryClient(
+                api_key=api_key, app_name=app_name, session_id=self.session_id, endpoint=endpoint
+            )
+            if (api_key or endpoint)
+            else get_default_client()
         )
         self._run_start_times: dict[str, float] = {}
         self._run_metadata: dict[str, dict[str, Any]] = {}
@@ -102,7 +108,11 @@ class APVACallbackHandler(BaseCallbackHandler):
                 metadata=meta,
             )
             self.client.ingest_async(payload)
-            logger.debug("[apva-langchain] Auto-emitted TVY telemetry for %s (%.4fm)", self.app_name, elapsed_min)
+            logger.debug(
+                "[apva-langchain] Auto-emitted TVY telemetry for %s (%.4fm)",
+                self.app_name,
+                elapsed_min,
+            )
 
     def on_chain_error(
         self,

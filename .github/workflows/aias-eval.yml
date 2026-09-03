@@ -13,10 +13,10 @@ jobs:
 
     steps:
       - name: Checkout Code
-        uses: actions/checkout@v7
+        uses: actions/checkout@v4
 
       - name: Set up Python
-        uses: actions/setup-python@v7
+        uses: actions/setup-python@v5
         with:
           python-version: '3.12'
 
@@ -27,6 +27,6 @@ jobs:
 
       - name: Run Golden Dataset Verification
         run: |
-          python -m apva_cli.main run-eval \
+          apva run-eval \
             --golden-set ./data/golden_dataset.json \
             --threshold 0.85

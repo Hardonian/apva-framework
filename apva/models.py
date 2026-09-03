@@ -30,6 +30,7 @@ PositiveMinutes = Annotated[float, Field(ge=0.0)]
 # Enums
 # ---------------------------------------------------------------------------
 
+
 class SkillLevel(str, Enum):
     """Skill stratification tier for the human baseline.
 
@@ -112,6 +113,7 @@ class TVYGrade(str, Enum):
 # ---------------------------------------------------------------------------
 # Input models
 # ---------------------------------------------------------------------------
+
 
 class ProductivityMetrics(BaseModel):
     """Inputs governing the productivity pillar.
@@ -225,6 +227,7 @@ class BenchmarkInput(BaseModel):
 # ---------------------------------------------------------------------------
 # Output / analysis models
 # ---------------------------------------------------------------------------
+
 
 class SensitivityVector(BaseModel):
     """Impact of perturbing a single input parameter on TVY.

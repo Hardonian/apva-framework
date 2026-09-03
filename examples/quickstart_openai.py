@@ -1,13 +1,12 @@
 from __future__ import annotations
 
-import os
 import sys
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "packages" / "sdk" / "src"))
 
-from apva_sdk.integrations import APVAOpenAI
+from apva_sdk.integrations import APVAOpenAI  # noqa: E402
 
 
 def main() -> None:
@@ -15,6 +14,7 @@ def main() -> None:
     # For demonstration, we use a mock client interface
     class MockCompletion:
         id = "chatcmpl-demo-123"
+
         class usage:
             prompt_tokens = 25
             completion_tokens = 50

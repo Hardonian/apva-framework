@@ -11,7 +11,6 @@ All scores return a ``float`` in the inclusive range ``[0.0, 1.0]``.
 from __future__ import annotations
 
 import re
-from functools import lru_cache
 
 
 def tokenize(text: str) -> list[str]:

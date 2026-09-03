@@ -121,10 +121,12 @@ class _APVACompletionsProxy:
         result = self._completions.create(*args, **kwargs)
 
         if inspect.iscoroutine(result):
+
             async def _async_wrapper() -> Any:
                 response = await result
                 self._emit_telemetry(start_time, response, kwargs)
                 return response
+
             return _async_wrapper()
 
         self._emit_telemetry(start_time, result, kwargs)
@@ -190,10 +192,12 @@ class _APVAEmbeddingsProxy:
         result = self._embeddings.create(*args, **kwargs)
 
         if inspect.iscoroutine(result):
+
             async def _async_wrapper() -> Any:
                 response = await result
                 self._emit_telemetry(start_time, response, kwargs)
                 return response
+
             return _async_wrapper()
 
         self._emit_telemetry(start_time, result, kwargs)

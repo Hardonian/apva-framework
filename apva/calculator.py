@@ -31,7 +31,7 @@ from __future__ import annotations
 import copy
 import random
 import statistics
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from typing import Any
 
 from apva.constants import (
@@ -40,7 +40,6 @@ from apva.constants import (
     DEFAULT_MONTE_CARLO_SIMULATIONS,
     DEFAULT_SENSITIVITY_DELTA,
     DEFAULT_SPAN_RECALL_WEIGHT,
-    FRAMEWORK_VERSION,
 )
 from apva.models import (
     APVAReport,
@@ -53,10 +52,10 @@ from apva.models import (
     TVYGrade,
 )
 
-
 # ---------------------------------------------------------------------------
 # Calculator configuration
 # ---------------------------------------------------------------------------
+
 
 @dataclass(frozen=True)
 class APVACalculatorConfig:
@@ -77,9 +76,7 @@ class APVACalculatorConfig:
     def __post_init__(self) -> None:
         total = self.span_recall_weight + self.faithfulness_weight
         if abs(total - 1.0) > 1e-6:
-            raise ValueError(
-                f"Reliability weights must sum to 1.0, got {total:.6f}."
-            )
+            raise ValueError(f"Reliability weights must sum to 1.0, got {total:.6f}.")
 
 
 # Module-level default config
@@ -89,6 +86,7 @@ _DEFAULT_CONFIG = APVACalculatorConfig()
 # ---------------------------------------------------------------------------
 # Core calculator
 # ---------------------------------------------------------------------------
+
 
 class APVACalculator:
     """Stateless engine that evaluates APVA benchmarks.
@@ -115,8 +113,7 @@ class APVACalculator:
             generation plus epistemic verification exceeds the human baseline.
         """
         ai_total = (
-            productivity.ai_generation_time_min
-            + productivity.epistemic_verification_time_min
+            productivity.ai_generation_time_min + productivity.epistemic_verification_time_min
         )
         return productivity.skill_adjusted_human_baseline_min - ai_total
 
@@ -162,9 +159,7 @@ class APVACalculator:
             float: Total friction tax in minutes (always >= 0 given validated
             non-negative inputs).
         """
-        false_positive_cost = (
-            guardrail.false_positive_rate * guardrail.resolution_penalty_time_min
-        )
+        false_positive_cost = guardrail.false_positive_rate * guardrail.resolution_penalty_time_min
         return (
             guardrail.base_latency_overhead_min
             + false_positive_cost
@@ -299,9 +294,7 @@ class APVACalculator:
         if len(reports) < 2:
             raise ValueError("compare() requires at least 2 reports.")
 
-        sorted_reports = sorted(
-            reports, key=lambda r: r.true_value_yield_min, reverse=True
-        )
+        sorted_reports = sorted(reports, key=lambda r: r.true_value_yield_min, reverse=True)
         best = sorted_reports[0]
         worst = sorted_reports[-1]
         tvy_values = [r.true_value_yield_min for r in reports]
@@ -348,28 +341,58 @@ class APVACalculator:
             sorted by descending ``tvy_impact``.
         """
         cfg = config or _DEFAULT_CONFIG
-        base_tvy = cls.true_value_yield(benchmark, cfg)
         results: list[SensitivityVector] = []
 
         perturbable: list[tuple[str, str, str, float]] = [
-            ("productivity", "reference_human_baseline_min", "productivity.reference_human_baseline_min",
-             benchmark.productivity.reference_human_baseline_min),
-            ("productivity", "ai_generation_time_min", "productivity.ai_generation_time_min",
-             benchmark.productivity.ai_generation_time_min),
-            ("productivity", "epistemic_verification_time_min", "productivity.epistemic_verification_time_min",
-             benchmark.productivity.epistemic_verification_time_min),
-            ("rag", "exact_span_recall", "rag.exact_span_recall",
-             benchmark.rag.exact_span_recall),
-            ("rag", "llm_faithfulness_score", "rag.llm_faithfulness_score",
-             benchmark.rag.llm_faithfulness_score),
-            ("guardrail", "base_latency_overhead_min", "guardrail.base_latency_overhead_min",
-             benchmark.guardrail.base_latency_overhead_min),
-            ("guardrail", "false_positive_rate", "guardrail.false_positive_rate",
-             benchmark.guardrail.false_positive_rate),
-            ("guardrail", "resolution_penalty_time_min", "guardrail.resolution_penalty_time_min",
-             benchmark.guardrail.resolution_penalty_time_min),
-            ("guardrail", "cra_session_drop_penalty_min", "guardrail.cra_session_drop_penalty_min",
-             benchmark.guardrail.cra_session_drop_penalty_min),
+            (
+                "productivity",
+                "reference_human_baseline_min",
+                "productivity.reference_human_baseline_min",
+                benchmark.productivity.reference_human_baseline_min,
+            ),
+            (
+                "productivity",
+                "ai_generation_time_min",
+                "productivity.ai_generation_time_min",
+                benchmark.productivity.ai_generation_time_min,
+            ),
+            (
+                "productivity",
+                "epistemic_verification_time_min",
+                "productivity.epistemic_verification_time_min",
+                benchmark.productivity.epistemic_verification_time_min,
+            ),
+            ("rag", "exact_span_recall", "rag.exact_span_recall", benchmark.rag.exact_span_recall),
+            (
+                "rag",
+                "llm_faithfulness_score",
+                "rag.llm_faithfulness_score",
+                benchmark.rag.llm_faithfulness_score,
+            ),
+            (
+                "guardrail",
+                "base_latency_overhead_min",
+                "guardrail.base_latency_overhead_min",
+                benchmark.guardrail.base_latency_overhead_min,
+            ),
+            (
+                "guardrail",
+                "false_positive_rate",
+                "guardrail.false_positive_rate",
+                benchmark.guardrail.false_positive_rate,
+            ),
+            (
+                "guardrail",
+                "resolution_penalty_time_min",
+                "guardrail.resolution_penalty_time_min",
+                benchmark.guardrail.resolution_penalty_time_min,
+            ),
+            (
+                "guardrail",
+                "cra_session_drop_penalty_min",
+                "guardrail.cra_session_drop_penalty_min",
+                benchmark.guardrail.cra_session_drop_penalty_min,
+            ),
         ]
 
         for pillar, attr, dotted_path, base_value in perturbable:
@@ -389,14 +412,16 @@ class APVACalculator:
             tvy_lower = cls._evaluate_with_override(benchmark, pillar, attr, lower_val, cfg)
             tvy_upper = cls._evaluate_with_override(benchmark, pillar, attr, upper_val, cfg)
 
-            results.append(SensitivityVector(
-                parameter=dotted_path,
-                base_value=base_value,
-                delta=delta,
-                tvy_at_lower=round(tvy_lower, 6),
-                tvy_at_upper=round(tvy_upper, 6),
-                tvy_impact=round(abs(tvy_upper - tvy_lower), 6),
-            ))
+            results.append(
+                SensitivityVector(
+                    parameter=dotted_path,
+                    base_value=base_value,
+                    delta=delta,
+                    tvy_at_lower=round(tvy_lower, 6),
+                    tvy_at_upper=round(tvy_upper, 6),
+                    tvy_impact=round(abs(tvy_upper - tvy_lower), 6),
+                )
+            )
 
         results.sort(key=lambda sv: sv.tvy_impact, reverse=True)
         return results
@@ -465,24 +490,45 @@ class APVACalculator:
         base_data = benchmark.model_dump()
 
         numeric_paths: list[tuple[str, str, float, bool]] = [
-            ("productivity", "reference_human_baseline_min",
-             benchmark.productivity.reference_human_baseline_min, False),
-            ("productivity", "ai_generation_time_min",
-             benchmark.productivity.ai_generation_time_min, False),
-            ("productivity", "epistemic_verification_time_min",
-             benchmark.productivity.epistemic_verification_time_min, False),
-            ("rag", "exact_span_recall",
-             benchmark.rag.exact_span_recall, True),
-            ("rag", "llm_faithfulness_score",
-             benchmark.rag.llm_faithfulness_score, True),
-            ("guardrail", "base_latency_overhead_min",
-             benchmark.guardrail.base_latency_overhead_min, False),
-            ("guardrail", "false_positive_rate",
-             benchmark.guardrail.false_positive_rate, True),
-            ("guardrail", "resolution_penalty_time_min",
-             benchmark.guardrail.resolution_penalty_time_min, False),
-            ("guardrail", "cra_session_drop_penalty_min",
-             benchmark.guardrail.cra_session_drop_penalty_min, False),
+            (
+                "productivity",
+                "reference_human_baseline_min",
+                benchmark.productivity.reference_human_baseline_min,
+                False,
+            ),
+            (
+                "productivity",
+                "ai_generation_time_min",
+                benchmark.productivity.ai_generation_time_min,
+                False,
+            ),
+            (
+                "productivity",
+                "epistemic_verification_time_min",
+                benchmark.productivity.epistemic_verification_time_min,
+                False,
+            ),
+            ("rag", "exact_span_recall", benchmark.rag.exact_span_recall, True),
+            ("rag", "llm_faithfulness_score", benchmark.rag.llm_faithfulness_score, True),
+            (
+                "guardrail",
+                "base_latency_overhead_min",
+                benchmark.guardrail.base_latency_overhead_min,
+                False,
+            ),
+            ("guardrail", "false_positive_rate", benchmark.guardrail.false_positive_rate, True),
+            (
+                "guardrail",
+                "resolution_penalty_time_min",
+                benchmark.guardrail.resolution_penalty_time_min,
+                False,
+            ),
+            (
+                "guardrail",
+                "cra_session_drop_penalty_min",
+                benchmark.guardrail.cra_session_drop_penalty_min,
+                False,
+            ),
         ]
 
         for _ in range(n_simulations):

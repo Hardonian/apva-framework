@@ -5,11 +5,12 @@ from __future__ import annotations
 import asyncio
 import logging
 from dataclasses import dataclass
-from typing import Any
+from typing import Any, cast
 
 import httpx
 
-from apva.scoring import exact_span_recall, token_precision, tokenize
+from apva.scoring import exact_span_recall, token_precision
+
 from ..schemas import EvalTriggerRequest
 
 SPAN_RECALL_WEIGHT = 0.60
@@ -81,6 +82,7 @@ def compute_rag_scores(answer: str, expected_answer: str) -> RagScoreResult:
 
 _http_client: httpx.AsyncClient | None = None
 
+
 def get_http_client() -> httpx.AsyncClient:
     """Return a global singleton HTTPX client for connection pooling."""
     global _http_client
@@ -108,11 +110,11 @@ async def score_with_mock_target(
         "expected_answer": request.expected_answer,
     }
     url = f"{target_app_url.rstrip('/')}/score-faithfulness"
-    
+
     client = get_http_client()
     response = await client.post(url, json=payload)
     response.raise_for_status()
-    return response.json()
+    return cast(dict[str, Any], response.json())
 
 
 def compute_tvy_from_scores(
@@ -152,16 +154,17 @@ async def run_local_or_target_score(
         return await score_with_mock_target(request, target_app_url)
     except httpx.HTTPError:
         from .slm import ProprietarySLM
+
         recall = exact_span_recall(request.answer, request.expected_answer)
         precision = token_precision(request.answer, request.expected_answer)
         faithfulness = await ProprietarySLM.evaluate_rag(
             query=request.query,
             context=request.context,
             answer=request.answer,
-            expected_answer=request.expected_answer
+            expected_answer=request.expected_answer,
         )
         reliability = SPAN_RECALL_WEIGHT * recall + FAITHFULNESS_WEIGHT * faithfulness
-        
+
         return {
             "exact_span_recall": recall,
             "llm_faithfulness_score": faithfulness,

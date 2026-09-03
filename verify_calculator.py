@@ -2,7 +2,9 @@
 
 Produces real numeric outputs for the four core formulas plus negative-TVY and zero-TVY cases.
 """
+
 from __future__ import annotations
+
 from apva.calculator import APVACalculator
 from apva.models import (
     BenchmarkInput,
@@ -34,9 +36,8 @@ def main():
         rag=rag,
         guardrail=guardrail,
     )
-    report = APVACalculator.evaluate(benchmark)
     tv = APVACalculator.true_value_yield(benchmark)
-    expected = (60.0 - 15.0) * (0.6 * 0.9 + 0.4 * 0.8) - 1.0
+    expected = (60.0 * 0.7 - 15.0) * (0.6 * 0.9 + 0.4 * 0.8) - 1.0
     print("basic_expected", expected)
     print("basic_tv", tv)
     print(
@@ -49,7 +50,7 @@ def main():
     # Case 2: zero baseline savings -> zero TVY with perfect metrics
     productivity = ProductivityMetrics(
         reference_human_baseline_min=30.0,
-        skill_level=SkillLevel.JUNIOR,
+        skill_level=SkillLevel.MID,
         ai_generation_time_min=15.0,
         epistemic_verification_time_min=15.0,
     )

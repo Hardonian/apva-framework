@@ -89,31 +89,37 @@ async def get_agentic_insights(
 
     insights = []
     if m.avg_guardrail_tax_min > 1.0:
-        insights.append({
-            "severity": "high",
-            "metric": "Guardrail Tax Latency",
-            "observation": "STATISTICAL ANOMALY: Mean guardrail execution time exceeds optimal threshold (> 1.0m).",
-            "prescription": "Optimize semantic routers. Consider offloading PII redaction to APVA edge workers.",
-            "estimated_savings_usd_per_10k": 1250.0,
-        })
+        insights.append(
+            {
+                "severity": "high",
+                "metric": "Guardrail Tax Latency",
+                "observation": "STATISTICAL ANOMALY: Mean guardrail execution time exceeds optimal threshold (> 1.0m).",
+                "prescription": "Optimize semantic routers. Consider offloading PII redaction to APVA edge workers.",
+                "estimated_savings_usd_per_10k": 1250.0,
+            }
+        )
 
     if m.avg_rag_reliability_coefficient < 0.8:
-        insights.append({
-            "severity": "critical",
-            "metric": "RAG Reliability Coefficient",
-            "observation": "CRITICAL VARIANCE: Answer faithfulness has degraded below 0.80 SLA.",
-            "prescription": "Revert active prompt template to v1.2 and increase vector DB 'top_k' parameter to 5.",
-            "estimated_savings_usd_per_10k": 3400.0,
-        })
+        insights.append(
+            {
+                "severity": "critical",
+                "metric": "RAG Reliability Coefficient",
+                "observation": "CRITICAL VARIANCE: Answer faithfulness has degraded below 0.80 SLA.",
+                "prescription": "Revert active prompt template to v1.2 and increase vector DB 'top_k' parameter to 5.",
+                "estimated_savings_usd_per_10k": 3400.0,
+            }
+        )
 
     if not insights:
-        insights.append({
-            "severity": "info",
-            "metric": "System Optimization",
-            "observation": "All inference metrics currently operate within optimal statistical control limits.",
-            "prescription": "No immediate intervention required. Maintain current deployment configuration.",
-            "estimated_savings_usd_per_10k": 0.0,
-        })
+        insights.append(
+            {
+                "severity": "info",
+                "metric": "System Optimization",
+                "observation": "All inference metrics currently operate within optimal statistical control limits.",
+                "prescription": "No immediate intervention required. Maintain current deployment configuration.",
+                "estimated_savings_usd_per_10k": 0.0,
+            }
+        )
 
     return insights
 

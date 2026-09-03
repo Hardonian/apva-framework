@@ -9,7 +9,7 @@ import sys
 from pathlib import Path
 from typing import Any
 
-from apva.scoring import exact_span_recall, tokenize
+from apva.scoring import exact_span_recall
 
 
 def load_golden_set(path: Path) -> list[dict[str, str]]:
@@ -22,18 +22,21 @@ def load_golden_set(path: Path) -> list[dict[str, str]]:
     for index, item in enumerate(examples):
         if not isinstance(item, dict):
             raise ValueError(f"Example {index} is not an object")
-        parsed.append({
-            "query": str(item.get("query", "")),
-            "context": str(item.get("context", "")),
-            "answer": str(item.get("answer", "")),
-            "expected_answer": str(item.get("expected_answer", "")),
-        })
+        parsed.append(
+            {
+                "query": str(item.get("query", "")),
+                "context": str(item.get("context", "")),
+                "answer": str(item.get("answer", "")),
+                "expected_answer": str(item.get("expected_answer", "")),
+            }
+        )
     return parsed
 
 
 async def fetch_answer(target_url: str, example: dict[str, str]) -> str:
     """Fetch response from target RAG URL."""
     import httpx
+
     payload = {"query": example["query"], "context": example["context"]}
     async with httpx.AsyncClient(timeout=10.0) as client:
         response = await client.post(f"{target_url.rstrip('/')}/evaluate", json=payload)
@@ -46,7 +49,9 @@ async def fetch_answer(target_url: str, example: dict[str, str]) -> str:
     raise ValueError("Target response must be a string or object with an 'answer' field")
 
 
-async def evaluate_examples(examples: list[dict[str, str]], target_url: str | None = None) -> list[dict[str, Any]]:
+async def evaluate_examples(
+    examples: list[dict[str, str]], target_url: str | None = None
+) -> list[dict[str, Any]]:
     """Evaluate golden dataset examples."""
     results: list[dict[str, Any]] = []
     for index, example in enumerate(examples):
@@ -54,13 +59,15 @@ async def evaluate_examples(examples: list[dict[str, str]], target_url: str | No
         if target_url:
             answer = await fetch_answer(target_url, example)
         recall = exact_span_recall(answer, example["expected_answer"])
-        results.append({
-            "index": str(index),
-            "query": example["query"],
-            "answer": answer,
-            "expected_answer": example["expected_answer"],
-            "exact_span_recall": recall,
-        })
+        results.append(
+            {
+                "index": str(index),
+                "query": example["query"],
+                "answer": answer,
+                "expected_answer": example["expected_answer"],
+                "exact_span_recall": recall,
+            }
+        )
     return results
 
 
@@ -87,7 +94,11 @@ def build_parser() -> argparse.ArgumentParser:
 
     proxy = sub.add_parser("proxy", help="Run universal local AI proxy")
     proxy.add_argument("--port", type=int, default=8080, help="Proxy listen port")
-    proxy.add_argument("--target", default="http://localhost:11434/v1", help="Target base URL (e.g., Ollama or vLLM)")
+    proxy.add_argument(
+        "--target",
+        default="http://localhost:11434/v1",
+        help="Target base URL (e.g., Ollama or vLLM)",
+    )
 
     return parser
 
@@ -99,6 +110,7 @@ def main(argv: list[str] | None = None) -> int:
 
     if args.command == "proxy":
         from apva_cli.proxy import run_proxy
+
         run_proxy(args.port, args.target)
         return 0
 

@@ -14,7 +14,7 @@ _usage_ledger: dict[tuple[int, str], int] = defaultdict(int)
 # Pricing tiers: price per 1,000 events in USD
 EVENT_PRICING = {
     "telemetry_ingest": 0.005,  # $5 per 1M events ($0.005 per 1k)
-    "rag_eval": 0.05,          # $50 per 1M evals ($0.05 per 1k)
+    "rag_eval": 0.05,  # $50 per 1M evals ($0.05 per 1k)
 }
 
 

@@ -3,9 +3,8 @@
 from __future__ import annotations
 
 import pytest
-from httpx import ASGITransport, AsyncClient
-
 from apva_cli.proxy import app as proxy_app
+from httpx import ASGITransport, AsyncClient
 
 
 @pytest.mark.anyio

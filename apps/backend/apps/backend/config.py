@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 from functools import lru_cache
-from typing import Any
 
 from pydantic import Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
@@ -55,6 +54,7 @@ class Settings(BaseSettings):
     )
     stripe_enabled: bool = Field(default=False)
     stripe_api_key: str | None = Field(default=None)
+    stripe_webhook_secret: str = Field(default="whsec_test")
     sso_allowed_domains: list[str] = Field(default=["acmecorp.com"])
     max_request_size_bytes: int = Field(default=10_485_760)
 

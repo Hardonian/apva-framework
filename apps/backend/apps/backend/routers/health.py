@@ -54,10 +54,11 @@ async def health(
     except Exception:
         celery_broker_status = "error"
 
-    status = "ok" if all(
-        value == "ok"
-        for value in (database_status, redis_status, celery_broker_status)
-    ) else "degraded"
+    status = (
+        "ok"
+        if all(value == "ok" for value in (database_status, redis_status, celery_broker_status))
+        else "degraded"
+    )
     return HealthResponse(
         status=status,
         service=settings.app_name,

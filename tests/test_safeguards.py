@@ -48,7 +48,9 @@ async def test_update_safeguard_policy(api: AsyncClient):
 
 
 def test_circuit_breaker_latency():
-    SafeguardCircuitBreaker.set_policy(10, {"max_guardrail_tax_min": 2.0, "pii_redaction_enabled": True})
+    SafeguardCircuitBreaker.set_policy(
+        10, {"max_guardrail_tax_min": 2.0, "pii_redaction_enabled": True}
+    )
     cb = SafeguardCircuitBreaker(tenant_id=10)
     assert cb.validate_guardrail_latency(1.0) is True
     assert cb.validate_guardrail_latency(3.0) is False

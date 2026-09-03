@@ -6,6 +6,7 @@ import logging
 import time
 import uuid
 from collections.abc import AsyncGenerator
+from contextlib import asynccontextmanager
 
 import httpx
 from fastapi import Depends, FastAPI, Request
@@ -13,6 +14,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
 from apva.constants import FRAMEWORK_VERSION
+
 from .config import settings
 from .database import engine
 from .limiter import RateLimitError, rate_limit
@@ -52,6 +54,7 @@ async def create_tables() -> None:
                 await session.commit()
 
 
+@asynccontextmanager
 async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     """Manage backend startup and shutdown lifecycle."""
     await create_tables()
@@ -125,7 +128,9 @@ app.include_router(webhooks_router, prefix="/api/v1")
 @app.exception_handler(Exception)
 async def unhandled_exception_handler(request: Request, exc: Exception) -> JSONResponse:
     """Return structured JSON for unexpected application errors."""
-    logger.error("Unhandled exception processing request %s %s", request.method, request.url, exc_info=exc)
+    logger.error(
+        "Unhandled exception processing request %s %s", request.method, request.url, exc_info=exc
+    )
     return JSONResponse(
         status_code=500,
         content={"detail": "Internal server error", "type": type(exc).__name__},

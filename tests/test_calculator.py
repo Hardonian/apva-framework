@@ -56,6 +56,7 @@ def _sample_benchmark(
 # Gross Time Saved Tests
 # ---------------------------------------------------------------------------
 
+
 def test_gross_time_saved_positive():
     productivity = ProductivityMetrics(
         reference_human_baseline_min=60.0,
@@ -93,6 +94,7 @@ def test_gross_time_saved_negative():
 # RAG Reliability Tests
 # ---------------------------------------------------------------------------
 
+
 def test_rag_reliability_coefficient():
     rag = RAGMetrics(exact_span_recall=0.9, llm_faithfulness_score=0.8)
     reliability = APVACalculator.rag_reliability_coefficient(rag)
@@ -121,6 +123,7 @@ def test_invalid_calculator_config():
 # Guardrail Tax Tests
 # ---------------------------------------------------------------------------
 
+
 def test_guardrail_friction_tax():
     guardrail = GuardrailMetrics(
         base_latency_overhead_min=1.0,
@@ -146,6 +149,7 @@ def test_guardrail_friction_tax_with_false_positives():
 # ---------------------------------------------------------------------------
 # True Value Yield & Full Evaluation Tests (Using Real BenchmarkInput)
 # ---------------------------------------------------------------------------
+
 
 def test_true_value_yield_basic():
     benchmark = _sample_benchmark(name="basic", baseline=60.0, skill=SkillLevel.SENIOR)
@@ -187,12 +191,15 @@ def test_evaluate_with_usd():
     benchmark = _sample_benchmark(name="usd-bench", hourly_rate=120.0)
     report = APVACalculator.evaluate(benchmark)
     assert report.true_value_yield_usd is not None
-    assert pytest.approx(report.true_value_yield_usd) == (report.true_value_yield_min / 60.0) * 120.0
+    assert (
+        pytest.approx(report.true_value_yield_usd) == (report.true_value_yield_min / 60.0) * 120.0
+    )
 
 
 # ---------------------------------------------------------------------------
 # Skill Level Multipliers (All 5 Tiers)
 # ---------------------------------------------------------------------------
+
 
 @pytest.mark.parametrize(
     "skill, expected_mult",
@@ -232,6 +239,7 @@ def test_guardrail_metrics_bounds():
 # TVY Grade Classification
 # ---------------------------------------------------------------------------
 
+
 @pytest.mark.parametrize(
     "tvy, expected_grade",
     [
@@ -249,6 +257,7 @@ def test_tvy_grade_classification(tvy: float, expected_grade: TVYGrade):
 # ---------------------------------------------------------------------------
 # Sensitivity Analysis & Monte Carlo
 # ---------------------------------------------------------------------------
+
 
 def test_sensitivity_analysis():
     benchmark = _sample_benchmark(name="sens-bench")
@@ -271,6 +280,7 @@ def test_confidence_interval():
 # ---------------------------------------------------------------------------
 # Batch Evaluation & Comparison
 # ---------------------------------------------------------------------------
+
 
 def test_evaluate_batch():
     b1 = _sample_benchmark(name="b1", baseline=40.0)

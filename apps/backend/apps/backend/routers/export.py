@@ -5,10 +5,9 @@ from __future__ import annotations
 import csv
 import io
 import json
-from datetime import datetime
 from typing import Any
 
-from fastapi import APIRouter, Depends, Query, Response, status
+from fastapi import APIRouter, Depends, Query, Response
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -21,7 +20,9 @@ router = APIRouter(prefix="/export", tags=["export"])
 
 @router.get("/telemetry")
 async def export_telemetry(
-    format: str = Query(default="json", pattern="^(json|csv)$", description="Export format: json or csv"),
+    format: str = Query(
+        default="json", pattern="^(json|csv)$", description="Export format: json or csv"
+    ),
     limit: int = Query(default=1000, ge=1, le=10000, description="Maximum records to export"),
     current_tenant: Tenant = Depends(get_current_tenant),
     db: AsyncSession = Depends(get_db),
@@ -39,33 +40,37 @@ async def export_telemetry(
     if format == "csv":
         output = io.StringIO()
         writer = csv.writer(output)
-        writer.writerow([
-            "id",
-            "app_name",
-            "session_id",
-            "run_id",
-            "human_baseline_time",
-            "ai_augmented_time",
-            "guardrail_latency_tax",
-            "session_iterations",
-            "hourly_rate_usd",
-            "is_shadow",
-            "created_at",
-        ])
+        writer.writerow(
+            [
+                "id",
+                "app_name",
+                "session_id",
+                "run_id",
+                "human_baseline_time",
+                "ai_augmented_time",
+                "guardrail_latency_tax",
+                "session_iterations",
+                "hourly_rate_usd",
+                "is_shadow",
+                "created_at",
+            ]
+        )
         for ev in events:
-            writer.writerow([
-                ev.id,
-                ev.app_name,
-                ev.session_id,
-                ev.run_id,
-                ev.human_baseline_time,
-                ev.ai_augmented_time,
-                ev.guardrail_latency_tax,
-                ev.session_iterations,
-                ev.hourly_rate_usd,
-                bool(ev.is_shadow),
-                ev.created_at.isoformat() if ev.created_at else "",
-            ])
+            writer.writerow(
+                [
+                    ev.id,
+                    ev.app_name,
+                    ev.session_id,
+                    ev.run_id,
+                    ev.human_baseline_time,
+                    ev.ai_augmented_time,
+                    ev.guardrail_latency_tax,
+                    ev.session_iterations,
+                    ev.hourly_rate_usd,
+                    bool(ev.is_shadow),
+                    ev.created_at.isoformat() if ev.created_at else "",
+                ]
+            )
         csv_data = output.getvalue()
         return Response(
             content=csv_data,
@@ -100,7 +105,9 @@ async def export_telemetry(
 
 @router.get("/evaluations")
 async def export_evaluations(
-    format: str = Query(default="json", pattern="^(json|csv)$", description="Export format: json or csv"),
+    format: str = Query(
+        default="json", pattern="^(json|csv)$", description="Export format: json or csv"
+    ),
     limit: int = Query(default=1000, ge=1, le=10000, description="Maximum records to export"),
     current_tenant: Tenant = Depends(get_current_tenant),
     db: AsyncSession = Depends(get_db),
@@ -118,27 +125,31 @@ async def export_evaluations(
     if format == "csv":
         output = io.StringIO()
         writer = csv.writer(output)
-        writer.writerow([
-            "id",
-            "transcript_id",
-            "status",
-            "exact_span_recall",
-            "llm_faithfulness_score",
-            "precision_score",
-            "rag_reliability_coefficient",
-            "created_at",
-        ])
+        writer.writerow(
+            [
+                "id",
+                "transcript_id",
+                "status",
+                "exact_span_recall",
+                "llm_faithfulness_score",
+                "precision_score",
+                "rag_reliability_coefficient",
+                "created_at",
+            ]
+        )
         for job in jobs:
-            writer.writerow([
-                job.id,
-                job.transcript_id,
-                job.status,
-                job.exact_span_recall,
-                job.llm_faithfulness_score,
-                job.precision_score,
-                job.rag_reliability_coefficient,
-                job.created_at.isoformat() if job.created_at else "",
-            ])
+            writer.writerow(
+                [
+                    job.id,
+                    job.transcript_id,
+                    job.status,
+                    job.exact_span_recall,
+                    job.llm_faithfulness_score,
+                    job.precision_score,
+                    job.rag_reliability_coefficient,
+                    job.created_at.isoformat() if job.created_at else "",
+                ]
+            )
         return Response(
             content=output.getvalue(),
             media_type="text/csv",

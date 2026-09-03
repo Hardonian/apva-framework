@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import os
+
 from apva_sdk.integrations.openai_wrapper import APVAOpenAI
 
 
@@ -17,7 +18,7 @@ def run_instrumented_openai_client() -> None:
     )
 
     print(f"[AIAS] APVA OpenAI proxy initialized for '{client.app_name}'")
-    print(f"[AIAS] Sync & Async ChatCompletions, Embeddings, and token usage tracked automatically.")
+    print("[AIAS] Sync & Async ChatCompletions, Embeddings, and token usage tracked automatically.")
 
 
 if __name__ == "__main__":

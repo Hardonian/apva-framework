@@ -68,7 +68,9 @@ class SafeguardCircuitBreaker:
         # Strip credit card numbers (13-16 digits with optional dashes/spaces)
         redacted = re.sub(r"\b(?:\d[ -]*?){13,16}\b", "[REDACTED_CARD]", redacted)
         # Strip phone numbers
-        redacted = re.sub(r"\b(?:\+?1[-. ]?)?\(?\d{3}\)?[-. ]?\d{3}[-. ]?\d{4}\b", "[REDACTED_PHONE]", redacted)
+        redacted = re.sub(
+            r"\b(?:\+?1[-. ]?)?\(?\d{3}\)?[-. ]?\d{3}[-. ]?\d{4}\b", "[REDACTED_PHONE]", redacted
+        )
         return redacted
 
     def sanitize_metadata(self, metadata: dict[str, Any]) -> dict[str, Any]:
@@ -84,8 +86,7 @@ class SafeguardCircuitBreaker:
                 sanitized[k] = self.sanitize_metadata(v)
             elif isinstance(v, list):
                 sanitized[k] = [
-                    self.redact_pii(item) if isinstance(item, str) else item
-                    for item in v
+                    self.redact_pii(item) if isinstance(item, str) else item for item in v
                 ]
             else:
                 sanitized[k] = v

@@ -80,7 +80,9 @@ class APVACrewAI:
         tasks_count = len(getattr(self._crew, "tasks", []))
 
         # Attempt to inspect usage if present
-        usage_data = getattr(result, "token_usage", None) or getattr(self._crew, "usage_metrics", None)
+        usage_data = getattr(result, "token_usage", None) or getattr(
+            self._crew, "usage_metrics", None
+        )
         total_tokens = getattr(usage_data, "total_tokens", 0) if usage_data else 0
 
         metadata: dict[str, Any] = {

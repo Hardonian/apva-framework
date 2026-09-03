@@ -16,14 +16,20 @@ jobs:
       matrix:
         python-version: ["3.10", "3.11", "3.12"]
     steps:
-      - uses: actions/checkout@v7
-      - uses: actions/setup-python@v7
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
         with:
           python-version: ${{ matrix.python-version }}
       - name: Install uv
         run: python -m pip install uv
       - name: Install dependencies
         run: uv sync --extra dev
+      - name: Run linter and formatting checks
+        run: |
+          uv run ruff check .
+          uv run ruff format --check .
+      - name: Static type analysis
+        run: uv run mypy apva/ --ignore-missing-imports
       - name: Run test suite
         run: uv run pytest tests/ -v
       - name: APVA Evaluation Gate

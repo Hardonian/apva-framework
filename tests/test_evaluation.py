@@ -7,7 +7,6 @@ import pytest
 from apva.datasets import GoldenExample
 from apva.evaluation import (
     EvaluationResult,
-    EvaluationSummary,
     evaluate_examples,
     summarize_evaluation,
 )

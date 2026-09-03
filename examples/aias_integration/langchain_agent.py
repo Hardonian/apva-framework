@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import os
+
 from apva_langchain import APVACallbackHandler
 
 
@@ -14,11 +15,13 @@ def run_instrumented_langchain_agent() -> None:
         app_name="aias-support-agent",
         session_id="session-user-101",
         human_baseline_time=25.0,  # Human takes ~25 mins to resolve support ticket
-        hourly_rate_usd=85.00,     # Standard developer / engineer wage
+        hourly_rate_usd=85.00,  # Standard developer / engineer wage
     )
 
     print(f"[AIAS] APVA Callback Handler initialized for app '{apva_handler.app_name}'")
-    print(f"[AIAS] Baseline: {apva_handler.human_baseline_time}m | Rate: ${apva_handler.hourly_rate_usd}/hr")
+    print(
+        f"[AIAS] Baseline: {apva_handler.human_baseline_time}m | Rate: ${apva_handler.hourly_rate_usd}/hr"
+    )
 
     # 2. In production with langchain:
     # chain.invoke({"input": "How do I setup billing?"}, config={"callbacks": [apva_handler]})

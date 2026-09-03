@@ -131,7 +131,11 @@ async def list_eval_jobs(
     total_res = await session.execute(count_query)
     total = total_res.scalar() or 0
 
-    query = query.order_by(EvaluationJob.created_at.desc()).offset((page - 1) * page_size).limit(page_size)
+    query = (
+        query.order_by(EvaluationJob.created_at.desc())
+        .offset((page - 1) * page_size)
+        .limit(page_size)
+    )
     result = await session.execute(query)
     jobs = result.scalars().all()
 

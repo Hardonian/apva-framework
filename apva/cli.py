@@ -37,8 +37,6 @@ from apva.constants import FRAMEWORK_VERSION
 from apva.datasets import GoldenExample, load_golden_set, validate_golden_set
 from apva.evaluation import evaluate_examples, summarize_evaluation
 from apva.formatters import (
-    format_audit_scorecard,
-    format_json,
     format_report_markdown,
     format_reports_csv,
     format_table,
@@ -50,7 +48,7 @@ from apva.models import (
     RAGMetrics,
     SkillLevel,
 )
-from apva.scoring import exact_span_recall, tokenize
+from apva.scoring import exact_span_recall
 
 
 def _demo_benchmark() -> BenchmarkInput:
@@ -153,7 +151,7 @@ def generate_audit_scorecard(
 * **Gross Time Saved**: **{gross_time_saved:.1f} minutes**
 
 ### 2. RAG Reliability Pillar
-* **Evaluation Cases Tested**: {eval_summary['count']} golden queries
+* **Evaluation Cases Tested**: {eval_summary["count"]} golden queries
 * **Retrieval Exact Span Recall**: {recall * 100:.1f}%
 * **LLM Faithfulness Score**: {faithfulness * 100:.1f}%
 * **Reliability Discount Factor**: **{rag_reliability:.3f}x**
@@ -204,7 +202,13 @@ def _format_report(report: Any, fmt: str, indent: int = 2) -> str:
             ["RAG Reliability (rho)", f"{report.rag_reliability_coefficient:.4f}", "coefficient"],
             ["Guardrail Tax", f"{report.guardrail_friction_tax_min:.2f}", "min"],
             ["True Value Yield (TVY)", f"{report.true_value_yield_min:+.2f}", "min"],
-            ["TVY (USD)", f"${report.true_value_yield_usd:.2f}" if report.true_value_yield_usd is not None else "N/A", "USD"],
+            [
+                "TVY (USD)",
+                f"${report.true_value_yield_usd:.2f}"
+                if report.true_value_yield_usd is not None
+                else "N/A",
+                "USD",
+            ],
             ["TVY Grade", report.tvy_grade.value.upper(), ""],
             ["Net Positive", "YES" if report.is_net_positive else "NO", ""],
         ]
@@ -246,13 +250,20 @@ def build_parser() -> argparse.ArgumentParser:
     )
     common = argparse.ArgumentParser(add_help=False)
     common.add_argument("-o", "--output", default=None, help="Write output to file.")
-    common.add_argument("--format", choices=["json", "table", "markdown", "csv"], default="json", help="Output format.")
+    common.add_argument(
+        "--format",
+        choices=["json", "table", "markdown", "csv"],
+        default="json",
+        help="Output format.",
+    )
     common.add_argument("--indent", type=int, default=2, help="JSON indent.")
 
     sub = parser.add_subparsers(dest="command", required=True)
 
     # version
-    sub.add_parser("version", parents=[common], help="Print APVA framework version and runtime info.")
+    sub.add_parser(
+        "version", parents=[common], help="Print APVA framework version and runtime info."
+    )
 
     # demo
     sub.add_parser("demo", parents=[common], help="Run built-in demo benchmark simulation.")
@@ -260,7 +271,9 @@ def build_parser() -> argparse.ArgumentParser:
     # run
     run = sub.add_parser("run", parents=[common], help="Run benchmark from explicit parameters.")
     run.add_argument("--name", required=True, help="Benchmark name.")
-    run.add_argument("--human-baseline", type=float, required=True, help="Human baseline in minutes.")
+    run.add_argument(
+        "--human-baseline", type=float, required=True, help="Human baseline in minutes."
+    )
     run.add_argument("--skill", choices=[s.value for s in SkillLevel], default=SkillLevel.MID.value)
     run.add_argument("--hourly-rate", type=float, default=None, help="Hourly rate in USD.")
     run.add_argument("--ai-time", type=float, required=True, help="AI generation time (min).")
@@ -269,26 +282,40 @@ def build_parser() -> argparse.ArgumentParser:
     run.add_argument("--faithfulness", type=float, required=True, help="Faithfulness score [0,1].")
     run.add_argument("--base-latency", type=float, required=True, help="Base latency (min).")
     run.add_argument("--fp-rate", type=float, required=True, help="False positive rate [0,1].")
-    run.add_argument("--resolution-penalty", type=float, required=True, help="Resolution penalty (min).")
+    run.add_argument(
+        "--resolution-penalty", type=float, required=True, help="Resolution penalty (min)."
+    )
     run.add_argument("--cra", type=float, required=True, help="CRA drop penalty (min).")
 
     # run-file
     run_file = sub.add_parser("run-file", parents=[common], help="Run benchmark from JSON file.")
     run_file.add_argument("path", help="Path to BenchmarkInput JSON file.")
-    run_file.add_argument("--sensitivity", action="store_true", help="Include sensitivity analysis.")
-    run_file.add_argument("--ci", action="store_true", help="Include Monte Carlo confidence interval.")
+    run_file.add_argument(
+        "--sensitivity", action="store_true", help="Include sensitivity analysis."
+    )
+    run_file.add_argument(
+        "--ci", action="store_true", help="Include Monte Carlo confidence interval."
+    )
 
     # sensitivity
-    sens = sub.add_parser("sensitivity", parents=[common], help="Run sensitivity analysis on a benchmark.")
+    sens = sub.add_parser(
+        "sensitivity", parents=[common], help="Run sensitivity analysis on a benchmark."
+    )
     sens.add_argument("path", help="Path to BenchmarkInput JSON file.")
-    sens.add_argument("--delta", type=float, default=0.05, help="Perturbation fraction (default: 0.05).")
+    sens.add_argument(
+        "--delta", type=float, default=0.05, help="Perturbation fraction (default: 0.05)."
+    )
 
     # compare
-    comp = sub.add_parser("compare", parents=[common], help="Compare multiple benchmark JSON files.")
+    comp = sub.add_parser(
+        "compare", parents=[common], help="Compare multiple benchmark JSON files."
+    )
     comp.add_argument("files", nargs="+", help="Paths to BenchmarkInput JSON files to compare.")
 
     # validate
-    val = sub.add_parser("validate", parents=[common], help="Validate a golden dataset file structure.")
+    val = sub.add_parser(
+        "validate", parents=[common], help="Validate a golden dataset file structure."
+    )
     val.add_argument("--golden-set", required=True, help="Path to golden dataset JSON.")
 
     # run-eval
@@ -298,10 +325,14 @@ def build_parser() -> argparse.ArgumentParser:
     run_eval.add_argument("--threshold", type=float, default=0.85, help="Pass threshold.")
 
     # audit
-    audit = sub.add_parser("audit", parents=[common], help="Generate executive enterprise TVY audit scorecard.")
+    audit = sub.add_parser(
+        "audit", parents=[common], help="Generate executive enterprise TVY audit scorecard."
+    )
     audit.add_argument("--golden-set", required=True, help="Path to golden dataset JSON.")
     audit.add_argument("--target-url", default=None, help="Optional live target RAG URL.")
-    audit.add_argument("--hourly-rate", type=float, default=85.0, help="Practitioner hourly rate in USD.")
+    audit.add_argument(
+        "--hourly-rate", type=float, default=85.0, help="Practitioner hourly rate in USD."
+    )
     audit.add_argument("--human-baseline", type=float, default=30.0, help="Human baseline (min).")
     audit.add_argument("--guardrail-tax", type=float, default=0.8, help="Guardrail tax (min).")
 
@@ -330,7 +361,9 @@ def main(argv: Sequence[str] | None = None) -> int:
 
         elif args.command == "demo":
             benchmark = _demo_benchmark()
-            report = APVACalculator.evaluate(benchmark, include_sensitivity=True, include_confidence_interval=True)
+            report = APVACalculator.evaluate(
+                benchmark, include_sensitivity=True, include_confidence_interval=True
+            )
             _emit(_format_report(report, args.format, args.indent), args.output)
             return 0
 
@@ -358,14 +391,30 @@ def main(argv: Sequence[str] | None = None) -> int:
             benchmark = BenchmarkInput.model_validate(payload)
             vectors = APVACalculator.sensitivity_analysis(benchmark, delta_fraction=args.delta)
             if args.format == "table":
-                headers = ["Parameter", "Base Value", "Delta", "TVY Lower", "TVY Upper", "TVY Impact"]
+                headers = [
+                    "Parameter",
+                    "Base Value",
+                    "Delta",
+                    "TVY Lower",
+                    "TVY Upper",
+                    "TVY Impact",
+                ]
                 rows = [
-                    [v.parameter, f"{v.base_value:.4f}", f"{v.delta:.4f}", f"{v.tvy_at_lower:.4f}", f"{v.tvy_at_upper:.4f}", f"{v.tvy_impact:.4f}"]
+                    [
+                        v.parameter,
+                        f"{v.base_value:.4f}",
+                        f"{v.delta:.4f}",
+                        f"{v.tvy_at_lower:.4f}",
+                        f"{v.tvy_at_upper:.4f}",
+                        f"{v.tvy_impact:.4f}",
+                    ]
                     for v in vectors
                 ]
                 _emit(format_table(headers, rows), args.output)
             else:
-                _emit(json.dumps([v.model_dump() for v in vectors], indent=args.indent), args.output)
+                _emit(
+                    json.dumps([v.model_dump() for v in vectors], indent=args.indent), args.output
+                )
             return 0
 
         elif args.command == "compare":
@@ -404,13 +453,15 @@ def main(argv: Sequence[str] | None = None) -> int:
                 ans = example.answer
                 if args.target_url:
                     ans = asyncio.run(fetch_target_answer(args.target_url, example))
-                raw_eval_results.append({
-                    "index": str(index),
-                    "query": example.query,
-                    "answer": ans,
-                    "expected_answer": example.expected_answer,
-                    "exact_span_recall": exact_span_recall(ans, example.expected_answer),
-                })
+                raw_eval_results.append(
+                    {
+                        "index": str(index),
+                        "query": example.query,
+                        "answer": ans,
+                        "expected_answer": example.expected_answer,
+                        "exact_span_recall": exact_span_recall(ans, example.expected_answer),
+                    }
+                )
             eval_summary = summarize_eval(raw_eval_results, 0.85)
             scorecard = generate_audit_scorecard(
                 eval_summary,

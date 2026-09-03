@@ -19,14 +19,21 @@ try:
     from llama_index.core.callbacks.base_handler import BaseCallbackHandler
     from llama_index.core.callbacks.schema import CBEventType, EventPayload
 except ImportError:
+
     class BaseCallbackHandler:  # type: ignore[no-redef]
         """Fallback base callback handler when llama-index-core is not installed."""
-        def __init__(self, event_starts_to_ignore: list[Any] | None = None, event_ends_to_ignore: list[Any] | None = None) -> None:
+
+        def __init__(
+            self,
+            event_starts_to_ignore: list[Any] | None = None,
+            event_ends_to_ignore: list[Any] | None = None,
+        ) -> None:
             self.event_starts_to_ignore = event_starts_to_ignore or []
             self.event_ends_to_ignore = event_ends_to_ignore or []
 
     class CBEventType:  # type: ignore[no-redef]
         """Mock CBEventType enum."""
+
         CHUNKING = "chunking"
         NODE_PARSING = "node_parsing"
         EMBEDDING = "embedding"
@@ -39,6 +46,7 @@ except ImportError:
 
     class EventPayload:  # type: ignore[no-redef]
         """Mock EventPayload keys."""
+
         DOCUMENTS = "documents"
         CHUNKS = "chunks"
         NODES = "nodes"
@@ -47,6 +55,7 @@ except ImportError:
         RESPONSE = "response"
         QUERY_STR = "query_str"
         SUB_QUESTIONS = "sub_questions"
+
 
 logger = logging.getLogger(__name__)
 
@@ -78,8 +87,11 @@ class APVACallbackHandler(BaseCallbackHandler):
         self.hourly_rate_usd = hourly_rate_usd
         self.is_shadow = is_shadow
         self.client = client or (
-            APVATelemetryClient(api_key=api_key, app_name=app_name, session_id=self.session_id, endpoint=endpoint)
-            if (api_key or endpoint) else get_default_client()
+            APVATelemetryClient(
+                api_key=api_key, app_name=app_name, session_id=self.session_id, endpoint=endpoint
+            )
+            if (api_key or endpoint)
+            else get_default_client()
         )
         self._start_times: dict[str, float] = {}
         self._contexts: dict[str, list[str]] = {}
@@ -139,7 +151,12 @@ class APVACallbackHandler(BaseCallbackHandler):
                 metadata=meta,
             )
             self.client.ingest_async(telemetry)
-            logger.debug("[apva-llamaindex] Emitted telemetry for %s event %s (%.4fm)", self.app_name, ev_str, elapsed_min)
+            logger.debug(
+                "[apva-llamaindex] Emitted telemetry for %s event %s (%.4fm)",
+                self.app_name,
+                ev_str,
+                elapsed_min,
+            )
 
     def start_trace(self, trace_id: str | None = None) -> None:
         """Run when an overall trace begins."""
