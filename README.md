@@ -1,5 +1,9 @@
 # APVA — AI Productivity & Value Architecture
 
+<!-- BEGIN: REPO HERO -->
+![apva-framework — hero generated locally on the GPU stack](assets/repo-hero.png)
+<!-- END: REPO HERO -->
+
 > Measure the **true enterprise ROI of Generative AI** as a single time-denominated metric: **True Value Yield (TVY)**.
 
 [![Version 3.0.0](https://img.shields.io/badge/version-3.0.0-blue.svg)](CHANGELOG.md)
