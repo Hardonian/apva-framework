@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from collections.abc import AsyncGenerator
+from typing import Any
 
 from sqlalchemy.ext.asyncio import (
     AsyncSession,
@@ -22,7 +23,7 @@ def build_engine(database_url: str = settings.database_url):
     Returns:
         AsyncEngine: Configured SQLAlchemy async engine.
     """
-    engine_options = {"pool_pre_ping": True}
+    engine_options: dict[str, Any] = {"pool_pre_ping": True}
     if not database_url.startswith("sqlite"):
         engine_options.update(
             pool_size=settings.db_pool_size,

@@ -45,21 +45,7 @@ class EventStreamer:
                 )
             payload["is_shadow"] = True
 
-        # 1. Fire to Billing Meter (isolated)
-        try:
-            StripeBillingService.record_usage(
-                tenant_id, "telemetry_ingest", 1, track_locally=False
-            )
-        except Exception as exc:
-            logger.warning("[EventStreamer] Failed to record billing usage: %s", exc)
-
-        # 2. Fire to ClickHouse OLAP Engine (isolated)
-        try:
-            await ClickHouseClient.insert_telemetry({**payload, "tenant_id": tenant_id})
-        except Exception as exc:
-            logger.warning("[EventStreamer] Failed to insert ClickHouse telemetry: %s", exc)
-
-        # 3. Write to persistent store
+        # Persist the source of truth before attempting optional external sinks.
         event = TelemetryEvent(
             tenant_id=tenant_id,
             **payload,
@@ -72,6 +58,17 @@ class EventStreamer:
 
         await session.commit()
         invalidate_metrics_cache(tenant_id)
+
+        try:
+            StripeBillingService.record_usage(
+                tenant_id, "telemetry_ingest", 1, track_locally=False
+            )
+        except Exception as exc:
+            logger.warning("[EventStreamer] Failed to record billing usage: %s", exc)
+        try:
+            await ClickHouseClient.insert_telemetry({**payload, "tenant_id": tenant_id})
+        except Exception as exc:
+            logger.warning("[EventStreamer] Failed to insert ClickHouse telemetry: %s", exc)
         return event
 
     @classmethod
@@ -142,20 +139,10 @@ class EventStreamer:
             payload["context"] = circuit_breaker.redact_pii(payload["context"])
         if "answer" in payload and payload["answer"]:
             payload["answer"] = circuit_breaker.redact_pii(payload["answer"])
+        if "expected_answer" in payload and payload["expected_answer"]:
+            payload["expected_answer"] = circuit_breaker.redact_pii(payload["expected_answer"])
 
-        # 1. Fire to Billing Meter (isolated)
-        try:
-            StripeBillingService.record_usage(tenant_id, "rag_eval", 1, track_locally=False)
-        except Exception as exc:
-            logger.warning("[EventStreamer] Failed to record eval billing usage: %s", exc)
-
-        # 2. Fire to ClickHouse OLAP Engine (isolated)
-        try:
-            await ClickHouseClient.insert_evaluation({**payload, "tenant_id": tenant_id})
-        except Exception as exc:
-            logger.warning("[EventStreamer] Failed to insert ClickHouse evaluation: %s", exc)
-
-        # 3. Write to persistent store
+        # Persist the source of truth before attempting optional external sinks.
         job = EvaluationJob(
             tenant_id=tenant_id,
             **payload,
@@ -167,6 +154,14 @@ class EventStreamer:
 
         await session.commit()
         invalidate_metrics_cache(tenant_id)
+        try:
+            StripeBillingService.record_usage(tenant_id, "rag_eval", 1, track_locally=False)
+        except Exception as exc:
+            logger.warning("[EventStreamer] Failed to record eval billing usage: %s", exc)
+        try:
+            await ClickHouseClient.insert_evaluation({**payload, "tenant_id": tenant_id})
+        except Exception as exc:
+            logger.warning("[EventStreamer] Failed to insert ClickHouse evaluation: %s", exc)
         return job
 
     @classmethod
