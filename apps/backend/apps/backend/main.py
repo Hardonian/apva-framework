@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import logging
+import re
 import time
 import uuid
 from collections.abc import AsyncGenerator
@@ -19,6 +20,7 @@ from .config import settings
 from .database import engine
 from .limiter import RateLimitError, rate_limit
 from .models import Base
+from .observability import RuntimeMetrics
 from .routers.auth import router as auth_router
 from .routers.billing import router as billing_router
 from .routers.eval import router as eval_router
@@ -31,6 +33,7 @@ from .routers.tenants import router as tenants_router
 from .routers.webhooks import router as webhooks_router
 
 logger = logging.getLogger(__name__)
+_REQUEST_ID_PATTERN = re.compile(r"^[A-Za-z0-9._:-]{1,128}$")
 
 
 async def create_tables() -> None:
@@ -88,14 +91,42 @@ async def _rate_limit_handler(request: Request, exc: RateLimitError) -> JSONResp
 @app.middleware("http")
 async def add_security_headers(request: Request, call_next):
     """Add enterprise security headers, request ID, timing, and version to responses."""
-    req_id = request.headers.get("X-Request-ID") or uuid.uuid4().hex
+    supplied_request_id = request.headers.get("X-Request-ID", "")
+    req_id = (
+        supplied_request_id
+        if _REQUEST_ID_PATTERN.fullmatch(supplied_request_id)
+        else uuid.uuid4().hex
+    )
+    request.state.request_id = req_id
     start_time = time.perf_counter()
-
-    response = await call_next(request)
-
-    elapsed_ms = (time.perf_counter() - start_time) * 1000.0
+    RuntimeMetrics.request_started()
+    status_code = 500
+    content_length = request.headers.get("content-length")
+    if content_length and content_length.isdigit() and int(content_length) > settings.max_request_size_bytes:
+        response = JSONResponse(status_code=413, content={"detail": "Request body too large"})
+    else:
+        response = await call_next(request)
+    status_code = response.status_code
+    elapsed_seconds = time.perf_counter() - start_time
+    elapsed_ms = elapsed_seconds * 1000.0
+    route = getattr(request.scope.get("route"), "path", "__unmatched__")
+    RuntimeMetrics.request_finished(
+        method=request.method,
+        route=route,
+        status_code=status_code,
+        duration_seconds=elapsed_seconds,
+    )
+    logger.info(
+        "request.complete method=%s route=%s status=%d duration_ms=%.2f request_id=%s",
+        request.method,
+        route,
+        status_code,
+        elapsed_ms,
+        req_id,
+    )
     response.headers["X-Request-ID"] = req_id
     response.headers["X-Process-Time-Ms"] = f"{elapsed_ms:.2f}"
+    response.headers["Server-Timing"] = f'app;dur={elapsed_ms:.2f}'
     response.headers["X-APVA-Version"] = FRAMEWORK_VERSION
     response.headers["Strict-Transport-Security"] = "max-age=63072000; includeSubDomains; preload"
     response.headers["X-Content-Type-Options"] = "nosniff"
@@ -133,5 +164,8 @@ async def unhandled_exception_handler(request: Request, exc: Exception) -> JSONR
     )
     return JSONResponse(
         status_code=500,
-        content={"detail": "Internal server error", "type": type(exc).__name__},
+        content={
+            "detail": "Internal server error",
+            "request_id": getattr(request.state, "request_id", None),
+        },
     )

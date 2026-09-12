@@ -28,6 +28,8 @@ class Settings(BaseSettings):
         stripe_api_key: Optional Stripe secret key.
         sso_allowed_domains: Permitted email domains for enterprise SSO.
         max_request_size_bytes: Maximum allowed request payload in bytes.
+        metrics_cache_ttl_seconds: Maximum age for cached tenant aggregates.
+        jwt_secret: Dedicated secret used to sign dashboard access tokens.
     """
 
     model_config = SettingsConfigDict(
@@ -57,6 +59,8 @@ class Settings(BaseSettings):
     stripe_webhook_secret: str = Field(default="whsec_test")
     sso_allowed_domains: list[str] = Field(default=["acmecorp.com"])
     max_request_size_bytes: int = Field(default=10_485_760)
+    metrics_cache_ttl_seconds: float = Field(default=15.0, ge=0.0, le=300.0)
+    jwt_secret: str = Field(default="dev-only-change-me", min_length=16)
 
 
 @lru_cache(maxsize=1)
