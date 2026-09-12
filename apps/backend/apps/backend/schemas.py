@@ -103,6 +103,12 @@ class TvyMetricResponse(BaseModel):
     avg_rag_reliability_coefficient: float
     macro_tvy_min: float
     avg_true_value_yield_usd: float | None = None
+    total_tvy_min: float
+    total_tvy_usd: float | None = None
+    value_per_1000_events_usd: float | None = None
+    shadow_event_count: int
+    shadow_event_rate: float
+    hourly_rate_coverage: float
     is_net_positive: bool
 
 
