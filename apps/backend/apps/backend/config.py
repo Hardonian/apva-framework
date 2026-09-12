@@ -19,14 +19,14 @@ class Settings(BaseSettings):
         redis_url: Redis URL used for health checks and optional cache clients.
         celery_broker_url: Celery broker URL.
         celery_result_backend: Celery result backend URL.
-        target_app_url: Mock target application base URL used by async workers.
+        target_app_url: Target evaluation application base URL used by async workers.
         default_rag_reliability: Default RAG reliability used for macro TVY when
             no completed evaluation jobs are available.
         api_key: Optional local API key used by SDK examples.
         cors_origins: Permitted CORS origins for the API.
         stripe_enabled: Feature flag for Stripe billing integration.
         stripe_api_key: Optional Stripe secret key.
-        sso_allowed_domains: Permitted email domains for mock/real SSO.
+        sso_allowed_domains: Permitted email domains for enterprise SSO.
         max_request_size_bytes: Maximum allowed request payload in bytes.
     """
 

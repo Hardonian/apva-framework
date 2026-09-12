@@ -53,7 +53,10 @@ jobs:
           if [ -n "$DB_ID" ]; then
             wrangler d1 execute apva_framework --remote --file=../d1/schema.sql
             # Update wrangler.toml with the real DB_ID
-            sed -i "s/database_id = \"placeholder-id\"/database_id = \"$DB_ID\"/" wrangler.toml
+            sed -i "s/database_id = \".*\"/database_id = \"$DB_ID\"/" wrangler.toml
+          fi
+          if [ -n "${{ vars.DOMAIN }}" ]; then
+            printf "\n[[routes]]\npattern = \"%s\"\ncustom_domain = true\n" "${{ vars.DOMAIN }}" >> wrangler.toml
           fi
 
       - name: Deploy to Cloudflare Workers
