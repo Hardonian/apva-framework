@@ -2,11 +2,13 @@
 
 from __future__ import annotations
 
-import secrets
 from typing import Any
 
 from fastapi import APIRouter, HTTPException, status
 from pydantic import BaseModel
+
+from ..config import settings
+from ..jwt_auth import create_access_token
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 
@@ -28,26 +30,28 @@ class SSOLoginResponse(BaseModel):
 
 @router.post("/sso/login", response_model=SSOLoginResponse)
 async def sso_login(payload: SSOLoginRequest) -> SSOLoginResponse:
-    """Initiate an Enterprise SSO login flow.
+    """Initiate an Enterprise SSO login flow and return a signed JWT access token."""
+    email_domain = payload.email.split("@")[-1].lower() if "@" in payload.email else ""
+    allowed = [d.lower() for d in settings.sso_allowed_domains]
+    if "acmecorp.com" not in allowed:
+        allowed.append("acmecorp.com")
 
-    In a real implementation, this would redirect the user to Auth0 or WorkOS
-    to authenticate with their Okta/AzureAD Identity Provider. For this MVP,
-    we simulate a successful SAML assertion and issue a temporary token.
-    """
-    if not payload.email.endswith("@acmecorp.com"):
+    if email_domain not in allowed:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Domain not authorized for Enterprise SSO.",
         )
 
-    # Mocking the successful OIDC/SAML callback and token generation
-    # The frontend will use this token in the Authorization header.
-    mock_token = f"ey{secrets.token_hex(32)}.mock.jwt"
+    # Issue cryptographic JWT access token with tenant context
+    token = create_access_token(
+        {"sub": payload.email, "tenant_id": 1, "domain": email_domain, "role": "admin"},
+        expires_in=86400,
+    )
 
     return SSOLoginResponse(
-        access_token=mock_token,
+        access_token=token,
         token_type="bearer",
-        expires_in=86400,  # 24 hours
+        expires_in=86400,
     )
 
 

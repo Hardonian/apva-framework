@@ -75,10 +75,8 @@ async def ingest_telemetry_batch(
 ) -> BatchTelemetryIngestResponse:
     """Ingest a batch of up to 100 telemetry events in a single HTTP request."""
     tenant_id = tenant_context["tenant_id"]
-    event_ids: list[int] = []
-
-    for item in payload.events:
-        event_payload = {
+    payloads = [
+        {
             "app_name": item.app_name,
             "session_id": item.session_id,
             "run_id": item.run_id,
@@ -91,12 +89,15 @@ async def ingest_telemetry_batch(
             "event_metadata": item.metadata,
             "created_at": datetime.now(timezone.utc),
         }
-        event = await EventStreamer.publish_telemetry(
-            session=session,
-            tenant_id=tenant_id,
-            payload=event_payload,
-        )
-        event_ids.append(event.id)
+        for item in payload.events
+    ]
+
+    events = await EventStreamer.publish_telemetry_batch(
+        session=session,
+        tenant_id=tenant_id,
+        payloads=payloads,
+    )
+    event_ids = [e.id for e in events]
 
     return BatchTelemetryIngestResponse(
         accepted_count=len(event_ids),

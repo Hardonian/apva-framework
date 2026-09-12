@@ -34,7 +34,15 @@ class EventStreamer:
 
         # Check circuit breaker on latency tax
         tax = payload.get("guardrail_latency_tax", 0.0)
-        circuit_breaker.validate_guardrail_latency(tax)
+        is_valid = circuit_breaker.validate_guardrail_latency(tax)
+        if not is_valid:
+            if circuit_breaker.strict_mode:
+                from fastapi import HTTPException
+                raise HTTPException(
+                    status_code=400,
+                    detail=f"Circuit Breaker Triggered: Guardrail tax {tax:.2f}m exceeds tenant maximum allowable threshold in strict mode.",
+                )
+            payload["is_shadow"] = True
 
         # 1. Fire to Billing Meter (isolated)
         try:
@@ -62,6 +70,49 @@ class EventStreamer:
         await session.commit()
         await session.refresh(event)
         return event
+
+    @classmethod
+    async def publish_telemetry_batch(
+        cls,
+        session: AsyncSession,
+        tenant_id: int,
+        payloads: list[dict[str, Any]],
+    ) -> list[TelemetryEvent]:
+        """Publish a batch of telemetry events in a single optimized database transaction."""
+        circuit_breaker = SafeguardCircuitBreaker(tenant_id)
+        events: list[TelemetryEvent] = []
+
+        for payload in payloads:
+            if "event_metadata" in payload and payload["event_metadata"]:
+                payload["event_metadata"] = circuit_breaker.sanitize_metadata(payload["event_metadata"])
+
+            tax = payload.get("guardrail_latency_tax", 0.0)
+            is_valid = circuit_breaker.validate_guardrail_latency(tax)
+            if not is_valid:
+                if circuit_breaker.strict_mode:
+                    from fastapi import HTTPException
+                    raise HTTPException(
+                        status_code=400,
+                        detail=f"Circuit Breaker Triggered: Guardrail tax {tax:.2f}m exceeds threshold in strict mode.",
+                    )
+                payload["is_shadow"] = True
+
+            event = TelemetryEvent(tenant_id=tenant_id, **payload)
+            events.append(event)
+            session.add(event)
+
+            usage = UsageRecord(tenant_id=tenant_id, event_type="telemetry_ingest", count=1)
+            session.add(usage)
+
+        try:
+            StripeBillingService.record_usage(tenant_id, "telemetry_ingest", len(payloads))
+        except Exception as exc:
+            logger.warning("[EventStreamer] Failed to record batch billing usage: %s", exc)
+
+        await session.commit()
+        for ev in events:
+            await session.refresh(ev)
+        return events
 
     @classmethod
     async def publish_eval(

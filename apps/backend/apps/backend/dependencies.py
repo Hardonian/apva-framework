@@ -50,21 +50,40 @@ async def get_current_tenant(
         )
 
     token = credentials.credentials.strip()
+
+    # 1. Attempt JWT token decode (issued by SSO / dashboard)
+    if "." in token:
+        from .jwt_auth import decode_access_token
+
+        jwt_claims = decode_access_token(token)
+        if jwt_claims and "tenant_id" in jwt_claims:
+            tenant_id = int(jwt_claims["tenant_id"])
+            stmt_jwt = select(Tenant).where(Tenant.id == tenant_id)
+            res_jwt = await db.execute(stmt_jwt)
+            tenant_jwt = res_jwt.scalar_one_or_none()
+            if tenant_jwt is not None:
+                return tenant_jwt
+            # Fallback if default tenant record not yet seeded
+            stmt_first = select(Tenant).limit(1)
+            res_first = await db.execute(stmt_first)
+            first_tenant = res_first.scalar_one_or_none()
+            if first_tenant is not None:
+                return first_tenant
+
     provided_hash = hash_api_key(token)
 
-    # 1. Database lookup by hashed API key
+    # 2. Database lookup by hashed API key
     stmt = select(Tenant).where(Tenant.api_key_hash == provided_hash)
     result = await db.execute(stmt)
     tenant = result.scalar_one_or_none()
     if tenant is not None:
         return tenant
 
-    # 2. Check dev key fallback from settings
-    if settings.api_key:
+    # 3. Check dev key fallback from settings (only in non-production environments)
+    if settings.environment.lower() != "production" and settings.api_key:
         matches_plain = secrets.compare_digest(token, settings.api_key)
         matches_hash = secrets.compare_digest(provided_hash, hash_api_key(settings.api_key))
         if matches_plain or matches_hash:
-            # Return tenant id=1 if exists, or create a mock tenant representation
             stmt_default = select(Tenant).where(Tenant.id == 1)
             res_default = await db.execute(stmt_default)
             tenant_default = res_default.scalar_one_or_none()
@@ -73,7 +92,7 @@ async def get_current_tenant(
 
     raise HTTPException(
         status_code=status.HTTP_401_UNAUTHORIZED,
-        detail="Invalid or missing API Key.",
+        detail="Invalid or missing API Key or Session Token.",
         headers={"WWW-Authenticate": "Bearer"},
     )
 

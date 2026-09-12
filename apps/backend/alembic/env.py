@@ -25,7 +25,7 @@ def get_url() -> str:
     Returns:
         str: Async database URL.
     """
-    return settings.database_url
+    return str(settings.database_url)
 
 
 def run_migrations_offline() -> None:

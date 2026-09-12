@@ -45,8 +45,13 @@ async def stripe_webhook(
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail=f"Webhook signature verification failed: {exc}",
             )
+    elif settings.environment.lower() == "production":
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Stripe signature verification required in production environment.",
+        )
     else:
-        # Fallback to direct JSON parsing if signature check not strictly configured
+        # Fallback to direct JSON parsing for local test environments
         try:
             event = await request.json()
         except Exception:

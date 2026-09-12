@@ -1,21 +1,19 @@
-"""Proprietary Small Language Model (SLM) Evaluator."""
+"""Deterministic Grounding and Faithfulness Evaluator."""
 
 from __future__ import annotations
 
-import hashlib
 import logging
-import random
+
+from apva.scoring import exact_span_recall, token_precision
 
 logger = logging.getLogger(__name__)
 
 
 class ProprietarySLM:
-    """Interface for the APVA Small Language Model evaluator.
+    """Deterministic RAG Faithfulness and Grounding Scoring Engine.
 
-    Instead of calling expensive commercial LLMs for RAG evaluation,
-    this pipeline uses an ONNX-quantized model fine-tuned specifically for
-    faithfulness and precision scoring. Evaluations are deterministic by
-    default for reproducibility in CI/CD pipelines.
+    Evaluates retrieval grounding, context containment, and factual alignment
+    using token-level precision and recall metrics.
     """
 
     @classmethod
@@ -28,36 +26,42 @@ class ProprietarySLM:
         *,
         deterministic: bool = True,
     ) -> float:
-        """Run the specialized SLM inference pipeline for RAG scoring.
+        """Evaluate RAG faithfulness score.
 
         Args:
             query: The user's prompt.
-            context: The retrieved chunks.
+            context: The retrieved context chunks.
             answer: The AI's generated response.
             expected_answer: Optional ground truth.
-            deterministic: If True, uses a seeded hash of the input text
-                for deterministic reproducibility.
+            deterministic: Parameter preserved for interface compatibility.
 
         Returns:
-            float: Reliability coefficient between 0.0 and 1.0.
+            float: Faithfulness score between 0.0 and 1.0.
         """
-        logger.debug("[SLM] Running local RAG evaluation tensor...")
+        logger.debug("[SLM] Evaluating RAG grounding and alignment...")
 
-        base_score = 0.85
+        if not answer.strip():
+            return 0.0
 
-        if expected_answer and expected_answer.lower() in answer.lower():
-            base_score += 0.10
-
-        if context and len(answer) > len(context):
-            # Probably hallucinating beyond the context window
-            base_score -= 0.20
-
-        if deterministic:
-            # Derive deterministic noise in [-0.05, 0.05] from content hash
-            digest = hashlib.sha256(f"{query}:{context}:{answer}".encode()).digest()
-            int_val = int.from_bytes(digest[:4], "big")
-            noise = (int_val / 0xFFFFFFFF) * 0.10 - 0.05
+        # 1. Context grounding: What fraction of answer content is supported by context?
+        if context.strip():
+            grounding_precision = token_precision(answer, context)
         else:
-            noise = random.uniform(-0.05, 0.05)
+            grounding_precision = 0.50
 
-        return max(0.0, min(1.0, round(base_score + noise, 4)))
+        # 2. Answer correctness against expected answer (if available)
+        if expected_answer and expected_answer.strip():
+            correctness_recall = exact_span_recall(answer, expected_answer)
+            correctness_precision = token_precision(answer, expected_answer)
+            correctness = 0.60 * correctness_recall + 0.40 * correctness_precision
+            # Blended score: 50% grounding in context, 50% alignment with ground truth
+            score = 0.50 * grounding_precision + 0.50 * correctness
+        else:
+            score = grounding_precision
+
+        # 3. Penalize responses that exceed context window by more than 2x without grounding
+        if context and len(answer) > 2 * len(context) and grounding_precision < 0.70:
+            score = max(0.0, score - 0.20)
+
+        return max(0.0, min(1.0, round(score, 4)))
+

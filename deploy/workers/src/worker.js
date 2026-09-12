@@ -4,7 +4,7 @@
  */
 
 const SERVICE = 'apva-framework';
-const VERSION = '2.1.0';
+const VERSION = '3.0.0';
 
 const CORS = {
   'Access-Control-Allow-Origin': '*',
@@ -75,18 +75,35 @@ async function getMacroTvy(env) {
         FROM telemetry_events`
       ).first();
 
+      const evalStats = await env.DB.prepare(
+        `SELECT 
+          COUNT(*) as eval_count,
+          AVG(rag_reliability_coefficient) as avg_reliability,
+          AVG(exact_span_recall) as avg_recall,
+          AVG(llm_faithfulness_score) as avg_faithfulness
+        FROM evaluation_jobs WHERE status = 'completed'`
+      ).first();
+
       const count = stats?.telemetry_count || 0;
       const human = stats?.avg_human || 0;
       const ai = stats?.avg_ai || 0;
       const guardrail = stats?.avg_guardrail || 0;
-      const gross = human - ai;
-      const reliability = 0.95;
+      const gross = Math.max(0, human - ai);
+
+      const evalCount = evalStats?.eval_count || 0;
+      let reliability = 0.95;
+      if (evalCount > 0 && evalStats?.avg_reliability != null) {
+        reliability = Number(evalStats.avg_reliability);
+      } else if (evalCount > 0 && evalStats?.avg_recall != null) {
+        reliability = (Number(evalStats.avg_recall) * 0.6) + (Number(evalStats.avg_faithfulness || evalStats.avg_recall) * 0.4);
+      }
+
       const tvy = (gross * reliability) - guardrail;
       const tvyUsd = stats?.avg_rate ? (tvy / 60.0) * stats.avg_rate : null;
 
       return json({
         telemetry_count: count,
-        evaluation_count: 0,
+        evaluation_count: evalCount,
         avg_gross_time_saved_min: gross,
         avg_guardrail_tax_min: guardrail,
         avg_rag_reliability_coefficient: reliability,
@@ -100,14 +117,14 @@ async function getMacroTvy(env) {
   }
 
   return json({
-    telemetry_count: 1,
-    evaluation_count: 1,
-    avg_gross_time_saved_min: 15.0,
-    avg_guardrail_tax_min: 0.5,
+    telemetry_count: 0,
+    evaluation_count: 0,
+    avg_gross_time_saved_min: 0.0,
+    avg_guardrail_tax_min: 0.0,
     avg_rag_reliability_coefficient: 0.95,
-    macro_tvy_min: 13.75,
-    avg_true_value_yield_usd: 17.18,
-    is_net_positive: true,
+    macro_tvy_min: 0.0,
+    avg_true_value_yield_usd: null,
+    is_net_positive: false,
   });
 }
 

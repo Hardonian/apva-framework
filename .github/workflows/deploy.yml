@@ -20,8 +20,9 @@ jobs:
           cache: "pip"
       - name: Install & Test
         run: |
-          pip install -e ".[dev]" 2>/dev/null || pip install pytest pytest-asyncio
-          pytest tests/ -x -q 2>/dev/null || echo "No tests yet"
+          pip install -e ".[dev]"
+          pytest tests/ -x -q
+          pytest apps/backend/tests/ -x -q
 
   deploy-api:
     needs: test
@@ -42,15 +43,15 @@ jobs:
       - name: Create D1 database (idempotent)
         continue-on-error: true
         working-directory: deploy/workers
-        run: wrangler d1 create drift_db || true
+        run: wrangler d1 create apva_framework || true
 
       - name: Apply D1 schema
         continue-on-error: true
         working-directory: deploy/workers
         run: |
-          DB_ID=$(wrangler d1 list --json 2>/dev/null | python3 -c "import sys,json; dbs=json.load(sys.stdin); print([d['id'] for d in dbs if d.get('name')=='drift_db'][0])" 2>/dev/null || echo "")
+          DB_ID=$(wrangler d1 list --json 2>/dev/null | python3 -c "import sys,json; dbs=json.load(sys.stdin); print([d['id'] for d in dbs if d.get('name')=='apva_framework'][0])" 2>/dev/null || echo "")
           if [ -n "$DB_ID" ]; then
-            wrangler d1 execute drift_db --remote --file=../d1/schema.sql
+            wrangler d1 execute apva_framework --remote --file=../d1/schema.sql
             # Update wrangler.toml with the real DB_ID
             sed -i "s/database_id = \"placeholder-id\"/database_id = \"$DB_ID\"/" wrangler.toml
           fi
@@ -75,11 +76,24 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: Install Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+          cache-dependency-path: apps/dashboard/package-lock.json
+
+      - name: Build Dashboard
+        working-directory: apps/dashboard
+        run: |
+          npm ci
+          npm run build
+
       - name: Deploy to Cloudflare Pages
         uses: cloudflare/pages-action@v1
         with:
           apiToken: ${{ secrets.CF_API_TOKEN }}
           accountId: ${{ secrets.CF_ACCOUNT_ID }}
           projectName: ${{ github.event.repository.name }}
-          directory: deploy/frontend
+          directory: apps/dashboard/dist
           gitHubToken: ${{ secrets.GITHUB_TOKEN }}

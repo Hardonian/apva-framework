@@ -48,7 +48,7 @@ from apva.models import (
     RAGMetrics,
     SkillLevel,
 )
-from apva.scoring import exact_span_recall
+from apva.scoring import exact_span_recall, token_precision
 
 
 def _demo_benchmark() -> BenchmarkInput:
@@ -93,12 +93,18 @@ async def fetch_target_answer(target_url: str, example: dict[str, str] | GoldenE
 def summarize_eval(results: list[dict[str, Any]], threshold: float = 0.85) -> dict[str, Any]:
     """Summarize golden set evaluation results."""
     recalls = [float(item["exact_span_recall"]) for item in results]
-    avg = sum(recalls) / len(recalls) if recalls else 0.0
+    precisions = [float(item.get("token_precision", item["exact_span_recall"])) for item in results]
+    groundings = [float(item.get("context_grounding", item["exact_span_recall"])) for item in results]
+    avg_recall = sum(recalls) / len(recalls) if recalls else 0.0
+    avg_precision = sum(precisions) / len(precisions) if precisions else 0.0
+    avg_grounding = sum(groundings) / len(groundings) if groundings else 0.0
     return {
         "count": len(results),
-        "average_exact_span_recall": round(avg, 4),
+        "average_exact_span_recall": round(avg_recall, 4),
+        "average_token_precision": round(avg_precision, 4),
+        "average_context_grounding": round(avg_grounding, 4),
         "threshold": threshold,
-        "passed": avg >= threshold,
+        "passed": avg_recall >= threshold,
         "results": results,
     }
 
@@ -113,8 +119,10 @@ def generate_audit_scorecard(
 ) -> str:
     """Generate executive enterprise TVY audit scorecard in Markdown."""
     recall = eval_summary["average_exact_span_recall"]
-    faithfulness = min(1.0, recall * 0.95 + 0.05)
-    rag_reliability = 0.6 * recall + 0.4 * faithfulness
+    precision = eval_summary.get("average_token_precision", recall)
+    grounding = eval_summary.get("average_context_grounding", recall)
+    faithfulness = round(0.5 * precision + 0.5 * grounding, 4)
+    rag_reliability = round(0.5 * recall + 0.5 * faithfulness, 4)
 
     gross_time_saved = human_baseline_min - (ai_time_min + verify_time_min)
     tvy_min = (gross_time_saved * rag_reliability) - guardrail_tax_min
@@ -453,13 +461,18 @@ def main(argv: Sequence[str] | None = None) -> int:
                 ans = example.answer
                 if args.target_url:
                     ans = asyncio.run(fetch_target_answer(args.target_url, example))
+                recall_val = exact_span_recall(ans, example.expected_answer)
+                prec_val = token_precision(ans, example.expected_answer)
+                ground_val = exact_span_recall(ans, example.context) if example.context else recall_val
                 raw_eval_results.append(
                     {
                         "index": str(index),
                         "query": example.query,
                         "answer": ans,
                         "expected_answer": example.expected_answer,
-                        "exact_span_recall": exact_span_recall(ans, example.expected_answer),
+                        "exact_span_recall": recall_val,
+                        "token_precision": prec_val,
+                        "context_grounding": ground_val,
                     }
                 )
             eval_summary = summarize_eval(raw_eval_results, 0.85)
