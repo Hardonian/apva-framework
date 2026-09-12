@@ -30,6 +30,8 @@ class Settings(BaseSettings):
         max_request_size_bytes: Maximum allowed request payload in bytes.
         metrics_cache_ttl_seconds: Maximum age for cached tenant aggregates.
         jwt_secret: Dedicated secret used to sign dashboard access tokens.
+        db_pool_size: Number of persistent database connections per API process.
+        db_max_overflow: Maximum temporary connections above the pool size.
     """
 
     model_config = SettingsConfigDict(
@@ -61,6 +63,10 @@ class Settings(BaseSettings):
     max_request_size_bytes: int = Field(default=10_485_760)
     metrics_cache_ttl_seconds: float = Field(default=15.0, ge=0.0, le=300.0)
     jwt_secret: str = Field(default="dev-only-change-me", min_length=16)
+    db_pool_size: int = Field(default=5, ge=1, le=100)
+    db_max_overflow: int = Field(default=10, ge=0, le=200)
+    db_pool_timeout_seconds: float = Field(default=10.0, gt=0.0, le=120.0)
+    db_pool_recycle_seconds: int = Field(default=1800, ge=60)
 
 
 @lru_cache(maxsize=1)

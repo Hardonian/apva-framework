@@ -101,29 +101,35 @@ async def add_security_headers(request: Request, call_next):
     start_time = time.perf_counter()
     RuntimeMetrics.request_started()
     status_code = 500
-    content_length = request.headers.get("content-length")
-    if content_length and content_length.isdigit() and int(content_length) > settings.max_request_size_bytes:
-        response = JSONResponse(status_code=413, content={"detail": "Request body too large"})
-    else:
-        response = await call_next(request)
-    status_code = response.status_code
-    elapsed_seconds = time.perf_counter() - start_time
-    elapsed_ms = elapsed_seconds * 1000.0
-    route = getattr(request.scope.get("route"), "path", "__unmatched__")
-    RuntimeMetrics.request_finished(
-        method=request.method,
-        route=route,
-        status_code=status_code,
-        duration_seconds=elapsed_seconds,
-    )
-    logger.info(
-        "request.complete method=%s route=%s status=%d duration_ms=%.2f request_id=%s",
-        request.method,
-        route,
-        status_code,
-        elapsed_ms,
-        req_id,
-    )
+    try:
+        content_length = request.headers.get("content-length")
+        if (
+            content_length
+            and content_length.isdigit()
+            and int(content_length) > settings.max_request_size_bytes
+        ):
+            response = JSONResponse(status_code=413, content={"detail": "Request body too large"})
+        else:
+            response = await call_next(request)
+        status_code = response.status_code
+    finally:
+        elapsed_seconds = time.perf_counter() - start_time
+        elapsed_ms = elapsed_seconds * 1000.0
+        route = getattr(request.scope.get("route"), "path", "__unmatched__")
+        RuntimeMetrics.request_finished(
+            method=request.method,
+            route=route,
+            status_code=status_code,
+            duration_seconds=elapsed_seconds,
+        )
+        logger.info(
+            "request.complete method=%s route=%s status=%d duration_ms=%.2f request_id=%s",
+            request.method,
+            route,
+            status_code,
+            elapsed_ms,
+            req_id,
+        )
     response.headers["X-Request-ID"] = req_id
     response.headers["X-Process-Time-Ms"] = f"{elapsed_ms:.2f}"
     response.headers["Server-Timing"] = f'app;dur={elapsed_ms:.2f}'

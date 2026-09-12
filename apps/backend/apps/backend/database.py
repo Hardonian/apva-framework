@@ -22,7 +22,15 @@ def build_engine(database_url: str = settings.database_url):
     Returns:
         AsyncEngine: Configured SQLAlchemy async engine.
     """
-    return create_async_engine(database_url, pool_pre_ping=True)
+    engine_options = {"pool_pre_ping": True}
+    if not database_url.startswith("sqlite"):
+        engine_options.update(
+            pool_size=settings.db_pool_size,
+            max_overflow=settings.db_max_overflow,
+            pool_timeout=settings.db_pool_timeout_seconds,
+            pool_recycle=settings.db_pool_recycle_seconds,
+        )
+    return create_async_engine(database_url, **engine_options)
 
 
 engine = build_engine()

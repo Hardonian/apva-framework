@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from datetime import datetime, timezone
 
-from sqlalchemy import JSON, DateTime, Float, ForeignKey, Integer, String, Text
+from sqlalchemy import JSON, DateTime, Float, ForeignKey, Index, Integer, String, Text
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
 
 
@@ -49,6 +49,10 @@ class UsageRecord(Base):
     """
 
     __tablename__ = "usage_records"
+    __table_args__ = (
+        Index("ix_usage_records_tenant_created", "tenant_id", "created_at"),
+        Index("ix_usage_records_tenant_event", "tenant_id", "event_type"),
+    )
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
     tenant_id: Mapped[int] = mapped_column(
@@ -80,6 +84,10 @@ class TelemetryEvent(Base):
     """
 
     __tablename__ = "telemetry_events"
+    __table_args__ = (
+        Index("ix_telemetry_events_tenant_created", "tenant_id", "created_at"),
+        Index("ix_telemetry_events_tenant_app_created", "tenant_id", "app_name", "created_at"),
+    )
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
     tenant_id: Mapped[int] = mapped_column(
@@ -125,6 +133,10 @@ class EvaluationJob(Base):
     """
 
     __tablename__ = "evaluation_jobs"
+    __table_args__ = (
+        Index("ix_evaluation_jobs_tenant_status", "tenant_id", "status"),
+        Index("ix_evaluation_jobs_tenant_created", "tenant_id", "created_at"),
+    )
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
     tenant_id: Mapped[int] = mapped_column(
