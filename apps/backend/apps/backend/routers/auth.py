@@ -14,14 +14,14 @@ router = APIRouter(prefix="/auth", tags=["auth"])
 
 
 class SSOLoginRequest(BaseModel):
-    """Mock request payload for initiating an SSO login."""
+    """Request payload for initiating an SSO login."""
 
     email: str
     connection: str = "saml-okta"  # e.g., saml, oidc, google
 
 
 class SSOLoginResponse(BaseModel):
-    """Mock response payload containing the JWT or API key."""
+    """Response payload containing the JWT access token."""
 
     access_token: str
     token_type: str = "bearer"

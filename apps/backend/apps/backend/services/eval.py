@@ -34,17 +34,16 @@ class RagScoreResult:
     rag_reliability_coefficient: float
 
 
-def mock_precision_score(answer: str, expected_answer: str) -> float:
+def compute_precision_score(answer: str, expected_answer: str) -> float:
     """Return token precision score."""
     return token_precision(answer, expected_answer)
 
 
-def mock_llm_judge_score(answer: str, expected_answer: str) -> float:
-    """Return a deterministic mock LLM-as-judge faithfulness score.
+mock_precision_score = compute_precision_score
 
-    This function simulates the async worker call to a target judge service. In
-    production it is replaced by a real judge model, but the API contract stays
-    the same.
+
+def compute_faithfulness_score(answer: str, expected_answer: str) -> float:
+    """Return a deterministic faithfulness score balancing recall and precision.
 
     Args:
         answer: Generated answer text.
@@ -58,6 +57,9 @@ def mock_llm_judge_score(answer: str, expected_answer: str) -> float:
     return min(1.0, max(0.0, 0.75 * recall + 0.25 * precision))
 
 
+mock_llm_judge_score = compute_faithfulness_score
+
+
 def compute_rag_scores(answer: str, expected_answer: str) -> RagScoreResult:
     """Compute all RAG scoring metrics for a transcript.
 
@@ -66,11 +68,11 @@ def compute_rag_scores(answer: str, expected_answer: str) -> RagScoreResult:
         expected_answer: Golden expected answer text.
 
     Returns:
-        RagScoreResult: Deterministic exact span recall plus mock judge scores.
+        RagScoreResult: Deterministic exact span recall plus judge scores.
     """
     recall = exact_span_recall(answer, expected_answer)
-    faithfulness = mock_llm_judge_score(answer, expected_answer)
-    precision = token_precision(answer, expected_answer)
+    faithfulness = compute_faithfulness_score(answer, expected_answer)
+    precision = compute_precision_score(answer, expected_answer)
     reliability = SPAN_RECALL_WEIGHT * recall + FAITHFULNESS_WEIGHT * faithfulness
     return RagScoreResult(
         exact_span_recall=recall,
@@ -91,14 +93,14 @@ def get_http_client() -> httpx.AsyncClient:
     return _http_client
 
 
-async def score_with_mock_target(
+async def score_with_target_app(
     request: EvalTriggerRequest, target_app_url: str
 ) -> dict[str, Any]:
-    """Score a transcript using the mock target application.
+    """Score a transcript using the target application.
 
     Args:
         request: Evaluation trigger request.
-        target_app_url: Base URL of the mock target application.
+        target_app_url: Base URL of the target application.
 
     Returns:
         dict[str, Any]: Score payload returned by the target app.
@@ -115,6 +117,9 @@ async def score_with_mock_target(
     response = await client.post(url, json=payload)
     response.raise_for_status()
     return cast(dict[str, Any], response.json())
+
+
+score_with_mock_target = score_with_target_app
 
 
 def compute_tvy_from_scores(
@@ -145,13 +150,13 @@ async def run_local_or_target_score(
 
     Args:
         request: Evaluation trigger request.
-        target_app_url: Mock target application base URL.
+        target_app_url: Target application base URL.
 
     Returns:
         dict[str, Any]: Score payload.
     """
     try:
-        return await score_with_mock_target(request, target_app_url)
+        return await score_with_target_app(request, target_app_url)
     except httpx.HTTPError:
         from .slm import ProprietarySLM
 

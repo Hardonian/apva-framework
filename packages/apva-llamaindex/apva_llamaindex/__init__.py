@@ -32,7 +32,7 @@ except ImportError:
             self.event_ends_to_ignore = event_ends_to_ignore or []
 
     class CBEventType:  # type: ignore[no-redef]
-        """Mock CBEventType enum."""
+        """Fallback CBEventType enum."""
 
         CHUNKING = "chunking"
         NODE_PARSING = "node_parsing"
@@ -45,7 +45,7 @@ except ImportError:
         SUB_QUESTION = "sub_question"
 
     class EventPayload:  # type: ignore[no-redef]
-        """Mock EventPayload keys."""
+        """Fallback EventPayload keys."""
 
         DOCUMENTS = "documents"
         CHUNKS = "chunks"
