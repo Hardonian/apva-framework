@@ -63,12 +63,6 @@ async def get_current_tenant(
             tenant_jwt = res_jwt.scalar_one_or_none()
             if tenant_jwt is not None:
                 return tenant_jwt
-            # Fallback if default tenant record not yet seeded
-            stmt_first = select(Tenant).limit(1)
-            res_first = await db.execute(stmt_first)
-            first_tenant = res_first.scalar_one_or_none()
-            if first_tenant is not None:
-                return first_tenant
 
     provided_hash = hash_api_key(token)
 

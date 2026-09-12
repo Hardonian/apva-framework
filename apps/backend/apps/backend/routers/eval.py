@@ -173,7 +173,12 @@ async def get_eval_job(
     tenant_context: dict = Depends(get_tenant_context),
 ) -> dict[str, Any]:
     """Return a persisted evaluation job by ID."""
-    job = await session.get(EvaluationJob, job_id)
+    job = await session.scalar(
+        select(EvaluationJob).where(
+            EvaluationJob.id == job_id,
+            EvaluationJob.tenant_id == tenant_context["tenant_id"],
+        )
+    )
     if job is None:
         raise HTTPException(status_code=404, detail="Evaluation job not found")
     return {

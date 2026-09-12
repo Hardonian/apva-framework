@@ -11,7 +11,7 @@ from typing import Any, cast
 
 from .config import settings
 
-_SIGNING_SECRET = getattr(settings, "api_key", None) or "apva-enterprise-token-signing-key-2026"
+_SIGNING_SECRET = settings.jwt_secret
 
 
 def create_access_token(
@@ -65,6 +65,14 @@ def decode_access_token(token: str, secret: str = _SIGNING_SECRET) -> dict[str, 
         return None
 
     header_b64, payload_b64, sig_b64 = parts
+    try:
+        header_padding = "=" * (-len(header_b64) % 4)
+        header = json.loads(base64.urlsafe_b64decode(header_b64 + header_padding))
+    except (ValueError, UnicodeDecodeError, json.JSONDecodeError):
+        return None
+    if header != {"alg": "HS256", "typ": "JWT"}:
+        return None
+
     signing_input = f"{header_b64}.{payload_b64}".encode()
     expected_sig = hmac.new(secret.encode(), signing_input, hashlib.sha256).digest()
     expected_sig_b64 = base64.urlsafe_b64encode(expected_sig).decode().rstrip("=")
@@ -84,7 +92,9 @@ def decode_access_token(token: str, secret: str = _SIGNING_SECRET) -> dict[str, 
     if not isinstance(data, dict):
         return None
 
-    if "exp" in data and time.time() > data["exp"]:
+    if not isinstance(data.get("exp"), int) or time.time() > data["exp"]:
+        return None
+    if "iat" in data and not isinstance(data["iat"], int):
         return None
 
     return cast(dict[str, Any], data)
