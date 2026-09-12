@@ -34,6 +34,7 @@ class StripeBillingService:
         event_type: str,
         count: int = 1,
         session: AsyncSession | None = None,
+        track_locally: bool = True,
     ) -> None:
         """Record a billable event to ledger and optional database session.
 
@@ -43,13 +44,16 @@ class StripeBillingService:
             count: Number of billable units.
             session: Optional async database session to persist UsageRecord.
         """
-        _usage_ledger[(tenant_id, event_type)] += count
+        if count < 1:
+            raise ValueError("Usage count must be positive")
+        if track_locally:
+            _usage_ledger[(tenant_id, event_type)] += count
         logger.debug(
             "[BILLING] Recorded usage: Tenant %d | Event: %s | Count: %d | Total: %d",
             tenant_id,
             event_type,
             count,
-            _usage_ledger[(tenant_id, event_type)],
+            _usage_ledger.get((tenant_id, event_type), 0),
         )
 
         if session is not None:
@@ -128,4 +132,3 @@ class StripeBillingService:
     def reset_ledger(cls) -> None:
         """Reset the usage ledger (for testing)."""
         _usage_ledger.clear()
-

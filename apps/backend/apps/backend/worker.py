@@ -30,6 +30,7 @@ from .database import AsyncSessionLocal
 from .models import EvaluationJob
 from .schemas import EvalTriggerRequest
 from .services.eval import run_local_or_target_score
+from .services.metrics import invalidate_metrics_cache
 
 celery_app = Celery(
     "apva",
@@ -89,6 +90,7 @@ async def _evaluate_rag_transcript_async(task: Any, payload: dict[str, Any]) -> 
             job.rag_reliability_coefficient = float(scores["rag_reliability_coefficient"])
             job.completed_at = datetime.now(timezone.utc)
             await session.commit()
+            invalidate_metrics_cache(job.tenant_id)
         return {
             "job_id": payload["job_id"],
             "status": "completed",
@@ -110,6 +112,7 @@ async def _evaluate_rag_transcript_async(task: Any, payload: dict[str, Any]) -> 
                     job.error_message = str(exc)
                     job.completed_at = datetime.now(timezone.utc)
                     await session.commit()
+                    invalidate_metrics_cache(job.tenant_id)
             raise
         else:
             raise task.retry(exc=exc, countdown=5)

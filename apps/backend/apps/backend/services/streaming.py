@@ -10,6 +10,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from ..models import EvaluationJob, TelemetryEvent, UsageRecord
 from ..services.billing import StripeBillingService
 from ..services.clickhouse import ClickHouseClient
+from ..services.metrics import invalidate_metrics_cache
 from ..services.policy import SafeguardCircuitBreaker
 
 logger = logging.getLogger(__name__)
@@ -46,13 +47,15 @@ class EventStreamer:
 
         # 1. Fire to Billing Meter (isolated)
         try:
-            StripeBillingService.record_usage(tenant_id, "telemetry_ingest", 1)
+            StripeBillingService.record_usage(
+                tenant_id, "telemetry_ingest", 1, track_locally=False
+            )
         except Exception as exc:
             logger.warning("[EventStreamer] Failed to record billing usage: %s", exc)
 
         # 2. Fire to ClickHouse OLAP Engine (isolated)
         try:
-            await ClickHouseClient.insert_telemetry(payload)
+            await ClickHouseClient.insert_telemetry({**payload, "tenant_id": tenant_id})
         except Exception as exc:
             logger.warning("[EventStreamer] Failed to insert ClickHouse telemetry: %s", exc)
 
@@ -68,7 +71,7 @@ class EventStreamer:
         session.add(usage)
 
         await session.commit()
-        await session.refresh(event)
+        invalidate_metrics_cache(tenant_id)
         return event
 
     @classmethod
@@ -99,19 +102,27 @@ class EventStreamer:
 
             event = TelemetryEvent(tenant_id=tenant_id, **payload)
             events.append(event)
-            session.add(event)
-
-            usage = UsageRecord(tenant_id=tenant_id, event_type="telemetry_ingest", count=1)
-            session.add(usage)
+        session.add_all(events)
+        session.add(
+            UsageRecord(
+                tenant_id=tenant_id,
+                event_type="telemetry_ingest",
+                count=len(events),
+            )
+        )
 
         try:
-            StripeBillingService.record_usage(tenant_id, "telemetry_ingest", len(payloads))
+            StripeBillingService.record_usage(
+                tenant_id,
+                "telemetry_ingest",
+                len(payloads),
+                track_locally=False,
+            )
         except Exception as exc:
             logger.warning("[EventStreamer] Failed to record batch billing usage: %s", exc)
 
         await session.commit()
-        for ev in events:
-            await session.refresh(ev)
+        invalidate_metrics_cache(tenant_id)
         return events
 
     @classmethod
@@ -134,13 +145,13 @@ class EventStreamer:
 
         # 1. Fire to Billing Meter (isolated)
         try:
-            StripeBillingService.record_usage(tenant_id, "rag_eval", 1)
+            StripeBillingService.record_usage(tenant_id, "rag_eval", 1, track_locally=False)
         except Exception as exc:
             logger.warning("[EventStreamer] Failed to record eval billing usage: %s", exc)
 
         # 2. Fire to ClickHouse OLAP Engine (isolated)
         try:
-            await ClickHouseClient.insert_evaluation(payload)
+            await ClickHouseClient.insert_evaluation({**payload, "tenant_id": tenant_id})
         except Exception as exc:
             logger.warning("[EventStreamer] Failed to insert ClickHouse evaluation: %s", exc)
 
@@ -155,5 +166,37 @@ class EventStreamer:
         session.add(usage)
 
         await session.commit()
-        await session.refresh(job)
+        invalidate_metrics_cache(tenant_id)
         return job
+
+    @classmethod
+    async def publish_eval_batch(
+        cls,
+        session: AsyncSession,
+        tenant_id: int,
+        payloads: list[dict[str, Any]],
+    ) -> list[EvaluationJob]:
+        """Persist and meter multiple evaluation jobs in one transaction."""
+        circuit_breaker = SafeguardCircuitBreaker(tenant_id)
+        jobs: list[EvaluationJob] = []
+        for payload in payloads:
+            sanitized = dict(payload)
+            for field in ("query", "context", "answer", "expected_answer"):
+                if sanitized.get(field):
+                    sanitized[field] = circuit_breaker.redact_pii(sanitized[field])
+            jobs.append(EvaluationJob(tenant_id=tenant_id, **sanitized))
+
+        session.add_all(jobs)
+        session.add(
+            UsageRecord(tenant_id=tenant_id, event_type="rag_eval", count=len(jobs))
+        )
+        await session.commit()
+        invalidate_metrics_cache(tenant_id)
+
+        try:
+            StripeBillingService.record_usage(
+                tenant_id, "rag_eval", len(jobs), track_locally=False
+            )
+        except Exception as exc:
+            logger.warning("[EventStreamer] Failed to record batch eval usage: %s", exc)
+        return jobs

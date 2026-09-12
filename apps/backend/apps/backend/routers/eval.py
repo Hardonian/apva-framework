@@ -79,20 +79,22 @@ async def batch_trigger_evaluation(
     tenant_context: dict = Depends(get_tenant_context),
 ) -> BatchEvalTriggerResponse:
     """Submit multiple evaluation jobs concurrently."""
-    job_ids: list[int] = []
-    for req in payload.jobs:
-        job_payload = {
+    job_payloads = [
+        {
             "transcript_id": req.transcript_id,
             "query": req.query,
             "context": req.context,
             "answer": req.answer,
             "expected_answer": req.expected_answer,
         }
-        job = await EventStreamer.publish_eval(
-            session=session,
-            tenant_id=tenant_context["tenant_id"],
-            payload=job_payload,
-        )
+        for req in payload.jobs
+    ]
+    jobs = await EventStreamer.publish_eval_batch(
+        session=session,
+        tenant_id=tenant_context["tenant_id"],
+        payloads=job_payloads,
+    )
+    for job in jobs:
         evaluate_rag_transcript.delay(
             {
                 "job_id": job.id,
@@ -102,7 +104,7 @@ async def batch_trigger_evaluation(
                 "expected_answer": job.expected_answer,
             }
         )
-        job_ids.append(job.id)
+    job_ids = [job.id for job in jobs]
 
     return BatchEvalTriggerResponse(
         submitted_count=len(job_ids),
