@@ -11,11 +11,11 @@ dev:
 
 # Run all test suites
 test:
-    uv run pytest tests/ -v --tb=short
+    uv run pytest tests/ apps/backend/tests/ -v --tb=short
 
 # Run tests with code coverage report
 test-coverage:
-    uv run pytest tests/ --cov=apva --cov-report=term-missing
+    uv run pytest tests/ apps/backend/tests/ --cov=apva --cov-report=term-missing
 
 # Lint code using ruff
 lint:
@@ -27,7 +27,11 @@ format:
 
 # Run static type checking
 type-check:
-    uv run mypy apva/ --ignore-missing-imports
+    uv run mypy apva apps/backend packages --ignore-missing-imports --explicit-package-bases
+
+# Run database migrations
+migrate:
+    uv run alembic -c apps/backend/alembic.ini upgrade head
 
 # Run health check against local API
 smoke:

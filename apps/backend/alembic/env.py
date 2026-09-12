@@ -25,6 +25,13 @@ def get_url() -> str:
     Returns:
         str: Async database URL.
     """
+    import os
+
+    x_args = context.get_x_argument(as_dictionary=True)
+    if "db_url" in x_args:
+        return x_args["db_url"]
+    if "APVA_DATABASE_URL" in os.environ:
+        return os.environ["APVA_DATABASE_URL"]
     return str(settings.database_url)
 
 

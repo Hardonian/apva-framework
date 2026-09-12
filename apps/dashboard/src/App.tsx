@@ -259,7 +259,7 @@ function App() {
         },
       ]);
       setNewOrgName('');
-    } catch (err: unknown) {
+    } catch {
       alert('Failed to provision workspace.');
     } finally {
       setProvisioning(false);

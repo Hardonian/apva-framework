@@ -30,6 +30,7 @@ dependencies = [
   "uvicorn[standard]>=0.30.0,<1.0",
   "pydantic-settings>=2.6.0,<3.0",
   "sqlalchemy[asyncio]>=2.0.30,<3.0",
+  "alembic>=1.13.0,<2.0",
   "aiosqlite>=0.20.0,<1.0",
   "celery[redis]>=5.4.0,<6.0",
   "redis>=5.0.0,<8.2",

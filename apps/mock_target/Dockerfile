@@ -19,4 +19,4 @@ COPY --from=builder /install /usr/local
 COPY apps/mock_target /app/apps/mock_target
 
 EXPOSE 8080
-CMD ["uvicorn", "apps.mock_target.main:app", "--host", "0.0.0.0", "--port", "8080"]
+CMD ["uvicorn", "apps.mock_target.app:app", "--host", "0.0.0.0", "--port", "8080"]

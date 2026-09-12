@@ -39,7 +39,7 @@ def upgrade() -> None:
     op.create_table(
         "usage_records",
         sa.Column("id", sa.Integer(), primary_key=True),
-        sa.Column("tenant_id", sa.Integer(), sa.ForeignKey("tenants.id"), nullable=False),
+        sa.Column("tenant_id", sa.Integer(), sa.ForeignKey("tenants.id", name="fk_usage_records_tenant_id"), nullable=False),
         sa.Column("event_type", sa.String(length=100), nullable=False),
         sa.Column("count", sa.Integer(), nullable=False, server_default="1"),
         sa.Column("created_at", sa.DateTime(timezone=True), nullable=False),
@@ -57,7 +57,7 @@ def upgrade() -> None:
             sa.Column(
                 "tenant_id",
                 sa.Integer(),
-                sa.ForeignKey("tenants.id"),
+                sa.ForeignKey("tenants.id", name="fk_telemetry_events_tenant_id"),
                 nullable=False,
                 server_default="1",
             )
@@ -76,7 +76,7 @@ def upgrade() -> None:
             sa.Column(
                 "tenant_id",
                 sa.Integer(),
-                sa.ForeignKey("tenants.id"),
+                sa.ForeignKey("tenants.id", name="fk_evaluation_jobs_tenant_id"),
                 nullable=False,
                 server_default="1",
             )
