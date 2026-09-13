@@ -71,6 +71,7 @@ class APVATelemetryClient:
         max_retries: int = DEFAULT_SDK_RETRY_ATTEMPTS,
         retry_base_delay: float = DEFAULT_SDK_RETRY_BASE_DELAY,
         batch_size: int = DEFAULT_SDK_BATCH_SIZE,
+        batch_flush_interval: float = 0.05,
     ) -> None:
         """Initialize the telemetry client.
 
@@ -83,7 +84,12 @@ class APVATelemetryClient:
             max_retries: Maximum HTTP retry attempts with exponential backoff.
             retry_base_delay: Base delay in seconds for exponential backoff.
             batch_size: Maximum events sent per batch request.
+            batch_flush_interval: Maximum seconds to coalesce a partial batch.
         """
+        if queue_size < 1 or batch_size < 1:
+            raise ValueError("queue_size and batch_size must be positive")
+        if batch_flush_interval < 0:
+            raise ValueError("batch_flush_interval cannot be negative")
         ingest_url = endpoint or os.getenv(
             "APVA_INGEST_URL",
             "http://localhost:8000/api/v1/telemetry/ingest",
@@ -96,9 +102,12 @@ class APVATelemetryClient:
         self.max_retries = max_retries
         self.retry_base_delay = retry_base_delay
         self.batch_size = batch_size
+        self.batch_flush_interval = batch_flush_interval
 
         self._queue: queue.Queue[TelemetryEventPayload] = queue.Queue(maxsize=queue_size)
         self._stop_event = threading.Event()
+        self._stats_lock = threading.Lock()
+        self._stats = {"accepted": 0, "dropped": 0, "sent": 0, "failed": 0, "batches": 0}
         self._thread = threading.Thread(target=self._sender_loop, daemon=True)
         self._thread.start()
 
@@ -116,8 +125,10 @@ class APVATelemetryClient:
         """
         try:
             self._queue.put_nowait(payload)
+            self._increment_stat("accepted")
             return True
         except queue.Full:
+            self._increment_stat("dropped")
             logger.warning("[APVA] Telemetry queue full; dropping event %s", payload.run_id)
             return False
 
@@ -150,8 +161,17 @@ class APVATelemetryClient:
     def flush(self, timeout: float = 2.0) -> None:
         """Drain the queue and wait for pending sends."""
         deadline = time.time() + timeout
-        while not self._queue.empty() and time.time() < deadline:
+        while self._queue.unfinished_tasks and time.time() < deadline:
             time.sleep(0.05)
+
+    def stats(self) -> dict[str, int]:
+        """Return a thread-safe snapshot of local delivery health counters."""
+        with self._stats_lock:
+            return dict(self._stats)
+
+    def _increment_stat(self, name: str, count: int = 1) -> None:
+        with self._stats_lock:
+            self._stats[name] += count
 
     def close(self, timeout: float = 2.0) -> None:
         """Stop the background sender thread and flush pending events.
@@ -187,10 +207,29 @@ class APVATelemetryClient:
                 except queue.Empty:
                     continue
 
+                batch = [payload]
+                batch_deadline = time.monotonic() + self.batch_flush_interval
+                while len(batch) < self.batch_size:
+                    remaining = batch_deadline - time.monotonic()
+                    if remaining <= 0:
+                        break
+                    try:
+                        batch.append(self._queue.get(timeout=remaining))
+                    except queue.Empty:
+                        break
+
+                succeeded = False
                 for attempt in range(self.max_retries):
                     try:
-                        response = client.post(self.endpoint, json=payload.model_dump())
+                        if len(batch) == 1:
+                            url = self.endpoint
+                            body: dict[str, Any] = batch[0].model_dump()
+                        else:
+                            url = self.batch_endpoint
+                            body = {"events": [item.model_dump() for item in batch]}
+                        response = client.post(url, json=body)
                         response.raise_for_status()
+                        succeeded = True
                         break
                     except Exception as exc:
                         if attempt < self.max_retries - 1:
@@ -198,10 +237,14 @@ class APVATelemetryClient:
                             time.sleep(backoff)
                         else:
                             logger.debug(
-                                "[APVA] Ingestion send error after %d retries: %s",
+                                "[APVA] Ingestion batch failed after %d retries: %s",
                                 self.max_retries,
                                 exc,
                             )
+                self._increment_stat("batches")
+                self._increment_stat("sent" if succeeded else "failed", len(batch))
+                for _ in batch:
+                    self._queue.task_done()
 
     def _send(self, payload: TelemetryEventPayload) -> None:
         """Send one payload to the backend synchronously.

@@ -31,6 +31,17 @@ from apva.exceptions import (
     APVARateLimitError,
     APVAValidationError,
 )
+from apva.enterprise import (
+    BusinessCaseAssumptions,
+    DecisionPolicy,
+    DecisionStatus,
+    EnterpriseAnalysisRequest,
+    EnterpriseBusinessCaseReport,
+    EnterpriseValueEngine,
+    PortfolioAnalysisReport,
+    PortfolioAnalysisRequest,
+    ScenarioMatrix,
+)
 from apva.models import (
     APVAReport,
     BenchmarkInput,
@@ -52,6 +63,7 @@ __all__ = [
     "APVACalculator",
     "APVACalculatorConfig",
     "compute_tvy",
+    "EnterpriseValueEngine",
     # Models
     "APVAReport",
     "BenchmarkInput",
@@ -64,6 +76,14 @@ __all__ = [
     "SensitivityVector",
     "SkillLevel",
     "TVYGrade",
+    "BusinessCaseAssumptions",
+    "DecisionPolicy",
+    "DecisionStatus",
+    "EnterpriseAnalysisRequest",
+    "EnterpriseBusinessCaseReport",
+    "PortfolioAnalysisRequest",
+    "PortfolioAnalysisReport",
+    "ScenarioMatrix",
     # Exceptions
     "APVAAuthenticationError",
     "APVACalculationError",

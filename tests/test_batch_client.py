@@ -49,4 +49,12 @@ def test_batch_ingest_and_flush(monkeypatch: pytest.MonkeyPatch):
 
     client.flush(timeout=1.0)
     client.close(timeout=1.0)
-    assert len(posted) == 5
+    assert len(posted) == 1
+    assert len(posted[0]["events"]) == 5
+    assert client.stats() == {
+        "accepted": 5,
+        "dropped": 0,
+        "sent": 5,
+        "failed": 0,
+        "batches": 1,
+    }

@@ -21,6 +21,7 @@ from .database import engine
 from .limiter import RateLimitError, rate_limit
 from .models import Base
 from .observability import RuntimeMetrics
+from .routers.analysis import router as analysis_router
 from .routers.auth import router as auth_router
 from .routers.billing import router as billing_router
 from .routers.eval import router as eval_router
@@ -153,6 +154,7 @@ app.add_middleware(
 )
 
 app.include_router(telemetry_router, prefix="/api/v1", dependencies=[Depends(rate_limit)])
+app.include_router(analysis_router, prefix="/api/v1", dependencies=[Depends(rate_limit)])
 app.include_router(eval_router, prefix="/api/v1", dependencies=[Depends(rate_limit)])
 app.include_router(metrics_router, prefix="/api/v1", dependencies=[Depends(rate_limit)])
 app.include_router(billing_router, prefix="/api/v1", dependencies=[Depends(rate_limit)])

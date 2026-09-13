@@ -25,6 +25,8 @@ from __future__ import annotations
 
 import argparse
 import asyncio
+import csv
+import io
 import json
 import sys
 from pathlib import Path
@@ -35,6 +37,7 @@ from pydantic import ValidationError
 from apva.calculator import APVACalculator
 from apva.constants import FRAMEWORK_VERSION
 from apva.datasets import GoldenExample, load_golden_set, validate_golden_set
+from apva.enterprise import EnterpriseAnalysisRequest, EnterpriseValueEngine
 from apva.evaluation import evaluate_examples, summarize_evaluation
 from apva.formatters import (
     format_report_markdown,
@@ -250,6 +253,54 @@ def _build_from_args(args: argparse.Namespace) -> BenchmarkInput:
     )
 
 
+def _format_business_case(report: Any, fmt: str, indent: int = 2) -> str:
+    """Format a board-ready enterprise business case."""
+    fields = [
+        ("Decision", report.decision.value.upper(), ""),
+        ("Priority Score", f"{report.priority_score:.1f}", "/100"),
+        ("TVY", f"{report.benchmark_report.true_value_yield_min:.2f}", "minutes/task"),
+        ("Annual Task Volume", f"{report.annual_task_volume:,}", "tasks"),
+        ("First-Year Net Value", f"${report.first_year_net_value_usd:,.2f}", "USD"),
+        ("Recurring Annual Net", f"${report.recurring_annual_net_value_usd:,.2f}", "USD"),
+        ("NPV", f"${report.net_present_value_usd:,.2f}", "USD"),
+        (
+            "First-Year ROI",
+            f"{report.first_year_roi_pct:.1f}%" if report.first_year_roi_pct is not None else "N/A",
+            "",
+        ),
+        (
+            "Payback",
+            f"{report.payback_months:.1f}" if report.payback_months is not None else "N/A",
+            "months",
+        ),
+        ("Positive Scenarios", f"{(report.positive_scenario_rate or 0) * 100:.1f}%", ""),
+    ]
+    if fmt == "table":
+        return format_table(["Metric", "Value", "Unit"], fields)
+    if fmt == "markdown":
+        rows = "\n".join(f"| {name} | {value} | {unit} |" for name, value, unit in fields)
+        gates = "\n".join(
+            f"- [{'x' if gate.passed else ' '}] {gate.label}: {gate.actual} {gate.unit} "
+            f"({gate.operator} {gate.threshold})"
+            for gate in report.gate_checks
+        )
+        return (
+            f"# APVA Enterprise Business Case: {report.use_case}\n\n"
+            f"> Decision: **{report.decision.value.upper()}** · Report `{report.report_id}`\n\n"
+            "| Metric | Value | Unit |\n|---|---:|---|\n"
+            f"{rows}\n\n## Governance gates\n\n{gates}\n\n"
+            "## Recommended actions\n\n"
+            + "\n".join(f"{index}. {item}" for index, item in enumerate(report.recommendations, 1))
+        )
+    if fmt == "csv":
+        output = io.StringIO()
+        writer = csv.writer(output)
+        writer.writerow(["metric", "value", "unit"])
+        writer.writerows(fields)
+        return output.getvalue().rstrip()
+    return json.dumps(report.model_dump(mode="json"), indent=indent)
+
+
 def build_parser() -> argparse.ArgumentParser:
     """Construct the unified argparse CLI parser."""
     parser = argparse.ArgumentParser(
@@ -343,6 +394,13 @@ def build_parser() -> argparse.ArgumentParser:
     )
     audit.add_argument("--human-baseline", type=float, default=30.0, help="Human baseline (min).")
     audit.add_argument("--guardrail-tax", type=float, default=0.8, help="Guardrail tax (min).")
+
+    business_case = sub.add_parser(
+        "business-case",
+        parents=[common],
+        help="Generate a multivariate, policy-gated enterprise investment case.",
+    )
+    business_case.add_argument("path", help="Path to EnterpriseAnalysisRequest JSON file.")
 
     # proxy
     proxy = sub.add_parser("proxy", help="Run universal local AI workstation proxy.")
@@ -483,6 +541,14 @@ def main(argv: Sequence[str] | None = None) -> int:
                 hourly_rate_usd=args.hourly_rate,
             )
             _emit(scorecard, args.output)
+            return 0
+
+        elif args.command == "business-case":
+            with open(args.path, "r", encoding="utf-8") as handle:
+                payload = json.load(handle)
+            request = EnterpriseAnalysisRequest.model_validate(payload)
+            report = EnterpriseValueEngine.analyze(request)
+            _emit(_format_business_case(report, args.format, args.indent), args.output)
             return 0
 
         elif args.command == "proxy":
