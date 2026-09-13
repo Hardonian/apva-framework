@@ -39,6 +39,20 @@
     "analysis_years": 3,
     "discount_rate": 0.1
   },
+  "x_factors": {
+    "causal_attribution_confidence": 0.82,
+    "coordination_minutes_saved_per_task": 2.0,
+    "reusable_output_rate": 0.25,
+    "expected_reuses_per_output": 2.0,
+    "minutes_saved_per_reuse": 5.0,
+    "escaped_error_probability": 0.002,
+    "loss_per_escaped_error_usd": 500.0,
+    "downstream_blast_radius_multiplier": 1.5,
+    "autonomous_completion_rate": 0.55,
+    "human_override_rate": 0.12,
+    "carbon_grams_co2e_per_task": 10.0,
+    "internal_carbon_price_usd_per_tonne": 100.0
+  },
   "policy": {
     "minimum_tvy_min": 3.0,
     "minimum_rag_reliability": 0.85,
@@ -46,7 +60,8 @@
     "maximum_payback_months": 18.0,
     "minimum_downside_tvy_min": 0.0,
     "minimum_evidence_confidence": 0.75,
-    "maximum_guardrail_tax_min": 1.0
+    "maximum_guardrail_tax_min": 1.0,
+    "minimum_causal_attribution_confidence": 0.75
   },
   "monte_carlo_simulations": 2000,
   "uncertainty_fraction": 0.1,

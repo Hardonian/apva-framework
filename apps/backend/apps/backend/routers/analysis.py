@@ -18,6 +18,7 @@ from apva.enterprise import (
     PortfolioAnalysisReport,
     PortfolioAnalysisRequest,
     ScenarioMatrix,
+    XFactorInputs,
 )
 from apva.models import BenchmarkInput, GuardrailMetrics, ProductivityMetrics, RAGMetrics
 
@@ -35,6 +36,7 @@ class ObservedBusinessCaseRequest(BaseModel):
 
     use_case_name: str = Field(default="Observed AI Workflow", min_length=1, max_length=255)
     business_case: BusinessCaseAssumptions
+    x_factors: XFactorInputs = Field(default_factory=XFactorInputs)
     policy: DecisionPolicy = Field(default_factory=DecisionPolicy)
     scenario_matrix: ScenarioMatrix = Field(default_factory=ScenarioMatrix)
     include_scenario_matrix: bool = True
@@ -100,6 +102,7 @@ async def analyze_observed_business_case(
         business_case=payload.business_case.model_copy(
             update={"organization": tenant_context["name"]}
         ),
+        x_factors=payload.x_factors,
         policy=payload.policy,
         scenario_matrix=payload.scenario_matrix,
         include_scenario_matrix=payload.include_scenario_matrix,

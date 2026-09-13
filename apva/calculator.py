@@ -457,6 +457,73 @@ class APVACalculator:
     # -------------------------------------------------------------------
 
     @classmethod
+    def simulate_tvy(
+        cls,
+        benchmark: BenchmarkInput,
+        config: APVACalculatorConfig | None = None,
+        n_simulations: int = DEFAULT_MONTE_CARLO_SIMULATIONS,
+        noise_pct: float = DEFAULT_SENSITIVITY_DELTA,
+        seed: int | None = None,
+    ) -> list[float]:
+        """Return reproducible TVY samples for tail-risk and uncertainty analysis."""
+        if n_simulations < 1:
+            raise ValueError("n_simulations must be positive")
+        if noise_pct < 0:
+            raise ValueError("noise_pct cannot be negative")
+        cfg = config or _DEFAULT_CONFIG
+        rng = random.Random(seed)
+        tvy_samples: list[float] = []
+        base_data = benchmark.model_dump()
+        numeric_paths: list[tuple[str, str, float, bool]] = [
+            ("productivity", "reference_human_baseline_min", benchmark.productivity.reference_human_baseline_min, False),
+            ("productivity", "ai_generation_time_min", benchmark.productivity.ai_generation_time_min, False),
+            ("productivity", "epistemic_verification_time_min", benchmark.productivity.epistemic_verification_time_min, False),
+            ("rag", "exact_span_recall", benchmark.rag.exact_span_recall, True),
+            ("rag", "llm_faithfulness_score", benchmark.rag.llm_faithfulness_score, True),
+            ("guardrail", "base_latency_overhead_min", benchmark.guardrail.base_latency_overhead_min, False),
+            ("guardrail", "false_positive_rate", benchmark.guardrail.false_positive_rate, True),
+            ("guardrail", "resolution_penalty_time_min", benchmark.guardrail.resolution_penalty_time_min, False),
+            ("guardrail", "cra_session_drop_penalty_min", benchmark.guardrail.cra_session_drop_penalty_min, False),
+        ]
+        for _ in range(n_simulations):
+            sim_data = copy.deepcopy(base_data)
+            for pillar, attr, base_val, is_probability in numeric_paths:
+                stddev = noise_pct * base_val if base_val != 0 else noise_pct * 0.1
+                noisy = max(0.0, rng.gauss(base_val, stddev))
+                if is_probability:
+                    noisy = min(1.0, noisy)
+                sim_data[pillar][attr] = noisy
+            try:
+                tvy_samples.append(
+                    cls.true_value_yield(BenchmarkInput.model_validate(sim_data), cfg)
+                )
+            except Exception:
+                continue
+        return tvy_samples
+
+    @staticmethod
+    def confidence_interval_from_samples(
+        tvy_samples: list[float], confidence_level: float = DEFAULT_CONFIDENCE_LEVEL
+    ) -> ConfidenceInterval:
+        """Summarize precomputed samples without repeating Monte Carlo work."""
+        if not tvy_samples:
+            raise ValueError("At least one TVY sample is required")
+        if not 0.0 < confidence_level < 1.0:
+            raise ValueError("confidence_level must be between 0 and 1")
+        ordered = sorted(tvy_samples)
+        alpha = (1.0 - confidence_level) / 2.0
+        lower_idx = int(alpha * len(ordered))
+        upper_idx = int((1.0 - alpha) * len(ordered)) - 1
+        median_idx = len(ordered) // 2
+        return ConfidenceInterval(
+            lower=round(ordered[max(0, lower_idx)], 4),
+            median=round(ordered[median_idx], 4),
+            upper=round(ordered[min(upper_idx, len(ordered) - 1)], 4),
+            confidence_level=confidence_level,
+            n_simulations=len(ordered),
+        )
+
+    @classmethod
     def confidence_interval(
         cls,
         benchmark: BenchmarkInput,
@@ -483,70 +550,13 @@ class APVACalculator:
         Returns:
             ConfidenceInterval: Lower, median, and upper bounds.
         """
-        cfg = config or _DEFAULT_CONFIG
-        rng = random.Random(seed)
-        tvy_samples: list[float] = []
-
-        base_data = benchmark.model_dump()
-
-        numeric_paths: list[tuple[str, str, float, bool]] = [
-            (
-                "productivity",
-                "reference_human_baseline_min",
-                benchmark.productivity.reference_human_baseline_min,
-                False,
-            ),
-            (
-                "productivity",
-                "ai_generation_time_min",
-                benchmark.productivity.ai_generation_time_min,
-                False,
-            ),
-            (
-                "productivity",
-                "epistemic_verification_time_min",
-                benchmark.productivity.epistemic_verification_time_min,
-                False,
-            ),
-            ("rag", "exact_span_recall", benchmark.rag.exact_span_recall, True),
-            ("rag", "llm_faithfulness_score", benchmark.rag.llm_faithfulness_score, True),
-            (
-                "guardrail",
-                "base_latency_overhead_min",
-                benchmark.guardrail.base_latency_overhead_min,
-                False,
-            ),
-            ("guardrail", "false_positive_rate", benchmark.guardrail.false_positive_rate, True),
-            (
-                "guardrail",
-                "resolution_penalty_time_min",
-                benchmark.guardrail.resolution_penalty_time_min,
-                False,
-            ),
-            (
-                "guardrail",
-                "cra_session_drop_penalty_min",
-                benchmark.guardrail.cra_session_drop_penalty_min,
-                False,
-            ),
-        ]
-
-        for _ in range(n_simulations):
-            sim_data = copy.deepcopy(base_data)
-            for pillar, attr, base_val, is_prob in numeric_paths:
-                stddev = noise_pct * base_val if base_val != 0 else noise_pct * 0.1
-                noisy = rng.gauss(base_val, stddev)
-                noisy = max(0.0, noisy)
-                if is_prob:
-                    noisy = min(1.0, noisy)
-                sim_data[pillar][attr] = noisy
-
-            try:
-                sim_benchmark = BenchmarkInput.model_validate(sim_data)
-                tvy_samples.append(cls.true_value_yield(sim_benchmark, cfg))
-            except Exception:
-                # Skip invalid samples (rare edge case)
-                continue
+        tvy_samples = cls.simulate_tvy(
+            benchmark,
+            config,
+            n_simulations=n_simulations,
+            noise_pct=noise_pct,
+            seed=seed,
+        )
 
         if not tvy_samples:
             base_tvy = cls.true_value_yield(benchmark, cfg)
@@ -558,19 +568,7 @@ class APVACalculator:
                 n_simulations=n_simulations,
             )
 
-        tvy_samples.sort()
-        alpha = (1.0 - confidence_level) / 2.0
-        lower_idx = int(alpha * len(tvy_samples))
-        upper_idx = int((1.0 - alpha) * len(tvy_samples)) - 1
-        median_idx = len(tvy_samples) // 2
-
-        return ConfidenceInterval(
-            lower=round(tvy_samples[max(0, lower_idx)], 4),
-            median=round(tvy_samples[median_idx], 4),
-            upper=round(tvy_samples[min(upper_idx, len(tvy_samples) - 1)], 4),
-            confidence_level=confidence_level,
-            n_simulations=len(tvy_samples),
-        )
+        return cls.confidence_interval_from_samples(tvy_samples, confidence_level)
 
 
 def compute_tvy(benchmark: BenchmarkInput) -> float:

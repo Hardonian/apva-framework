@@ -5,6 +5,7 @@ from __future__ import annotations
 import hashlib
 import itertools
 import json
+import statistics
 from dataclasses import dataclass
 from datetime import datetime, timezone
 from enum import Enum
@@ -53,6 +54,29 @@ class BusinessCaseAssumptions(BaseModel):
     discount_rate: Probability = Field(default=0.1)
 
 
+class XFactorInputs(BaseModel):
+    """Often-missed causal, knowledge, coordination, tail-risk, and ESG signals.
+
+    These factors are kept separate from canonical TVY to make double counting
+    visible during finance and model-risk review.
+    """
+
+    model_config = ConfigDict(extra="forbid")
+
+    causal_attribution_confidence: Probability = Field(default=0.7)
+    coordination_minutes_saved_per_task: NonNegative = Field(default=0.0)
+    reusable_output_rate: Probability = Field(default=0.0)
+    expected_reuses_per_output: NonNegative = Field(default=0.0)
+    minutes_saved_per_reuse: NonNegative = Field(default=0.0)
+    escaped_error_probability: Probability = Field(default=0.0)
+    loss_per_escaped_error_usd: NonNegative = Field(default=0.0)
+    downstream_blast_radius_multiplier: float = Field(default=1.0, ge=1.0, le=1000.0)
+    autonomous_completion_rate: Probability = Field(default=0.0)
+    human_override_rate: Probability = Field(default=0.0)
+    carbon_grams_co2e_per_task: NonNegative = Field(default=0.0)
+    internal_carbon_price_usd_per_tonne: NonNegative = Field(default=0.0)
+
+
 class DecisionPolicy(BaseModel):
     """Policy-as-code thresholds used to gate pilots and production rollouts."""
 
@@ -65,6 +89,7 @@ class DecisionPolicy(BaseModel):
     minimum_downside_tvy_min: float = Field(default=0.0)
     minimum_evidence_confidence: Probability = Field(default=0.7)
     maximum_guardrail_tax_min: NonNegative = Field(default=1.0)
+    minimum_causal_attribution_confidence: Probability = Field(default=0.6)
 
 
 class ScenarioMatrix(BaseModel):
@@ -102,6 +127,7 @@ class EnterpriseAnalysisRequest(BaseModel):
 
     benchmark: BenchmarkInput
     business_case: BusinessCaseAssumptions
+    x_factors: XFactorInputs = Field(default_factory=XFactorInputs)
     policy: DecisionPolicy = Field(default_factory=DecisionPolicy)
     scenario_matrix: ScenarioMatrix = Field(default_factory=ScenarioMatrix)
     include_scenario_matrix: bool = True
@@ -189,6 +215,12 @@ class EnterpriseBusinessCaseReport(BaseModel):
     benchmark_report: APVAReport
     annual_task_volume: int
     per_task_value_usd: float
+    causal_value_yield_per_task_usd: float
+    coordination_dividend_per_task_usd: float
+    knowledge_dividend_per_task_usd: float
+    expected_downstream_loss_per_task_usd: float
+    carbon_cost_per_task_usd: float
+    x_factor_annual_value_usd: float
     annual_productivity_value_usd: float
     annual_risk_adjusted_value_usd: float
     annual_operating_cost_usd: float
@@ -202,7 +234,14 @@ class EnterpriseBusinessCaseReport(BaseModel):
     monthly_cost_of_delay_usd: float
     downside_tvy_min: float
     upside_tvy_min: float
+    probability_negative_tvy: float
+    tvy_value_at_risk_5_min: float
+    conditional_value_at_risk_5_min: float
+    tvy_standard_deviation_min: float
     evidence_confidence: float
+    causal_attribution_confidence: float
+    autonomous_completion_rate: float
+    human_override_rate: float
     gate_checks: list[GateCheck]
     top_levers: list[OptimizationLever]
     recommendations: list[str]
@@ -269,6 +308,11 @@ class PortfolioAnalysisReport(BaseModel):
 class _Economics:
     annual_task_volume: int
     per_task_value_usd: float
+    causal_value_yield_per_task_usd: float
+    coordination_dividend_per_task_usd: float
+    knowledge_dividend_per_task_usd: float
+    expected_downstream_loss_per_task_usd: float
+    carbon_cost_per_task_usd: float
     annual_productivity_value_usd: float
     annual_operating_cost_usd: float
     first_year_net_value_usd: float
@@ -293,14 +337,44 @@ class EnterpriseValueEngine:
         tvy_min: float,
         hourly_rate_usd: float,
         assumptions: BusinessCaseAssumptions,
+        x_factors: XFactorInputs | None = None,
     ) -> _Economics:
+        factors = x_factors or XFactorInputs()
         task_volume = round(
             assumptions.practitioners
             * assumptions.tasks_per_practitioner_per_day
             * assumptions.working_days_per_year
             * assumptions.adoption_rate
         )
-        per_task_value = (tvy_min / 60.0) * hourly_rate_usd * assumptions.realization_rate
+        raw_realized_value = (tvy_min / 60.0) * hourly_rate_usd * assumptions.realization_rate
+        causal_value = raw_realized_value * factors.causal_attribution_confidence
+        coordination_dividend = (
+            factors.coordination_minutes_saved_per_task / 60.0 * hourly_rate_usd
+        )
+        knowledge_dividend = (
+            factors.reusable_output_rate
+            * factors.expected_reuses_per_output
+            * factors.minutes_saved_per_reuse
+            / 60.0
+            * hourly_rate_usd
+        )
+        expected_downstream_loss = (
+            factors.escaped_error_probability
+            * factors.loss_per_escaped_error_usd
+            * factors.downstream_blast_radius_multiplier
+        )
+        carbon_cost = (
+            factors.carbon_grams_co2e_per_task
+            / 1_000_000.0
+            * factors.internal_carbon_price_usd_per_tonne
+        )
+        per_task_value = (
+            causal_value
+            + coordination_dividend
+            + knowledge_dividend
+            - expected_downstream_loss
+            - carbon_cost
+        )
         productivity_value = per_task_value * task_volume
         variable_cost = assumptions.variable_ai_cost_per_task_usd * task_volume
         operating_cost = assumptions.annual_platform_cost_usd + variable_cost
@@ -320,6 +394,11 @@ class EnterpriseValueEngine:
         return _Economics(
             annual_task_volume=task_volume,
             per_task_value_usd=per_task_value,
+            causal_value_yield_per_task_usd=causal_value,
+            coordination_dividend_per_task_usd=coordination_dividend,
+            knowledge_dividend_per_task_usd=knowledge_dividend,
+            expected_downstream_loss_per_task_usd=expected_downstream_loss,
+            carbon_cost_per_task_usd=carbon_cost,
             annual_productivity_value_usd=productivity_value,
             annual_operating_cost_usd=operating_cost,
             first_year_net_value_usd=first_year_net,
@@ -335,6 +414,7 @@ class EnterpriseValueEngine:
         tvy_min: float,
         hourly_rate_usd: float,
         assumptions: BusinessCaseAssumptions,
+        x_factors: XFactorInputs,
     ) -> tuple[list[AnnualProjection], float, float | None]:
         projections: list[AnnualProjection] = []
         pv_benefits = 0.0
@@ -346,7 +426,9 @@ class EnterpriseValueEngine:
             * assumptions.working_days_per_year
             * assumptions.adoption_rate
         )
-        per_task_value = (tvy_min / 60.0) * hourly_rate_usd * assumptions.realization_rate
+        per_task_value = cls._economics(
+            tvy_min, hourly_rate_usd, assumptions, x_factors
+        ).per_task_value_usd
         for year in range(1, assumptions.analysis_years + 1):
             task_volume = round(base_tasks * (1.0 + assumptions.annual_task_growth_rate) ** (year - 1))
             productivity_value = per_task_value * task_volume
@@ -378,6 +460,7 @@ class EnterpriseValueEngine:
         report: APVAReport,
         economics: _Economics,
         assumptions: BusinessCaseAssumptions,
+        x_factors: XFactorInputs,
         policy: DecisionPolicy,
     ) -> list[GateCheck]:
         downside = report.confidence_interval.lower if report.confidence_interval else report.true_value_yield_min
@@ -398,6 +481,7 @@ class EnterpriseValueEngine:
             GateCheck(check="downside", label="Downside TVY", passed=downside >= policy.minimum_downside_tvy_min, actual=downside, operator=">=", threshold=policy.minimum_downside_tvy_min, unit="minutes/task"),
             GateCheck(check="evidence", label="Evidence Confidence", passed=assumptions.evidence_confidence >= policy.minimum_evidence_confidence, actual=assumptions.evidence_confidence, operator=">=", threshold=policy.minimum_evidence_confidence, unit="ratio"),
             GateCheck(check="guardrail", label="Guardrail Friction", passed=report.guardrail_friction_tax_min <= policy.maximum_guardrail_tax_min, actual=report.guardrail_friction_tax_min, operator="<=", threshold=policy.maximum_guardrail_tax_min, unit="minutes/task"),
+            GateCheck(check="causality", label="Causal Attribution", passed=x_factors.causal_attribution_confidence >= policy.minimum_causal_attribution_confidence, actual=x_factors.causal_attribution_confidence, operator=">=", threshold=policy.minimum_causal_attribution_confidence, unit="ratio"),
         ]
 
     @staticmethod
@@ -424,6 +508,7 @@ class EnterpriseValueEngine:
         report: APVAReport,
         economics: _Economics,
         assumptions: BusinessCaseAssumptions,
+        x_factors: XFactorInputs,
         checks: list[GateCheck],
     ) -> float:
         gate_score = sum(check.passed for check in checks) / len(checks)
@@ -437,9 +522,10 @@ class EnterpriseValueEngine:
         )
         score = (
             gate_score * 30.0
-            + roi_score * 20.0
-            + report.rag_reliability_coefficient * 20.0
+            + roi_score * 15.0
+            + report.rag_reliability_coefficient * 15.0
             + assumptions.evidence_confidence * 15.0
+            + x_factors.causal_attribution_confidence * 10.0
             + downside_score * 10.0
             + payback_score * 5.0
         )
@@ -508,7 +594,7 @@ class EnterpriseValueEngine:
             )
             tvy = APVACalculator.true_value_yield(benchmark, config)
             reliability = APVACalculator.rag_reliability_coefficient(benchmark.rag, config)
-            economics = cls._economics(tvy, hourly_rate, assumptions)
+            economics = cls._economics(tvy, hourly_rate, assumptions, request.x_factors)
             if (
                 tvy >= request.policy.minimum_tvy_min
                 and reliability >= request.policy.minimum_rag_reliability
@@ -558,23 +644,47 @@ class EnterpriseValueEngine:
             confidence_level=request.confidence_level,
         )
         # Recompute with a deterministic seed so identical inputs yield identical risk bounds.
-        report.confidence_interval = APVACalculator.confidence_interval(
+        samples = APVACalculator.simulate_tvy(
             request.benchmark,
             cfg,
             n_simulations=request.monte_carlo_simulations,
             noise_pct=request.uncertainty_fraction,
-            confidence_level=request.confidence_level,
             seed=seed,
         )
+        report.confidence_interval = APVACalculator.confidence_interval_from_samples(
+            samples, request.confidence_level
+        )
+        ordered_samples = sorted(samples)
+        tail_count = max(1, int(len(ordered_samples) * 0.05))
+        value_at_risk = ordered_samples[tail_count - 1]
+        conditional_value_at_risk = statistics.mean(ordered_samples[:tail_count])
+        probability_negative = sum(sample < 0 for sample in samples) / len(samples)
+        standard_deviation = statistics.pstdev(samples) if len(samples) > 1 else 0.0
         hourly_rate = request.benchmark.productivity.hourly_rate_usd
         assert hourly_rate is not None
-        economics = cls._economics(report.true_value_yield_min, hourly_rate, request.business_case)
-        downside = report.confidence_interval.lower
-        downside_economics = cls._economics(downside, hourly_rate, request.business_case)
-        projections, npv, benefit_cost_ratio = cls._projections(
-            report.true_value_yield_min, hourly_rate, request.business_case
+        economics = cls._economics(
+            report.true_value_yield_min,
+            hourly_rate,
+            request.business_case,
+            request.x_factors,
         )
-        checks = cls._gate_checks(report, economics, request.business_case, request.policy)
+        downside = report.confidence_interval.lower
+        downside_economics = cls._economics(
+            downside, hourly_rate, request.business_case, request.x_factors
+        )
+        projections, npv, benefit_cost_ratio = cls._projections(
+            report.true_value_yield_min,
+            hourly_rate,
+            request.business_case,
+            request.x_factors,
+        )
+        checks = cls._gate_checks(
+            report,
+            economics,
+            request.business_case,
+            request.x_factors,
+            request.policy,
+        )
         decision = cls._decision(report, economics, checks)
         levers = cls._top_levers(report.sensitivity, report.true_value_yield_min)
         matrix = cls._matrix(request, hourly_rate, cfg) if request.include_scenario_matrix else []
@@ -605,6 +715,16 @@ class EnterpriseValueEngine:
                 f"Prioritize {top.direction} in {top.parameter}; it has the largest modeled "
                 f"sensitivity span ({top.sensitivity_span_min:.2f} TVY minutes)."
             )
+        if probability_negative > 0.05:
+            recommendations.append(
+                f"Reduce tail risk: {probability_negative:.1%} of modeled outcomes have negative TVY; "
+                f"the worst 5% average {conditional_value_at_risk:.2f} minutes."
+            )
+        if economics.expected_downstream_loss_per_task_usd > 0:
+            recommendations.append(
+                "Track escaped-error severity and blast radius as first-class production signals; "
+                f"modeled expected loss is ${economics.expected_downstream_loss_per_task_usd:.2f} per task."
+            )
 
         annual_risk_adjusted = downside_economics.recurring_annual_net_value_usd
         return EnterpriseBusinessCaseReport(
@@ -614,11 +734,37 @@ class EnterpriseValueEngine:
             use_case=request.benchmark.name,
             decision=decision,
             priority_score=cls._priority_score(
-                report, economics, request.business_case, checks
+                report, economics, request.business_case, request.x_factors, checks
             ),
             benchmark_report=report,
             annual_task_volume=economics.annual_task_volume,
             per_task_value_usd=round(economics.per_task_value_usd, 4),
+            causal_value_yield_per_task_usd=round(
+                economics.causal_value_yield_per_task_usd, 4
+            ),
+            coordination_dividend_per_task_usd=round(
+                economics.coordination_dividend_per_task_usd, 4
+            ),
+            knowledge_dividend_per_task_usd=round(
+                economics.knowledge_dividend_per_task_usd, 4
+            ),
+            expected_downstream_loss_per_task_usd=round(
+                economics.expected_downstream_loss_per_task_usd, 4
+            ),
+            carbon_cost_per_task_usd=round(economics.carbon_cost_per_task_usd, 6),
+            x_factor_annual_value_usd=round(
+                (
+                    economics.per_task_value_usd
+                    - (
+                        report.true_value_yield_min
+                        / 60.0
+                        * hourly_rate
+                        * request.business_case.realization_rate
+                    )
+                )
+                * economics.annual_task_volume,
+                2,
+            ),
             annual_productivity_value_usd=round(
                 economics.annual_productivity_value_usd, 2
             ),
@@ -648,7 +794,14 @@ class EnterpriseValueEngine:
             ),
             downside_tvy_min=downside,
             upside_tvy_min=report.confidence_interval.upper,
+            probability_negative_tvy=round(probability_negative, 4),
+            tvy_value_at_risk_5_min=round(value_at_risk, 4),
+            conditional_value_at_risk_5_min=round(conditional_value_at_risk, 4),
+            tvy_standard_deviation_min=round(standard_deviation, 4),
             evidence_confidence=request.business_case.evidence_confidence,
+            causal_attribution_confidence=request.x_factors.causal_attribution_confidence,
+            autonomous_completion_rate=request.x_factors.autonomous_completion_rate,
+            human_override_rate=request.x_factors.human_override_rate,
             gate_checks=checks,
             top_levers=levers,
             recommendations=recommendations,
@@ -670,6 +823,11 @@ class EnterpriseValueEngine:
                     "faithfulness": cfg.faithfulness_weight,
                 },
                 "formula": "TVY = (gross_time_saved * rag_reliability) - guardrail_tax",
+                "enterprise_value_formula": (
+                    "causal_TVY + coordination_dividend + knowledge_dividend "
+                    "- downstream_expected_loss - carbon_cost - variable_AI_cost"
+                ),
+                "tail_risk_definition": "CVaR5 = mean TVY in the worst 5% of simulations",
                 "currency": request.business_case.currency,
             },
         )

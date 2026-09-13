@@ -55,7 +55,7 @@ def test_enterprise_business_case_is_auditable_and_deterministic() -> None:
     assert first.payback_months is not None and first.payback_months < 18
     assert first.positive_scenario_rate == 1.0
     assert len(first.scenario_matrix) == 16
-    assert len(first.gate_checks) == 7
+    assert len(first.gate_checks) == 8
     assert all(check.passed for check in first.gate_checks)
     assert first.top_levers
     assert len(first.audit_trail["input_sha256"]) == 64
