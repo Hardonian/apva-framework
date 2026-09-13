@@ -43,7 +43,7 @@ async def stripe_webhook(
             logger.warning("[Webhook] Stripe signature verification failed: %s", exc)
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
-                detail=f"Webhook signature verification failed: {exc}",
+                detail="Webhook signature verification failed.",
             )
     elif settings.environment.lower() == "production":
         raise HTTPException(

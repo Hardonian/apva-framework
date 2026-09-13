@@ -108,6 +108,8 @@ class EventStreamer:
             )
         )
 
+        await session.commit()
+        invalidate_metrics_cache(tenant_id)
         try:
             StripeBillingService.record_usage(
                 tenant_id,
@@ -117,9 +119,12 @@ class EventStreamer:
             )
         except Exception as exc:
             logger.warning("[EventStreamer] Failed to record batch billing usage: %s", exc)
-
-        await session.commit()
-        invalidate_metrics_cache(tenant_id)
+        try:
+            await ClickHouseClient.insert_telemetry_batch(
+                [{**payload, "tenant_id": tenant_id} for payload in payloads]
+            )
+        except Exception as exc:
+            logger.warning("[EventStreamer] Failed to insert ClickHouse batch: %s", exc)
         return events
 
     @classmethod
@@ -194,4 +199,10 @@ class EventStreamer:
             )
         except Exception as exc:
             logger.warning("[EventStreamer] Failed to record batch eval usage: %s", exc)
+        try:
+            await ClickHouseClient.insert_evaluation_batch(
+                [{**payload, "tenant_id": tenant_id} for payload in payloads]
+            )
+        except Exception as exc:
+            logger.warning("[EventStreamer] Failed to insert ClickHouse eval batch: %s", exc)
         return jobs

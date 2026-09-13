@@ -145,6 +145,27 @@ response = client.messages.create(
 )
 ```
 
+### 5. Production observability and tuning
+
+The authenticated `GET /api/v1/metrics/prometheus` endpoint exposes both business
+outcomes and bounded-cardinality runtime signals:
+
+- HTTP request counts, in-flight requests, cumulative latency, and maximum latency by route.
+- TVY, financial value, reliability, guardrail friction, shadow-event rate, and financial-data coverage.
+- Aggregate-cache hits, misses, and invalidations for cost and freshness monitoring.
+
+Tenant aggregates use a write-invalidated 15-second cache by default, and daily
+timeseries are computed with one grouped query. Configure the tradeoffs with
+`APVA_METRICS_CACHE_TTL_SECONDS`, `APVA_DB_POOL_SIZE`, and
+`APVA_DB_MAX_OVERFLOW`. Always set a unique `APVA_JWT_SECRET` in production.
+
+Apply database performance indexes during deployment:
+
+```bash
+cd apps/backend
+uv run alembic upgrade head
+```
+
 ---
 
 ## Competitive Advantage

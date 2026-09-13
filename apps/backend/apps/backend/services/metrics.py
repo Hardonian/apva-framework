@@ -183,20 +183,20 @@ async def compute_tvy_timeseries(
         .order_by(day)
     )
     rows: dict[date, tuple[Any, ...]] = {}
-    for row in result.all():
-        day_value = row[0]
+    for db_row in result.all():
+        day_value = db_row[0]
         day_key = day_value if isinstance(day_value, date) else date.fromisoformat(str(day_value))
-        rows[day_key] = tuple(row[1:])
+        rows[day_key] = tuple(db_row[1:])
 
     macro = await compute_macro_tvy_metrics(session, tenant_id)
     points: list[dict[str, Any]] = []
     for offset in range(days):
         current_day = first_day + timedelta(days=offset)
-        row = rows.get(current_day)
-        if row is None:
+        daily_values = rows.get(current_day)
+        if daily_values is None:
             count, avg_human, avg_ai, avg_guardrail, avg_rate = 0, 0.0, 0.0, 0.0, None
         else:
-            count, avg_human, avg_ai, avg_guardrail, avg_rate = row
+            count, avg_human, avg_ai, avg_guardrail, avg_rate = daily_values
 
         gross = float(avg_human or 0.0) - float(avg_ai or 0.0)
         guardrail = float(avg_guardrail or 0.0)

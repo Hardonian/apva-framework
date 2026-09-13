@@ -5,7 +5,7 @@ from __future__ import annotations
 from typing import Any
 
 from fastapi import APIRouter, HTTPException, status
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 from ..config import settings
 from ..jwt_auth import create_access_token
@@ -16,8 +16,8 @@ router = APIRouter(prefix="/auth", tags=["auth"])
 class SSOLoginRequest(BaseModel):
     """Request payload for initiating an SSO login."""
 
-    email: str
-    connection: str = "saml-okta"  # e.g., saml, oidc, google
+    email: str = Field(min_length=3, max_length=320)
+    connection: str = Field(default="saml-okta", min_length=1, max_length=64)
 
 
 class SSOLoginResponse(BaseModel):
@@ -33,9 +33,6 @@ async def sso_login(payload: SSOLoginRequest) -> SSOLoginResponse:
     """Initiate an Enterprise SSO login flow and return a signed JWT access token."""
     email_domain = payload.email.split("@")[-1].lower() if "@" in payload.email else ""
     allowed = [d.lower() for d in settings.sso_allowed_domains]
-    if "acmecorp.com" not in allowed:
-        allowed.append("acmecorp.com")
-
     if email_domain not in allowed:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,

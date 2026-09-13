@@ -60,6 +60,8 @@ async def create_tables() -> None:
 @asynccontextmanager
 async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     """Manage backend startup and shutdown lifecycle."""
+    if settings.environment.lower() == "production" and settings.jwt_secret == "dev-only-change-me":
+        raise RuntimeError("APVA_JWT_SECRET must be set to a unique secret in production")
     await create_tables()
 
     app.state.http_client = httpx.AsyncClient(timeout=10.0)

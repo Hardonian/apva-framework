@@ -24,6 +24,11 @@ class ClickHouseClient:
         )
 
     @classmethod
+    async def insert_telemetry_batch(cls, payloads: list[dict[str, Any]]) -> None:
+        """Stream a telemetry batch as one OLAP operation."""
+        logger.debug("[CLICKHOUSE] Ingested telemetry batch with %d events", len(payloads))
+
+    @classmethod
     async def insert_evaluation(cls, payload: dict[str, Any]) -> None:
         """Stream an evaluation result to the OLAP sink."""
         logger.debug(
@@ -31,6 +36,11 @@ class ClickHouseClient:
             payload.get("tenant_id"),
             payload.get("transcript_id"),
         )
+
+    @classmethod
+    async def insert_evaluation_batch(cls, payloads: list[dict[str, Any]]) -> None:
+        """Stream an evaluation batch as one OLAP operation."""
+        logger.debug("[CLICKHOUSE] Ingested evaluation batch with %d jobs", len(payloads))
 
     @classmethod
     async def query_tvy_metrics(cls, tenant_id: int) -> dict[str, Any]:
@@ -48,4 +58,3 @@ class ClickHouseClient:
                 "avg_true_value_yield_usd": m.macro_tvy_usd,
                 "is_net_positive": m.is_net_positive,
             }
-

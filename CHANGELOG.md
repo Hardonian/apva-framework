@@ -5,6 +5,27 @@ All notable changes to the APVA framework will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Added
+
+- Bounded-cardinality HTTP request and cache metrics in the Prometheus export.
+- Data-quality, cumulative-value, shadow-rate, and value-per-thousand analytics.
+- Composite tenant/time/status indexes and configurable PostgreSQL connection pooling.
+
+### Changed
+
+- Daily timeseries now use one grouped query and report observed sample counts instead of synthetic fallback values.
+- Batch telemetry and evaluation ingestion persist a single aggregated usage row and use batched OLAP sink calls.
+- Health dependency checks run concurrently and deduplicate identical Redis/broker checks.
+- Optimization insights now expose their sample size, confidence, and data-derived savings estimate.
+
+### Security
+
+- Evaluation job reads are tenant-scoped, JWT algorithms are explicitly validated, and missing JWT tenants are no longer reassigned.
+- Request IDs are validated, request sizes are bounded, and production rejects the development JWT secret.
+- Webhook signature failures no longer expose provider exception details.
+
 ## [3.0.0] - 2026-09-02
 
 ### Added

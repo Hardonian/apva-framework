@@ -22,6 +22,12 @@ interface MetricsData {
   avg_rag_reliability_coefficient: number;
   macro_tvy_min: number;
   avg_true_value_yield_usd: number | null;
+  total_tvy_min: number;
+  total_tvy_usd: number | null;
+  value_per_1000_events_usd: number | null;
+  shadow_event_count: number;
+  shadow_event_rate: number;
+  hourly_rate_coverage: number;
   is_net_positive: boolean;
 }
 
@@ -31,6 +37,8 @@ interface Insight {
   observation: string;
   prescription: string;
   estimated_savings_usd_per_10k: number;
+  sample_size: number;
+  confidence: number;
 }
 
 interface BenchmarksData {
@@ -57,6 +65,9 @@ interface TimeseriesPoint {
   date: string;
   tvy: number;
   tvyUsd: number;
+  sample_count: number;
+  efficiency_percent: number;
+  data_source: 'observed' | 'no_data';
 }
 
 interface TenantProfile {
@@ -423,6 +434,22 @@ function App() {
                   {((metrics?.avg_rag_reliability_coefficient ?? 0) * 100).toFixed(1)}%
                 </div>
               </div>
+              <div className={`metric-card ${metrics?.is_net_positive ? 'positive' : 'negative'}`}>
+                <h3>Total Value Captured</h3>
+                <div className="metric-value">${metrics?.total_tvy_usd?.toFixed(2) || '0.00'}</div>
+              </div>
+              <div className="metric-card">
+                <h3>Observed Runs</h3>
+                <div className="metric-value">{metrics?.telemetry_count.toLocaleString() || '0'}</div>
+              </div>
+              <div className="metric-card">
+                <h3>Financial Coverage</h3>
+                <div className="metric-value">{((metrics?.hourly_rate_coverage ?? 0) * 100).toFixed(1)}%</div>
+              </div>
+              <div className="metric-card">
+                <h3>Shadow Event Rate</h3>
+                <div className="metric-value">{((metrics?.shadow_event_rate ?? 0) * 100).toFixed(1)}%</div>
+              </div>
             </div>
 
             <div className="chart-container">
@@ -501,6 +528,10 @@ function App() {
                     {insight.severity === 'critical' && <span className="alert-badge">Critical</span>}
                   </div>
                   <p className="insight-observation">{insight.observation}</p>
+                  <p className="insight-observation">
+                    Evidence: {insight.sample_size.toLocaleString()} samples · {(insight.confidence * 100).toFixed(0)}%
+                    confidence
+                  </p>
                   <div className="insight-prescription">
                     <strong>Action Required:</strong> {insight.prescription}
                   </div>
