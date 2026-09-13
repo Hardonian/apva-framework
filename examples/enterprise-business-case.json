@@ -40,6 +40,7 @@
     "discount_rate": 0.1
   },
   "x_factors": {
+    "causal_attribution_method": "matched_control",
     "causal_attribution_confidence": 0.82,
     "coordination_minutes_saved_per_task": 2.0,
     "reusable_output_rate": 0.25,

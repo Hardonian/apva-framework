@@ -281,6 +281,12 @@ def _format_business_case(report: Any, fmt: str, indent: int = 2) -> str:
             f"{report.enterprise_value_capture_rate * 100:.1f}%",
             "",
         ),
+        ("Causal Evidence", report.causal_attribution_method.value, ""),
+        (
+            "Causal Confidence",
+            f"{report.causal_attribution_confidence * 100:.1f}%",
+            "",
+        ),
         (
             "Trust-Adjusted Autonomy",
             f"{report.trust_adjusted_autonomy_rate * 100:.1f}%",

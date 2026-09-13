@@ -42,6 +42,12 @@ Three rules keep these metrics credible:
 3. Join delayed harm, reversal, and reuse events back to the originating run.
    Immediate response telemetry alone cannot measure downstream value integrity.
 
+The engine enforces conservative causal-confidence ceilings: 50% for expert
+estimates, 75% for simple pre/post evidence, 90% for matched controls, 95% for
+difference-in-differences, and 100% only for randomized controls. These are
+governance ceilings—not automatic statistical confidence—and teams should still
+use the lower value supported by their sample and study quality.
+
 The enterprise per-task value envelope is:
 
 ```text

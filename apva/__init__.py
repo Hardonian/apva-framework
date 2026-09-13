@@ -23,6 +23,7 @@ __version__: str = FRAMEWORK_VERSION
 
 from apva.calculator import APVACalculator, APVACalculatorConfig, compute_tvy
 from apva.enterprise import (
+    AttributionMethod,
     BusinessCaseAssumptions,
     DecisionPolicy,
     DecisionStatus,
@@ -66,6 +67,7 @@ __all__ = [
     "compute_tvy",
     "EnterpriseValueEngine",
     # Models
+    "AttributionMethod",
     "APVAReport",
     "BenchmarkInput",
     "ConfidenceInterval",

@@ -31,6 +31,27 @@ class DecisionStatus(str, Enum):
     DO_NOT_SCALE = "do_not_scale"
 
 
+class AttributionMethod(str, Enum):
+    """Evidence designs with conservative causal-confidence ceilings."""
+
+    EXPERT_ESTIMATE = "expert_estimate"
+    PRE_POST = "pre_post"
+    MATCHED_CONTROL = "matched_control"
+    DIFFERENCE_IN_DIFFERENCES = "difference_in_differences"
+    RANDOMIZED_CONTROL = "randomized_control"
+
+    @property
+    def confidence_cap(self) -> float:
+        """Maximum defensible confidence for this attribution design."""
+        return {
+            AttributionMethod.EXPERT_ESTIMATE: 0.5,
+            AttributionMethod.PRE_POST: 0.75,
+            AttributionMethod.MATCHED_CONTROL: 0.9,
+            AttributionMethod.DIFFERENCE_IN_DIFFERENCES: 0.95,
+            AttributionMethod.RANDOMIZED_CONTROL: 1.0,
+        }[self]
+
+
 class BusinessCaseAssumptions(BaseModel):
     """Organizational, cost, adoption, and planning-horizon assumptions."""
 
@@ -63,7 +84,8 @@ class XFactorInputs(BaseModel):
 
     model_config = ConfigDict(extra="forbid")
 
-    causal_attribution_confidence: Probability = Field(default=0.7)
+    causal_attribution_method: AttributionMethod = Field(default=AttributionMethod.EXPERT_ESTIMATE)
+    causal_attribution_confidence: Probability = Field(default=0.5)
     coordination_minutes_saved_per_task: NonNegative = Field(default=0.0)
     reusable_output_rate: Probability = Field(default=0.0)
     expected_reuses_per_output: NonNegative = Field(default=0.0)
@@ -75,6 +97,16 @@ class XFactorInputs(BaseModel):
     human_override_rate: Probability = Field(default=0.0)
     carbon_grams_co2e_per_task: NonNegative = Field(default=0.0)
     internal_carbon_price_usd_per_tonne: NonNegative = Field(default=0.0)
+
+    @model_validator(mode="after")
+    def _bound_causal_claim_to_evidence(self) -> XFactorInputs:
+        cap = self.causal_attribution_method.confidence_cap
+        if self.causal_attribution_confidence > cap:
+            raise ValueError(
+                f"causal_attribution_confidence cannot exceed {cap:.2f} for "
+                f"{self.causal_attribution_method.value} evidence"
+            )
+        return self
 
 
 class DecisionPolicy(BaseModel):
@@ -239,6 +271,7 @@ class EnterpriseBusinessCaseReport(BaseModel):
     conditional_value_at_risk_5_min: float
     tvy_standard_deviation_min: float
     evidence_confidence: float
+    causal_attribution_method: AttributionMethod
     causal_attribution_confidence: float
     enterprise_value_capture_rate: float
     autonomous_completion_rate: float
@@ -864,6 +897,7 @@ class EnterpriseValueEngine:
             conditional_value_at_risk_5_min=round(conditional_value_at_risk, 4),
             tvy_standard_deviation_min=round(standard_deviation, 4),
             evidence_confidence=request.business_case.evidence_confidence,
+            causal_attribution_method=request.x_factors.causal_attribution_method,
             causal_attribution_confidence=request.x_factors.causal_attribution_confidence,
             enterprise_value_capture_rate=round(
                 request.business_case.adoption_rate

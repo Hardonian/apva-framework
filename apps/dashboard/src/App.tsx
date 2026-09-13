@@ -1,18 +1,10 @@
-import { useEffect, useState } from 'react';
+import { lazy, Suspense, useEffect, useState } from 'react';
 import axios from 'axios';
-import {
-  LineChart,
-  Line,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  Tooltip,
-  Legend,
-  ResponsiveContainer,
-} from 'recharts';
+import type { TimeseriesPoint } from './TvyTrendChart';
 import './App.css';
 
 const API_BASE = import.meta.env.VITE_API_URL || '';
+const TvyTrendChart = lazy(() => import('./TvyTrendChart'));
 
 interface MetricsData {
   telemetry_count: number;
@@ -58,16 +50,6 @@ interface BenchmarksData {
       message: string;
     };
   };
-}
-
-interface TimeseriesPoint {
-  name: string;
-  date: string;
-  tvy: number;
-  tvyUsd: number;
-  sample_count: number;
-  efficiency_percent: number;
-  data_source: 'observed' | 'no_data';
 }
 
 interface TenantProfile {
@@ -335,6 +317,7 @@ function App() {
             discount_rate: 0.1,
           },
           x_factors: {
+            causal_attribution_method: 'pre_post',
             causal_attribution_confidence: causalConfidence / 100,
             coordination_minutes_saved_per_task: coordinationMinutes,
             reusable_output_rate: reusableOutputRate / 100,
@@ -585,17 +568,9 @@ function App() {
 
             <div className="chart-container">
               <h2>TVY Trending (Last 5 Days)</h2>
-              <ResponsiveContainer width="100%" height={300}>
-                <LineChart data={timeseries}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#333" />
-                  <XAxis dataKey="name" stroke="#ccc" />
-                  <YAxis stroke="#ccc" />
-                  <Tooltip contentStyle={{ backgroundColor: '#1e1e1e', borderColor: '#333' }} />
-                  <Legend />
-                  <Line type="monotone" dataKey="tvy" stroke="#8884d8" name="TVY (Minutes)" strokeWidth={3} />
-                  <Line type="monotone" dataKey="tvyUsd" stroke="#82ca9d" name="TVY (USD)" strokeWidth={3} />
-                </LineChart>
-              </ResponsiveContainer>
+              <Suspense fallback={<div className="chart-loading">Loading analytics…</div>}>
+                <TvyTrendChart data={timeseries} />
+              </Suspense>
             </div>
           </div>
 

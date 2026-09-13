@@ -70,7 +70,7 @@ whether the value is real, durable, and safe:
 
 | Signal | What APVA measures | Why it changes the decision |
 |---|---|---|
-| Causal Value Yield | TVY × realized-value rate × causal attribution confidence | Discounts savings that would have happened without the AI workflow |
+| Causal Value Yield | TVY × realized-value rate × causal attribution confidence | Discounts savings that would have happened without the AI workflow; confidence is capped by evidence design |
 | Enterprise Value Capture | adoption × realization × causal confidence | Exposes the gap between theoretical and actually captured value |
 | Coordination Dividend | handoff, search, meeting, and queue time removed per task | Captures system-level value outside the individual prompt session |
 | Knowledge Compounding Dividend | reusable-output rate × expected reuses × time saved per reuse | Values durable artifacts instead of treating every output as disposable |

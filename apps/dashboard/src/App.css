@@ -396,6 +396,13 @@ body {
   border-color: var(--primary);
 }
 
+.chart-loading {
+  display: grid;
+  height: 300px;
+  place-items: center;
+  color: var(--text-secondary);
+}
+
 .x-factor-inputs {
   margin: 0 0 1.25rem;
   padding: 1rem;

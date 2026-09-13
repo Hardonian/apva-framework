@@ -24,6 +24,7 @@ export interface APVABusinessCaseReport {
   probability_negative_tvy: number;
   tvy_value_at_risk_5_min: number;
   conditional_value_at_risk_5_min: number;
+  causal_attribution_method: 'expert_estimate' | 'pre_post' | 'matched_control' | 'difference_in_differences' | 'randomized_control';
   causal_attribution_confidence: number;
   enterprise_value_capture_rate: number;
   trust_adjusted_autonomy_rate: number;

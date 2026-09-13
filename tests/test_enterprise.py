@@ -57,6 +57,7 @@ def test_enterprise_business_case_is_auditable_and_deterministic() -> None:
     assert first.probability_negative_tvy == 0.0
     assert first.conditional_value_at_risk_5_min <= first.tvy_value_at_risk_5_min
     assert first.enterprise_value_capture_rate == pytest.approx(0.4592)
+    assert first.causal_attribution_method.value == "matched_control"
     assert first.trust_adjusted_autonomy_rate == pytest.approx(0.4366)
     assert first.coordination_dividend_per_task_usd == pytest.approx(2.4)
     assert first.knowledge_dividend_per_task_usd == pytest.approx(3.0)
@@ -73,6 +74,18 @@ def test_enterprise_request_requires_financial_inputs() -> None:
     payload = _request(matrix=False).model_dump()
     payload["benchmark"]["productivity"]["hourly_rate_usd"] = None
     with pytest.raises(ValidationError, match="hourly_rate_usd"):
+        EnterpriseAnalysisRequest.model_validate(payload)
+
+
+def test_causal_claim_is_bounded_by_evidence_design() -> None:
+    payload = _request(matrix=False).model_dump()
+    payload["x_factors"].update(
+        {
+            "causal_attribution_method": "expert_estimate",
+            "causal_attribution_confidence": 0.8,
+        }
+    )
+    with pytest.raises(ValidationError, match="cannot exceed 0.50"):
         EnterpriseAnalysisRequest.model_validate(payload)
 
 
@@ -180,7 +193,8 @@ async def test_observed_telemetry_becomes_enterprise_business_case() -> None:
         assert response.headers["x-apva-report-id"] == data["report_id"]
 
         assert policy.status_code == 200
-        assert policy.json()["x_factors"]["causal_attribution_confidence"] == 0.7
+        assert policy.json()["x_factors"]["causal_attribution_method"] == "expert_estimate"
+        assert policy.json()["x_factors"]["causal_attribution_confidence"] == 0.5
     finally:
         app.dependency_overrides.clear()
         async with async_session_maker() as session:
