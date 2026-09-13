@@ -1,6 +1,25 @@
-import { lazy, Suspense, useEffect, useState } from 'react';
+import React, { lazy, Suspense, useEffect, useState } from 'react';
 import axios from 'axios';
 import type { TimeseriesPoint } from './TvyTrendChart';
+import {
+  ApvaLogo,
+  ZapIcon,
+  ChartBarIcon,
+  ShieldCheckIcon,
+  LayersIcon,
+  TrendingUpIcon,
+  DollarSignIcon,
+  ClockIcon,
+  ActivityIcon,
+  CpuIcon,
+  CopyIcon,
+  CheckIcon,
+  AlertTriangleIcon,
+  LogOutIcon,
+  ChevronRightIcon,
+  SlidersIcon,
+  PlusIcon,
+} from './Icons';
 import './App.css';
 
 const API_BASE = import.meta.env.VITE_API_URL || '';
@@ -119,9 +138,7 @@ function App() {
   const [loginError, setLoginError] = useState<string | null>(null);
 
   // Navigation tab
-  const [activeTab, setActiveTab] = useState<'overview' | 'value-studio' | 'safeguards' | 'workspaces'>(
-    'overview'
-  );
+  const [activeTab, setActiveTab] = useState<'overview' | 'value-studio' | 'safeguards' | 'workspaces'>('overview');
 
   // Enterprise Value Studio state
   const [useCaseName, setUseCaseName] = useState<string>('Enterprise AI Workflow');
@@ -159,6 +176,8 @@ function App() {
   const [newOrgTier, setNewOrgTier] = useState<string>('team');
   const [createdKey, setCreatedKey] = useState<string | null>(null);
   const [provisioning, setProvisioning] = useState<boolean>(false);
+  const [copiedKey, setCopiedKey] = useState<boolean>(false);
+  const [copiedAudit, setCopiedAudit] = useState<boolean>(false);
 
   const getAuthHeaders = () => {
     const token = localStorage.getItem('apva_token') || 'dev-local-key';
@@ -378,41 +397,41 @@ function App() {
     }
   };
 
+  const copyToClipboard = (text: string, isKey = false) => {
+    navigator.clipboard.writeText(text);
+    if (isKey) {
+      setCopiedKey(true);
+      setTimeout(() => setCopiedKey(false), 2000);
+    } else {
+      setCopiedAudit(true);
+      setTimeout(() => setCopiedAudit(false), 2000);
+    }
+  };
+
   if (!isAuthenticated) {
     return (
       <div className="login-container">
         <div className="login-card">
+          <div className="login-logo-wrap">
+            <ApvaLogo size={52} />
+          </div>
           <h1>APVA Analytical Engine</h1>
-          <p>Enterprise AI Productivity & Value Architecture</p>
+          <p>Quantum True Value Yield & Value Architecture Terminal</p>
 
-          <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '1.5rem', justifyContent: 'center' }}>
+          <div className="auth-mode-switch">
             <button
               type="button"
-              style={{
-                padding: '0.4rem 0.8rem',
-                background: authMode === 'sso' ? '#6c5ce7' : '#2a2a2a',
-                color: 'white',
-                border: 'none',
-                borderRadius: '4px',
-                cursor: 'pointer',
-              }}
+              className={`auth-mode-btn ${authMode === 'sso' ? 'active' : ''}`}
               onClick={() => setAuthMode('sso')}
             >
-              SSO / SAML
+              SSO / Enterprise SAML
             </button>
             <button
               type="button"
-              style={{
-                padding: '0.4rem 0.8rem',
-                background: authMode === 'apikey' ? '#6c5ce7' : '#2a2a2a',
-                color: 'white',
-                border: 'none',
-                borderRadius: '4px',
-                cursor: 'pointer',
-              }}
+              className={`auth-mode-btn ${authMode === 'apikey' ? 'active' : ''}`}
               onClick={() => setAuthMode('apikey')}
             >
-              API Key
+              Developer API Key
             </button>
           </div>
 
@@ -420,7 +439,8 @@ function App() {
             {authMode === 'sso' ? (
               <input
                 type="email"
-                placeholder="name@acmecorp.com"
+                className="login-input"
+                placeholder="name@enterprise.com"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 required
@@ -428,6 +448,7 @@ function App() {
             ) : (
               <input
                 type="password"
+                className="login-input"
                 placeholder="apva_live_..."
                 value={apiKeyInput}
                 onChange={(e) => setApiKeyInput(e.target.value)}
@@ -435,8 +456,9 @@ function App() {
               />
             )}
             {loginError && <div className="login-error">{loginError}</div>}
-            <button type="submit">
-              {authMode === 'sso' ? 'Continue with SSO' : 'Authenticate with API Key'}
+            <button type="submit" className="login-submit-btn">
+              <span>{authMode === 'sso' ? 'Continue with SSO Identity' : 'Authenticate Quantum Key'}</span>
+              <ChevronRightIcon size={16} />
             </button>
           </form>
         </div>
@@ -444,180 +466,214 @@ function App() {
     );
   }
 
-  if (loading) return <div className="loader">Initializing APVA Analytical Engine...</div>;
-  if (error) return <div className="error">Metrics resolution failure: {error}</div>;
+  if (loading) return <div className="loader">INITIALIZING APVA ANALYTICAL TERMINAL...</div>;
+  if (error) return <div className="error">METRICS RESOLUTION FAILURE: {error}</div>;
 
   return (
     <div className="dashboard-container">
+      {/* Top Bar with Brand & Telemetry Status */}
       <header className="dashboard-header">
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <div className="tenant-badge">
-            Organization: {tenantProfile?.name || 'Default Organization'} ({tenantProfile?.tier || 'Community'})
+        <div className="top-bar">
+          <div className="brand-section">
+            <div className="brand-logo-glow">
+              <ApvaLogo size={32} />
+            </div>
+            <div className="brand-titles">
+              <div className="brand-name">
+                APVA Terminal
+              </div>
+              <div className="brand-tagline">Quantum True Value Yield Architecture</div>
+            </div>
           </div>
-          <button
-            onClick={handleLogout}
-            style={{
-              padding: '0.35rem 0.85rem',
-              background: '#2a2a2a',
-              color: '#bbb',
-              border: '1px solid #444',
-              borderRadius: '4px',
-              cursor: 'pointer',
-            }}
-          >
-            Sign Out
-          </button>
+
+          <div className="top-bar-actions">
+            <div className="tenant-pill">
+              <div className="live-indicator-dot" />
+              <span>Org: <strong>{tenantProfile?.name || 'Default Organization'}</strong></span>
+              <span className="tier-chip">{tenantProfile?.tier || 'Community'}</span>
+            </div>
+            <button className="signout-btn" onClick={handleLogout} title="Sign Out">
+              <LogOutIcon size={14} />
+              <span>Sign Out</span>
+            </button>
+          </div>
         </div>
-        <h1>APVA True Value Yield Dashboard</h1>
-        <p>Enterprise Inference Analytics & Operational Directives</p>
-        <div className="tabs" style={{ display: 'flex', gap: '1rem', marginTop: '1rem' }}>
+
+        {/* Floating Navigation Pill Group */}
+        <nav className="nav-pill-group">
           <button
-            style={{
-              padding: '0.5rem 1rem',
-              background: activeTab === 'value-studio' ? '#6c5ce7' : '#2a2a2a',
-              color: 'white',
-              border: 'none',
-              borderRadius: '4px',
-              cursor: 'pointer',
-            }}
-            onClick={() => setActiveTab('value-studio')}
-          >
-            Value Studio
-          </button>
-          <button
-            style={{
-              padding: '0.5rem 1rem',
-              background: activeTab === 'overview' ? '#6c5ce7' : '#2a2a2a',
-              color: 'white',
-              border: 'none',
-              borderRadius: '4px',
-              cursor: 'pointer',
-            }}
+            className={`nav-pill-btn ${activeTab === 'overview' ? 'active' : ''}`}
             onClick={() => setActiveTab('overview')}
           >
-            Overview
+            <ChartBarIcon size={16} />
+            <span>Yield Overview</span>
           </button>
           <button
-            style={{
-              padding: '0.5rem 1rem',
-              background: activeTab === 'safeguards' ? '#6c5ce7' : '#2a2a2a',
-              color: 'white',
-              border: 'none',
-              borderRadius: '4px',
-              cursor: 'pointer',
-            }}
+            className={`nav-pill-btn ${activeTab === 'value-studio' ? 'active' : ''}`}
+            onClick={() => setActiveTab('value-studio')}
+          >
+            <ZapIcon size={16} />
+            <span>Value Studio</span>
+          </button>
+          <button
+            className={`nav-pill-btn ${activeTab === 'safeguards' ? 'active' : ''}`}
             onClick={() => setActiveTab('safeguards')}
           >
-            Safeguard Policies
+            <ShieldCheckIcon size={16} />
+            <span>Safeguard Policies</span>
           </button>
           <button
-            style={{
-              padding: '0.5rem 1rem',
-              background: activeTab === 'workspaces' ? '#6c5ce7' : '#2a2a2a',
-              color: 'white',
-              border: 'none',
-              borderRadius: '4px',
-              cursor: 'pointer',
-            }}
+            className={`nav-pill-btn ${activeTab === 'workspaces' ? 'active' : ''}`}
             onClick={() => setActiveTab('workspaces')}
           >
-            Workspaces
+            <LayersIcon size={16} />
+            <span>Workspaces</span>
           </button>
-        </div>
+        </nav>
       </header>
 
+      {/* OVERVIEW TAB */}
       {activeTab === 'overview' && (
         <div className="layout-grid">
           <div className="main-content">
+            {/* 8 Holographic Metric Cards */}
             <div className="metrics-grid">
               <div className={`metric-card ${metrics?.is_net_positive ? 'positive' : 'negative'}`}>
-                <h3>Macro TVY (Minutes)</h3>
+                <div className="metric-card-top">
+                  <h3>Macro TVY</h3>
+                  <div className="metric-card-icon"><ClockIcon size={16} /></div>
+                </div>
                 <div className="metric-value">{metrics?.macro_tvy_min.toFixed(2)}m</div>
+                <div className="metric-card-meta">Net operational yield / event</div>
               </div>
+
               <div className={`metric-card ${metrics?.is_net_positive ? 'positive' : 'negative'}`}>
-                <h3>Financial TVY (USD)</h3>
+                <div className="metric-card-top">
+                  <h3>Financial TVY</h3>
+                  <div className="metric-card-icon"><DollarSignIcon size={16} /></div>
+                </div>
                 <div className="metric-value">${metrics?.avg_true_value_yield_usd?.toFixed(2) || '0.00'}</div>
+                <div className="metric-card-meta">Realized cash equivalent yield</div>
               </div>
+
               <div className="metric-card">
-                <h3>Avg Guardrail Tax</h3>
+                <div className="metric-card-top">
+                  <h3>Avg Guardrail Tax</h3>
+                  <div className="metric-card-icon"><ShieldCheckIcon size={16} /></div>
+                </div>
                 <div className="metric-value">{metrics?.avg_guardrail_tax_min.toFixed(2)}m</div>
+                <div className="metric-card-meta">Latency overhead consumed</div>
               </div>
+
               <div className="metric-card">
-                <h3>RAG Reliability</h3>
+                <div className="metric-card-top">
+                  <h3>RAG Reliability</h3>
+                  <div className="metric-card-icon"><ActivityIcon size={16} /></div>
+                </div>
                 <div className="metric-value">
                   {((metrics?.avg_rag_reliability_coefficient ?? 0) * 100).toFixed(1)}%
                 </div>
+                <div className="metric-card-meta">Context precision coefficient</div>
               </div>
+
               <div className={`metric-card ${metrics?.is_net_positive ? 'positive' : 'negative'}`}>
-                <h3>Total Value Captured</h3>
+                <div className="metric-card-top">
+                  <h3>Total Value Captured</h3>
+                  <div className="metric-card-icon"><TrendingUpIcon size={16} /></div>
+                </div>
                 <div className="metric-value">${metrics?.total_tvy_usd?.toFixed(2) || '0.00'}</div>
+                <div className="metric-card-meta">Cumulative tenant return</div>
               </div>
+
               <div className="metric-card">
-                <h3>Observed Runs</h3>
+                <div className="metric-card-top">
+                  <h3>Observed Runs</h3>
+                  <div className="metric-card-icon"><CpuIcon size={16} /></div>
+                </div>
                 <div className="metric-value">{metrics?.telemetry_count.toLocaleString() || '0'}</div>
+                <div className="metric-card-meta">Tracked enterprise executions</div>
               </div>
+
               <div className="metric-card">
-                <h3>Financial Coverage</h3>
+                <div className="metric-card-top">
+                  <h3>Financial Coverage</h3>
+                  <div className="metric-card-icon"><DollarSignIcon size={16} /></div>
+                </div>
                 <div className="metric-value">{((metrics?.hourly_rate_coverage ?? 0) * 100).toFixed(1)}%</div>
+                <div className="metric-card-meta">Attributed workforce compensation</div>
               </div>
+
               <div className="metric-card">
-                <h3>Shadow Event Rate</h3>
+                <div className="metric-card-top">
+                  <h3>Shadow Event Rate</h3>
+                  <div className="metric-card-icon"><AlertTriangleIcon size={16} /></div>
+                </div>
                 <div className="metric-value">{((metrics?.shadow_event_rate ?? 0) * 100).toFixed(1)}%</div>
+                <div className="metric-card-meta">Unmonitored agent activity</div>
               </div>
             </div>
 
+            {/* Recharts Trending Curve */}
             <div className="chart-container">
-              <h2>TVY Trending (Last 5 Days)</h2>
-              <Suspense fallback={<div className="chart-loading">Loading analytics…</div>}>
+              <div className="chart-header">
+                <h2>
+                  <TrendingUpIcon size={20} color="#00d9ff" />
+                  <span>TVY Trending Dynamics</span>
+                </h2>
+                <div className="chart-live-badge">
+                  <div className="live-indicator-dot" />
+                  <span>Last 5 Days (Live Telemetry)</span>
+                </div>
+              </div>
+              <Suspense fallback={<div className="chart-loading">Synthesizing quantum timeseries…</div>}>
                 <TvyTrendChart data={timeseries} />
               </Suspense>
             </div>
           </div>
 
+          {/* Sidebar: Benchmarks & Diagnostics */}
           <div className="sidebar">
-            <div className="benchmarks-panel" style={{ marginBottom: '2rem' }}>
-              <h2>Reference Operating Thresholds</h2>
+            <div className="benchmarks-panel">
+              <h2>
+                <SlidersIcon size={18} color="#8b5cf6" />
+                <span>Reference Thresholds</span>
+              </h2>
               {benchmarks && (
                 <div className="benchmark-cards">
-                  <div
-                    className="benchmark-card"
-                    style={{ padding: '1rem', background: '#252526', borderRadius: '8px', marginBottom: '1rem' }}
-                  >
-                    <h4 style={{ margin: '0 0 0.5rem 0' }}>
-                      RAG Reliability (p{benchmarks.global_percentiles.rag_reliability.your_percentile})
+                  <div className="benchmark-card">
+                    <h4>
+                      <span>RAG Reliability</span>
+                      <span className="benchmark-score-chip">p{benchmarks.global_percentiles.rag_reliability.your_percentile}</span>
                     </h4>
-                    <div style={{ height: '8px', background: '#333', borderRadius: '4px', marginBottom: '0.5rem' }}>
+                    <div className="progress-track">
                       <div
+                        className="progress-bar-fill"
                         style={{
-                          height: '100%',
-                          background: '#82ca9d',
-                          borderRadius: '4px',
                           width: `${benchmarks.global_percentiles.rag_reliability.your_percentile}%`,
+                          background: 'linear-gradient(90deg, #8b5cf6, #00f5a0)',
                         }}
-                      ></div>
+                      />
                     </div>
-                    <p style={{ fontSize: '0.85rem', color: '#ccc', margin: 0 }}>
+                    <p className="benchmark-desc">
                       {benchmarks.global_percentiles.rag_reliability.message}
                     </p>
                   </div>
-                  <div
-                    className="benchmark-card"
-                    style={{ padding: '1rem', background: '#252526', borderRadius: '8px' }}
-                  >
-                    <h4 style={{ margin: '0 0 0.5rem 0' }}>
-                      Guardrail Tax (p{benchmarks.global_percentiles.guardrail_tax_ms.your_percentile})
+
+                  <div className="benchmark-card">
+                    <h4>
+                      <span>Guardrail Tax Overhead</span>
+                      <span className="benchmark-score-chip">p{benchmarks.global_percentiles.guardrail_tax_ms.your_percentile}</span>
                     </h4>
-                    <div style={{ height: '8px', background: '#333', borderRadius: '4px', marginBottom: '0.5rem' }}>
+                    <div className="progress-track">
                       <div
+                        className="progress-bar-fill"
                         style={{
-                          height: '100%',
-                          background: '#ff6b6b',
-                          borderRadius: '4px',
                           width: `${benchmarks.global_percentiles.guardrail_tax_ms.your_percentile}%`,
+                          background: 'linear-gradient(90deg, #f59e0b, #ff3366)',
                         }}
-                      ></div>
+                      />
                     </div>
-                    <p style={{ fontSize: '0.85rem', color: '#ccc', margin: 0 }}>
+                    <p className="benchmark-desc">
                       {benchmarks.global_percentiles.guardrail_tax_ms.message}
                     </p>
                   </div>
@@ -626,24 +682,28 @@ function App() {
             </div>
 
             <div className="insights-panel">
-              <h2>Diagnostic Resolution Directives</h2>
+              <h2>
+                <AlertTriangleIcon size={18} color="#00d9ff" />
+                <span>Resolution Directives</span>
+              </h2>
               {insights.map((insight, idx) => (
                 <div key={idx} className={`insight-card severity-${insight.severity}`}>
                   <div className="insight-header">
                     <span className="insight-metric">{insight.metric}</span>
-                    {insight.severity === 'critical' && <span className="alert-badge">Critical</span>}
+                    <span className={`alert-badge ${insight.severity}`}>
+                      {insight.severity}
+                    </span>
                   </div>
                   <p className="insight-observation">{insight.observation}</p>
-                  <p className="insight-observation">
-                    Evidence: {insight.sample_size.toLocaleString()} samples · {(insight.confidence * 100).toFixed(0)}%
-                    confidence
-                  </p>
+                  <div className="insight-evidence">
+                    EVIDENCE: {insight.sample_size.toLocaleString()} runs · {(insight.confidence * 100).toFixed(0)}% confidence
+                  </div>
                   <div className="insight-prescription">
-                    <strong>Action Required:</strong> {insight.prescription}
+                    <strong>Direct Action:</strong> {insight.prescription}
                   </div>
                   {insight.estimated_savings_usd_per_10k > 0 && (
                     <div className="insight-savings">
-                      Estimated Savings:{' '}
+                      <span>PROJECTED SAVINGS</span>
                       <span className="savings-value">+${insight.estimated_savings_usd_per_10k}/mo</span>
                     </div>
                   )}
@@ -654,22 +714,32 @@ function App() {
         </div>
       )}
 
+      {/* VALUE STUDIO TAB */}
       {activeTab === 'value-studio' && (
         <div className="studio-grid">
           <form className="studio-panel" onSubmit={handleAnalyzeBusinessCase}>
-            <div className="studio-kicker">LIVE TELEMETRY → INVESTMENT DECISION</div>
+            <div className="studio-kicker">
+              <ZapIcon size={14} />
+              <span>LIVE TELEMETRY → INVESTMENT DECISION</span>
+            </div>
             <h2>Enterprise Value Studio</h2>
             <p>
-              Stress-test observed workflow performance against adoption, workforce scale, implementation cost, and
-              operating economics.
+              Stress-test observed workflow performance against adoption curves, workforce scale, implementation capital, and operating unit economics.
             </p>
+
             <div className="studio-form-grid">
-              <label>
-                Use case
-                <input value={useCaseName} onChange={(e) => setUseCaseName(e.target.value)} required />
-              </label>
-              <label>
-                Practitioners
+              <div className="studio-field">
+                <label>Use Case Title</label>
+                <input
+                  type="text"
+                  value={useCaseName}
+                  onChange={(e) => setUseCaseName(e.target.value)}
+                  required
+                />
+              </div>
+
+              <div className="studio-field">
+                <label>Practitioners</label>
                 <input
                   type="number"
                   min="1"
@@ -677,9 +747,10 @@ function App() {
                   onChange={(e) => setPractitioners(Number(e.target.value))}
                   required
                 />
-              </label>
-              <label>
-                Tasks per person / day
+              </div>
+
+              <div className="studio-field">
+                <label>Tasks / Person / Day</label>
                 <input
                   type="number"
                   min="0.1"
@@ -688,38 +759,46 @@ function App() {
                   onChange={(e) => setTasksPerDay(Number(e.target.value))}
                   required
                 />
-              </label>
-              <label>
-                Adoption rate ({adoptionRate}%)
+              </div>
+
+              <div className="studio-field">
+                <label>
+                  <span>Adoption Curve</span>
+                  <span className="studio-field-value">{adoptionRate}%</span>
+                </label>
                 <input
                   type="range"
+                  className="studio-range"
                   min="5"
                   max="100"
                   step="5"
                   value={adoptionRate}
                   onChange={(e) => setAdoptionRate(Number(e.target.value))}
                 />
-              </label>
-              <label>
-                Implementation cost
+              </div>
+
+              <div className="studio-field">
+                <label>Implementation Capital ($)</label>
                 <input
                   type="number"
                   min="0"
                   value={implementationCost}
                   onChange={(e) => setImplementationCost(Number(e.target.value))}
                 />
-              </label>
-              <label>
-                Annual platform cost
+              </div>
+
+              <div className="studio-field">
+                <label>Annual Platform Cost ($)</label>
                 <input
                   type="number"
                   min="0"
                   value={annualPlatformCost}
                   onChange={(e) => setAnnualPlatformCost(Number(e.target.value))}
                 />
-              </label>
-              <label>
-                AI cost per task
+              </div>
+
+              <div className="studio-field">
+                <label>AI Cost / Task ($)</label>
                 <input
                   type="number"
                   min="0"
@@ -727,423 +806,513 @@ function App() {
                   value={variableTaskCost}
                   onChange={(e) => setVariableTaskCost(Number(e.target.value))}
                 />
-              </label>
-              <label>
-                Annual risk avoidance
+              </div>
+
+              <div className="studio-field">
+                <label>Risk Avoidance ($)</label>
                 <input
                   type="number"
                   min="0"
                   value={riskAvoidance}
                   onChange={(e) => setRiskAvoidance(Number(e.target.value))}
                 />
-              </label>
+              </div>
             </div>
+
+            {/* X-Factor Value Signals Drawer */}
             <details className="x-factor-inputs">
-              <summary>X-factor value signals</summary>
-              <p>Model attribution, coordination, reusable knowledge, escaped-error exposure, and safe autonomy.</p>
+              <summary>
+                <SlidersIcon size={16} />
+                <span>X-Factor Value Signals & Autonomy Multiplex</span>
+              </summary>
+              <p className="x-factor-desc">
+                Fine-tune causal attribution confidence, coordination dividends, reusable artifact leverage, and blast radius exposure.
+              </p>
               <div className="studio-form-grid">
-                <label>
-                  Causal attribution ({causalConfidence}%)
-                  <input type="range" min="0" max="100" value={causalConfidence} onChange={(e) => setCausalConfidence(Number(e.target.value))} />
-                </label>
-                <label>
-                  Coordination min saved / task
-                  <input type="number" min="0" step="0.1" value={coordinationMinutes} onChange={(e) => setCoordinationMinutes(Number(e.target.value))} />
-                </label>
-                <label>
-                  Reusable output rate ({reusableOutputRate}%)
-                  <input type="range" min="0" max="100" value={reusableOutputRate} onChange={(e) => setReusableOutputRate(Number(e.target.value))} />
-                </label>
-                <label>
-                  Expected downstream reuses
-                  <input type="number" min="0" step="0.1" value={expectedReuses} onChange={(e) => setExpectedReuses(Number(e.target.value))} />
-                </label>
-                <label>
-                  Minutes saved / reuse
-                  <input type="number" min="0" step="0.1" value={minutesPerReuse} onChange={(e) => setMinutesPerReuse(Number(e.target.value))} />
-                </label>
-                <label>
-                  Escaped-error rate ({escapedErrorRate}%)
-                  <input type="number" min="0" max="100" step="0.01" value={escapedErrorRate} onChange={(e) => setEscapedErrorRate(Number(e.target.value))} />
-                </label>
-                <label>
-                  Loss / escaped error
-                  <input type="number" min="0" value={escapedErrorLoss} onChange={(e) => setEscapedErrorLoss(Number(e.target.value))} />
-                </label>
-                <label>
-                  Downstream blast radius
-                  <input type="number" min="1" max="1000" step="0.1" value={blastRadius} onChange={(e) => setBlastRadius(Number(e.target.value))} />
-                </label>
-                <label>
-                  Autonomous completion ({autonomousRate}%)
-                  <input type="range" min="0" max="100" value={autonomousRate} onChange={(e) => setAutonomousRate(Number(e.target.value))} />
-                </label>
-                <label>
-                  Human override ({humanOverrideRate}%)
-                  <input type="range" min="0" max="100" value={humanOverrideRate} onChange={(e) => setHumanOverrideRate(Number(e.target.value))} />
-                </label>
+                <div className="studio-field">
+                  <label>
+                    <span>Causal Attribution</span>
+                    <span className="studio-field-value">{causalConfidence}%</span>
+                  </label>
+                  <input
+                    type="range"
+                    className="studio-range"
+                    min="0"
+                    max="100"
+                    value={causalConfidence}
+                    onChange={(e) => setCausalConfidence(Number(e.target.value))}
+                  />
+                </div>
+
+                <div className="studio-field">
+                  <label>Coordination Min / Task</label>
+                  <input
+                    type="number"
+                    min="0"
+                    step="0.1"
+                    value={coordinationMinutes}
+                    onChange={(e) => setCoordinationMinutes(Number(e.target.value))}
+                  />
+                </div>
+
+                <div className="studio-field">
+                  <label>
+                    <span>Reusable Output Rate</span>
+                    <span className="studio-field-value">{reusableOutputRate}%</span>
+                  </label>
+                  <input
+                    type="range"
+                    className="studio-range"
+                    min="0"
+                    max="100"
+                    value={reusableOutputRate}
+                    onChange={(e) => setReusableOutputRate(Number(e.target.value))}
+                  />
+                </div>
+
+                <div className="studio-field">
+                  <label>Downstream Reuses</label>
+                  <input
+                    type="number"
+                    min="0"
+                    step="0.1"
+                    value={expectedReuses}
+                    onChange={(e) => setExpectedReuses(Number(e.target.value))}
+                  />
+                </div>
+
+                <div className="studio-field">
+                  <label>Minutes Saved / Reuse</label>
+                  <input
+                    type="number"
+                    min="0"
+                    step="0.1"
+                    value={minutesPerReuse}
+                    onChange={(e) => setMinutesPerReuse(Number(e.target.value))}
+                  />
+                </div>
+
+                <div className="studio-field">
+                  <label>Escaped-Error Rate (%)</label>
+                  <input
+                    type="number"
+                    min="0"
+                    max="100"
+                    step="0.01"
+                    value={escapedErrorRate}
+                    onChange={(e) => setEscapedErrorRate(Number(e.target.value))}
+                  />
+                </div>
+
+                <div className="studio-field">
+                  <label>Loss / Escaped Error ($)</label>
+                  <input
+                    type="number"
+                    min="0"
+                    value={escapedErrorLoss}
+                    onChange={(e) => setEscapedErrorLoss(Number(e.target.value))}
+                  />
+                </div>
+
+                <div className="studio-field">
+                  <label>Blast Radius Multiplier</label>
+                  <input
+                    type="number"
+                    min="1"
+                    max="1000"
+                    step="0.1"
+                    value={blastRadius}
+                    onChange={(e) => setBlastRadius(Number(e.target.value))}
+                  />
+                </div>
+
+                <div className="studio-field">
+                  <label>
+                    <span>Autonomous Completion</span>
+                    <span className="studio-field-value">{autonomousRate}%</span>
+                  </label>
+                  <input
+                    type="range"
+                    className="studio-range"
+                    min="0"
+                    max="100"
+                    value={autonomousRate}
+                    onChange={(e) => setAutonomousRate(Number(e.target.value))}
+                  />
+                </div>
+
+                <div className="studio-field">
+                  <label>
+                    <span>Human Override Rate</span>
+                    <span className="studio-field-value">{humanOverrideRate}%</span>
+                  </label>
+                  <input
+                    type="range"
+                    className="studio-range"
+                    min="0"
+                    max="100"
+                    value={humanOverrideRate}
+                    onChange={(e) => setHumanOverrideRate(Number(e.target.value))}
+                  />
+                </div>
               </div>
             </details>
+
             {analysisError && <div className="studio-error">{analysisError}</div>}
+
             <button className="studio-cta" type="submit" disabled={analyzingCase}>
-              {analyzingCase ? 'Running 1,000 simulations…' : 'Generate Enterprise Business Case'}
+              <ZapIcon size={18} />
+              <span>{analyzingCase ? 'Executing 1,000 Monte Carlo Simulations…' : 'Generate Enterprise Business Case'}</span>
             </button>
           </form>
 
+          {/* Results Side */}
           <section className="studio-results">
             {!businessCase ? (
               <div className="studio-empty">
-                <span>81</span>
-                <strong>default multivariate scenarios</strong>
-                <p>Generate a case to quantify the decision, downside, payback, NPV, and policy gates.</p>
+                <div className="empty-radar-wrap">
+                  <ZapIcon size={36} color="#00f5a0" />
+                </div>
+                <span>81 SCENARIOS</span>
+                <strong>Awaiting Simulation Execution</strong>
+                <p>Generate a case to calculate posture decision, downside CVaR, NPV, payback period, and governance gates.</p>
               </div>
             ) : (
               <>
                 <div className={`decision-banner decision-${businessCase.decision}`}>
-                  <div>
+                  <div className="decision-label-group">
                     <span>RECOMMENDED POSTURE</span>
                     <strong>{businessCase.decision.replaceAll('_', ' ').toUpperCase()}</strong>
                   </div>
-                  <div className="priority-score">{businessCase.priority_score}<small>/100</small></div>
-                </div>
-                <div className="studio-metrics">
-                  <article><span>First-year net value</span><strong>${businessCase.first_year_net_value_usd.toLocaleString()}</strong></article>
-                  <article><span>3-year NPV</span><strong>${businessCase.net_present_value_usd.toLocaleString()}</strong></article>
-                  <article><span>First-year ROI</span><strong>{businessCase.first_year_roi_pct?.toFixed(0) || 'N/A'}%</strong></article>
-                  <article><span>Payback</span><strong>{businessCase.payback_months?.toFixed(1) || 'N/A'} mo</strong></article>
-                  <article><span>Scenario resilience</span><strong>{((businessCase.positive_scenario_rate || 0) * 100).toFixed(0)}%</strong></article>
-                  <article><span>Monthly cost of delay</span><strong>${businessCase.monthly_cost_of_delay_usd.toLocaleString()}</strong></article>
-                </div>
-                <div className="x-factor-scorecard">
-                  <h3>Value integrity scorecard</h3>
-                  <div className="studio-metrics">
-                    <article><span>Enterprise value capture</span><strong>{(businessCase.enterprise_value_capture_rate * 100).toFixed(1)}%</strong></article>
-                    <article><span>Trust-adjusted autonomy</span><strong>{(businessCase.trust_adjusted_autonomy_rate * 100).toFixed(1)}%</strong></article>
-                    <article><span>Negative TVY probability</span><strong>{(businessCase.probability_negative_tvy * 100).toFixed(1)}%</strong></article>
-                    <article><span>Worst 5% average TVY</span><strong>{businessCase.conditional_value_at_risk_5_min.toFixed(2)}m</strong></article>
-                    <article><span>Coordination + reuse / task</span><strong>${(businessCase.coordination_dividend_per_task_usd + businessCase.knowledge_dividend_per_task_usd).toFixed(2)}</strong></article>
-                    <article><span>Expected downstream loss / task</span><strong>${businessCase.expected_downstream_loss_per_task_usd.toFixed(2)}</strong></article>
+                  <div className="priority-score-dial">
+                    <div className="priority-score">
+                      {businessCase.priority_score}<small>/100</small>
+                    </div>
+                    <div className="priority-score-label">Priority Index</div>
                   </div>
                 </div>
+
+                <div className="studio-metrics">
+                  <article>
+                    <span>First-year net value</span>
+                    <strong>${businessCase.first_year_net_value_usd.toLocaleString()}</strong>
+                  </article>
+                  <article>
+                    <span>3-year NPV</span>
+                    <strong>${businessCase.net_present_value_usd.toLocaleString()}</strong>
+                  </article>
+                  <article>
+                    <span>First-year ROI</span>
+                    <strong>{businessCase.first_year_roi_pct?.toFixed(0) || 'N/A'}%</strong>
+                  </article>
+                  <article>
+                    <span>Payback</span>
+                    <strong>{businessCase.payback_months?.toFixed(1) || 'N/A'} mo</strong>
+                  </article>
+                  <article>
+                    <span>Scenario resilience</span>
+                    <strong>{((businessCase.positive_scenario_rate || 0) * 100).toFixed(0)}%</strong>
+                  </article>
+                  <article>
+                    <span>Cost of delay</span>
+                    <strong>${businessCase.monthly_cost_of_delay_usd.toLocaleString()}/mo</strong>
+                  </article>
+                </div>
+
+                <div className="x-factor-scorecard">
+                  <h3>
+                    <LayersIcon size={16} />
+                    <span>Value Integrity Scorecard</span>
+                  </h3>
+                  <div className="studio-metrics">
+                    <article>
+                      <span>Enterprise value capture</span>
+                      <strong>{(businessCase.enterprise_value_capture_rate * 100).toFixed(1)}%</strong>
+                    </article>
+                    <article>
+                      <span>Trust-adjusted autonomy</span>
+                      <strong>{(businessCase.trust_adjusted_autonomy_rate * 100).toFixed(1)}%</strong>
+                    </article>
+                    <article>
+                      <span>Negative TVY probability</span>
+                      <strong>{(businessCase.probability_negative_tvy * 100).toFixed(1)}%</strong>
+                    </article>
+                    <article>
+                      <span>Worst 5% avg TVY</span>
+                      <strong>{businessCase.conditional_value_at_risk_5_min.toFixed(2)}m</strong>
+                    </article>
+                    <article>
+                      <span>Coordination + reuse / task</span>
+                      <strong>${(businessCase.coordination_dividend_per_task_usd + businessCase.knowledge_dividend_per_task_usd).toFixed(2)}</strong>
+                    </article>
+                    <article>
+                      <span>Downstream loss / task</span>
+                      <strong>${businessCase.expected_downstream_loss_per_task_usd.toFixed(2)}</strong>
+                    </article>
+                  </div>
+                </div>
+
                 <div className="studio-detail-grid">
-                  <div>
-                    <h3>Governance gates</h3>
+                  <div className="studio-detail-card">
+                    <h3>Governance Policy Gates</h3>
                     {businessCase.gate_checks.map((gate) => (
                       <div className={`gate-row ${gate.passed ? 'gate-pass' : 'gate-fail'}`} key={gate.check}>
-                        <span>{gate.passed ? '✓' : '!'}</span>
-                        <div><strong>{gate.label}</strong><small>{gate.actual ?? 'N/A'} {gate.unit} · target {gate.operator} {gate.threshold}</small></div>
+                        <span className="gate-icon">{gate.passed ? '✓' : '!'}</span>
+                        <div>
+                          <strong>{gate.label}</strong>
+                          <small>Actual: {gate.actual ?? 'N/A'} {gate.unit} (Target {gate.operator} {gate.threshold})</small>
+                        </div>
                       </div>
                     ))}
                   </div>
-                  <div>
-                    <h3>Highest-impact levers</h3>
+
+                  <div className="studio-detail-card">
+                    <h3>Top Sensitivity Levers</h3>
                     {businessCase.top_levers.slice(0, 5).map((lever, index) => (
                       <div className="lever-row" key={lever.parameter}>
-                        <span>{index + 1}</span>
-                        <div><strong>{lever.parameter.split('.').pop()?.replaceAll('_', ' ')}</strong><small>{lever.direction} · sensitivity {lever.sensitivity_span_min.toFixed(2)}m</small></div>
+                        <span className="lever-rank">{index + 1}</span>
+                        <div>
+                          <strong>{lever.parameter.split('.').pop()?.replaceAll('_', ' ')}</strong>
+                          <small>{lever.direction} · Span: {lever.sensitivity_span_min.toFixed(2)}m TVY</small>
+                        </div>
                       </div>
                     ))}
                   </div>
                 </div>
-                <div className="report-id">Audit ID: {businessCase.report_id}</div>
+
+                <div className="report-id-chip">
+                  <span>AUDIT FINGERPRINT: {businessCase.report_id}</span>
+                  <button
+                    onClick={() => copyToClipboard(businessCase.report_id)}
+                    style={{ background: 'none', border: 'none', color: '#94a3b8', cursor: 'pointer', display: 'flex' }}
+                    title="Copy Audit ID"
+                  >
+                    {copiedAudit ? <CheckIcon size={14} color="#00f5a0" /> : <CopyIcon size={14} />}
+                  </button>
+                </div>
               </>
             )}
           </section>
         </div>
       )}
 
+      {/* SAFEGUARDS POLICY TAB */}
       {activeTab === 'safeguards' && (
-        <div className="safeguards-view" style={{ padding: '2rem', background: '#1e1e1e', borderRadius: '8px' }}>
-          <h2>Safeguard Shells Policy Governance</h2>
-          <p>Configure dynamic circuit breakers and PII redaction policies for this tenant.</p>
+        <div className="safeguards-view">
+          <div className="safeguards-header">
+            <h2>Safeguard Shells Policy Governance</h2>
+            <p>Configure dynamic circuit breakers, latency tax ceilings, and automated PII redaction rules across the telemetry pipeline.</p>
+          </div>
 
-          {policyMessage && (
-            <div
-              style={{
-                marginTop: '1rem',
-                padding: '0.75rem 1rem',
-                borderRadius: '4px',
-                background: policyMessage.includes('Failed') ? '#c0392b' : '#27ae60',
-                color: 'white',
-              }}
-            >
-              {policyMessage}
-            </div>
-          )}
-
-          <div style={{ marginTop: '2rem' }}>
-            <div style={{ marginBottom: '1.5rem' }}>
-              <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 'bold' }}>
-                Max Acceptable Guardrail Tax (Minutes)
-              </label>
-              <input
-                type="number"
-                value={maxTax}
-                onChange={(e) => setMaxTax(parseFloat(e.target.value) || 0)}
-                step="0.1"
-                style={{
-                  padding: '0.5rem',
-                  width: '200px',
-                  background: '#333',
-                  color: 'white',
-                  border: '1px solid #555',
-                  borderRadius: '4px',
-                }}
-              />
-              <p style={{ fontSize: '0.85rem', color: '#aaa', marginTop: '0.25rem' }}>
-                If a telemetry event reports latency higher than this, the circuit breaker intervenes to protect ROI.
-              </p>
+          <div className="policy-card-group">
+            <div className="policy-card">
+              <div className="policy-info">
+                <div className="policy-title">
+                  <ClockIcon size={18} color="#00d9ff" />
+                  <span>Max Acceptable Guardrail Tax</span>
+                </div>
+                <div className="policy-desc">
+                  When telemetry events observe latency overhead exceeding this threshold, the intelligent circuit breaker intervenes to prevent ROI deterioration.
+                </div>
+              </div>
+              <div className="tax-input-wrap">
+                <input
+                  type="number"
+                  className="tax-input"
+                  value={maxTax}
+                  onChange={(e) => setMaxTax(parseFloat(e.target.value) || 0)}
+                  step="0.1"
+                  min="0"
+                />
+                <span className="tax-unit">min</span>
+              </div>
             </div>
 
-            <div style={{ marginBottom: '1.5rem' }}>
-              <label
-                style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontWeight: 'bold', cursor: 'pointer' }}
-              >
+            <div className="policy-card">
+              <div className="policy-info">
+                <div className="policy-title">
+                  <ShieldCheckIcon size={18} color="#00f5a0" />
+                  <span>Autonomous PII Redaction Shell</span>
+                </div>
+                <div className="policy-desc">
+                  Real-time pattern scrubbing for emails, SSNs, payment credentials, and confidential auth tokens before persistence.
+                </div>
+              </div>
+              <label className="cyber-switch">
                 <input
                   type="checkbox"
                   checked={piiEnabled}
                   onChange={(e) => setPiiEnabled(e.target.checked)}
-                  style={{ width: '18px', height: '18px' }}
                 />
-                Enable PII Redaction
+                <span className="switch-slider" />
               </label>
-              <p style={{ fontSize: '0.85rem', color: '#aaa', marginTop: '0.25rem' }}>
-                Automatically scrub emails, SSNs, credit cards, and sensitive tokens from all telemetry before storage.
-              </p>
             </div>
 
-            <div style={{ marginBottom: '1.5rem' }}>
-              <label
-                style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontWeight: 'bold', cursor: 'pointer' }}
-              >
+            <div className="policy-card">
+              <div className="policy-info">
+                <div className="policy-title">
+                  <AlertTriangleIcon size={18} color="#f59e0b" />
+                  <span>Strict Enforcement Mode (Halt on Breach)</span>
+                </div>
+                <div className="policy-desc">
+                  When enabled, any execution violating safety tax budgets or compliance guardrails will be halted immediately.
+                </div>
+              </div>
+              <label className="cyber-switch">
                 <input
                   type="checkbox"
                   checked={strictMode}
                   onChange={(e) => setStrictMode(e.target.checked)}
-                  style={{ width: '18px', height: '18px' }}
                 />
-                Enforce Strict Mode (Halt on Breach)
+                <span className="switch-slider" />
               </label>
-              <p style={{ fontSize: '0.85rem', color: '#aaa', marginTop: '0.25rem' }}>
-                When enabled, events exceeding maximum latency tax will be strictly rejected with an error.
-              </p>
             </div>
-
-            <button
-              onClick={handleSavePolicy}
-              disabled={savingPolicy}
-              style={{
-                padding: '0.75rem 1.5rem',
-                background: '#6c5ce7',
-                color: 'white',
-                border: 'none',
-                borderRadius: '4px',
-                cursor: 'pointer',
-                fontWeight: 'bold',
-              }}
-            >
-              {savingPolicy ? 'Saving...' : 'Save Policy Configuration'}
-            </button>
           </div>
+
+          {policyMessage && (
+            <div className={`policy-toast ${policyMessage.includes('Failed') ? 'error' : 'success'}`}>
+              {policyMessage.includes('Failed') ? <AlertTriangleIcon size={16} /> : <CheckIcon size={16} />}
+              <span>{policyMessage}</span>
+            </div>
+          )}
+
+          <button
+            className="policy-save-btn"
+            onClick={handleSavePolicy}
+            disabled={savingPolicy}
+          >
+            <ShieldCheckIcon size={18} />
+            <span>{savingPolicy ? 'Persisting Safeguards…' : 'Save Policy Configuration'}</span>
+          </button>
         </div>
       )}
 
+      {/* WORKSPACES TAB */}
       {activeTab === 'workspaces' && (
-        <div className="workspaces-view" style={{ padding: '2rem', background: '#1e1e1e', borderRadius: '8px' }}>
-          <h2>Multi-Tenant Workspaces (RBAC)</h2>
-          <p>Manage organizations, active environments, and API credentials.</p>
+        <div className="workspaces-view">
+          <div className="workspaces-header">
+            <div>
+              <h2>Multi-Tenant Workspaces (RBAC)</h2>
+              <p>Manage enterprise organizations, tenant environments, cryptographic API keys, and credential roles.</p>
+            </div>
+            <button className="provision-open-btn" onClick={() => setShowModal(true)}>
+              <PlusIcon size={16} />
+              <span>Provision Workspace</span>
+            </button>
+          </div>
 
-          <table style={{ width: '100%', marginTop: '2rem', borderCollapse: 'collapse', textAlign: 'left' }}>
-            <thead>
-              <tr style={{ borderBottom: '1px solid #444' }}>
-                <th style={{ padding: '1rem 0' }}>Workspace</th>
-                <th>Role</th>
-                <th>API Key Ref</th>
-                <th>Status</th>
-              </tr>
-            </thead>
-            <tbody>
-              {workspaces.map((w) => (
-                <tr key={w.id} style={{ borderBottom: '1px solid #333' }}>
-                  <td style={{ padding: '1rem 0', fontWeight: 'bold' }}>{w.name}</td>
-                  <td>
-                    <span
-                      style={{ background: '#444', padding: '0.25rem 0.5rem', borderRadius: '4px', fontSize: '0.8rem' }}
-                    >
-                      {w.role}
-                    </span>
-                  </td>
-                  <td>
-                    <code>{w.key}</code>
-                  </td>
-                  <td>
-                    <span style={{ color: '#82ca9d' }}>{w.status}</span>
-                  </td>
+          <div className="cyber-table-wrap">
+            <table className="cyber-table">
+              <thead>
+                <tr>
+                  <th>Organization</th>
+                  <th>Role</th>
+                  <th>API Key Reference</th>
+                  <th>Status</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody>
+                {workspaces.map((w) => (
+                  <tr key={w.id}>
+                    <td className="org-name-cell">
+                      <LayersIcon size={18} color="#00d9ff" />
+                      <span>{w.name}</span>
+                    </td>
+                    <td>
+                      <span className="role-badge">{w.role}</span>
+                    </td>
+                    <td>
+                      <span className="api-key-chip">
+                        <code>{w.key}</code>
+                      </span>
+                    </td>
+                    <td>
+                      <span className="status-active-pill">
+                        <div className="live-indicator-dot" />
+                        <span>{w.status}</span>
+                      </span>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
 
-          <button
-            onClick={() => setShowModal(true)}
-            style={{
-              marginTop: '2rem',
-              padding: '0.75rem 1.5rem',
-              background: '#6c5ce7',
-              color: 'white',
-              border: 'none',
-              borderRadius: '4px',
-              cursor: 'pointer',
-              fontWeight: 'bold',
-            }}
-          >
-            + Provision New Workspace
-          </button>
-
+          {/* Provision Modal */}
           {showModal && (
-            <div
-              style={{
-                position: 'fixed',
-                top: 0,
-                left: 0,
-                right: 0,
-                bottom: 0,
-                background: 'rgba(0,0,0,0.7)',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                zIndex: 1000,
-              }}
-            >
-              <div
-                style={{
-                  background: '#1e1e1e',
-                  padding: '2rem',
-                  borderRadius: '8px',
-                  width: '450px',
-                  maxWidth: '90%',
-                  border: '1px solid #444',
-                }}
-              >
+            <div className="modal-backdrop">
+              <div className="modal-dialog">
                 <h3>Provision Organization Workspace</h3>
+                <p className="modal-subtitle">Configure an isolated enterprise environment with dedicated API keys and policy shells.</p>
+
                 {createdKey ? (
-                  <div style={{ marginTop: '1rem' }}>
-                    <p style={{ color: '#82ca9d' }}>Workspace created successfully! Save your API key now:</p>
-                    <div
-                      style={{
-                        background: '#111',
-                        padding: '0.75rem',
-                        borderRadius: '4px',
-                        wordBreak: 'break-all',
-                        fontFamily: 'monospace',
-                        margin: '1rem 0',
-                        userSelect: 'all',
-                      }}
-                    >
-                      {createdKey}
+                  <div>
+                    <div className="key-reveal-card">
+                      <p style={{ color: '#00f5a0', fontSize: '0.85rem', fontWeight: 700 }}>
+                        Workspace provisioned! Store this secret API key safely:
+                      </p>
+                      <div className="key-reveal-value">{createdKey}</div>
+                      <div style={{ display: 'flex', gap: '0.5rem', marginTop: '0.75rem' }}>
+                        <button
+                          className="provision-open-btn"
+                          style={{ padding: '0.5rem 1rem', fontSize: '0.82rem' }}
+                          onClick={() => copyToClipboard(createdKey, true)}
+                        >
+                          {copiedKey ? <CheckIcon size={14} /> : <CopyIcon size={14} />}
+                          <span>{copiedKey ? 'Copied to Clipboard!' : 'Copy Secret Key'}</span>
+                        </button>
+                      </div>
                     </div>
-                    <button
-                      onClick={() => {
-                        navigator.clipboard.writeText(createdKey);
-                        alert('API Key copied to clipboard!');
-                      }}
-                      style={{
-                        padding: '0.5rem 1rem',
-                        background: '#6c5ce7',
-                        color: 'white',
-                        border: 'none',
-                        borderRadius: '4px',
-                        cursor: 'pointer',
-                        marginRight: '0.5rem',
-                      }}
-                    >
-                      Copy Key
-                    </button>
-                    <button
-                      onClick={() => {
-                        setShowModal(false);
-                        setCreatedKey(null);
-                      }}
-                      style={{
-                        padding: '0.5rem 1rem',
-                        background: '#333',
-                        color: '#ccc',
-                        border: 'none',
-                        borderRadius: '4px',
-                        cursor: 'pointer',
-                      }}
-                    >
-                      Close
-                    </button>
+                    <div className="modal-actions">
+                      <button
+                        className="btn-secondary"
+                        onClick={() => {
+                          setShowModal(false);
+                          setCreatedKey(null);
+                        }}
+                      >
+                        Dismiss
+                      </button>
+                    </div>
                   </div>
                 ) : (
-                  <form onSubmit={handleProvisionWorkspace} style={{ marginTop: '1.5rem' }}>
-                    <div style={{ marginBottom: '1rem' }}>
-                      <label style={{ display: 'block', marginBottom: '0.5rem' }}>Organization Name</label>
+                  <form onSubmit={handleProvisionWorkspace}>
+                    <div className="modal-field">
+                      <label>Organization Legal Entity</label>
                       <input
                         type="text"
-                        placeholder="e.g. Acme FinTech"
+                        placeholder="e.g. Acme FinTech Corp"
                         value={newOrgName}
                         onChange={(e) => setNewOrgName(e.target.value)}
                         required
-                        style={{
-                          width: '100%',
-                          padding: '0.5rem',
-                          background: '#333',
-                          color: 'white',
-                          border: '1px solid #555',
-                          borderRadius: '4px',
-                        }}
                       />
                     </div>
-                    <div style={{ marginBottom: '1.5rem' }}>
-                      <label style={{ display: 'block', marginBottom: '0.5rem' }}>Subscription Tier</label>
+                    <div className="modal-field">
+                      <label>Subscription Tier</label>
                       <select
                         value={newOrgTier}
                         onChange={(e) => setNewOrgTier(e.target.value)}
-                        style={{
-                          width: '100%',
-                          padding: '0.5rem',
-                          background: '#333',
-                          color: 'white',
-                          border: '1px solid #555',
-                          borderRadius: '4px',
-                        }}
                       >
-                        <option value="community">Community</option>
-                        <option value="team">Team ($99/mo)</option>
-                        <option value="business">Business ($499/mo)</option>
-                        <option value="enterprise">Enterprise (Custom)</option>
+                        <option value="community">Community (Sandbox)</option>
+                        <option value="team">Team Tier ($99/mo)</option>
+                        <option value="business">Business Enterprise ($499/mo)</option>
+                        <option value="enterprise">Mission-Critical Custom (SLA)</option>
                       </select>
                     </div>
-                    <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'flex-end' }}>
+                    <div className="modal-actions">
                       <button
                         type="button"
+                        className="btn-secondary"
                         onClick={() => setShowModal(false)}
-                        style={{
-                          padding: '0.5rem 1rem',
-                          background: '#333',
-                          color: '#ccc',
-                          border: 'none',
-                          borderRadius: '4px',
-                          cursor: 'pointer',
-                        }}
                       >
                         Cancel
                       </button>
                       <button
                         type="submit"
+                        className="provision-open-btn"
                         disabled={provisioning}
-                        style={{
-                          padding: '0.5rem 1rem',
-                          background: '#6c5ce7',
-                          color: 'white',
-                          border: 'none',
-                          borderRadius: '4px',
-                          cursor: 'pointer',
-                        }}
                       >
-                        {provisioning ? 'Provisioning...' : 'Provision'}
+                        <span>{provisioning ? 'Provisioning…' : 'Deploy Environment'}</span>
                       </button>
                     </div>
                   </form>

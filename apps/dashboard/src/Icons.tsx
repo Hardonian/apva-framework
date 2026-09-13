@@ -6,7 +6,7 @@ interface IconProps {
   color?: string;
 }
 
-export const ApvaLogo: React.FC<IconProps> = ({ className, size = 28, color = '#00f5a0' }) => (
+export const ApvaLogo: React.FC<IconProps> = ({ className, size = 28 }) => (
   <svg width={size} height={size} viewBox="0 0 36 36" fill="none" className={className} xmlns="http://www.w3.org/2000/svg">
     <defs>
       <linearGradient id="apvaGrad" x1="0%" y1="0%" x2="100%" y2="100%">

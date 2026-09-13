@@ -13,46 +13,67 @@
 
   container.innerHTML = `
     <style>
+      @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@600;700;800&family=Plus+Jakarta+Sans:wght@500;600;700;800&display=swap');
+
       .apva-widget {
-        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-        background: #0f172a;
+        font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+        background: rgba(12, 16, 25, 0.85);
+        backdrop-filter: blur(24px);
+        -webkit-backdrop-filter: blur(24px);
         color: #f8fafc;
-        border: 1px solid #1e293b;
-        border-radius: 16px;
-        padding: 24px;
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        border-radius: 20px;
+        padding: 28px;
         max-width: 680px;
         margin: 0 auto;
-        box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.5), 0 8px 10px -6px rgba(0, 0, 0, 0.5);
+        box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.75), 0 0 35px -5px rgba(0, 217, 255, 0.12);
+        position: relative;
+        overflow: hidden;
+      }
+      .apva-widget::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        height: 2px;
+        background: linear-gradient(90deg, transparent, #00f5a0, #00d9ff, transparent);
       }
       .apva-header {
         display: flex;
         justify-content: space-between;
         align-items: center;
-        border-bottom: 1px solid #334155;
-        padding-bottom: 16px;
-        margin-bottom: 20px;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+        padding-bottom: 18px;
+        margin-bottom: 22px;
       }
       .apva-title {
         font-size: 1.25rem;
-        font-weight: 700;
-        color: #38bdf8;
+        font-weight: 800;
+        background: linear-gradient(135deg, #ffffff 40%, #93c5fd 100%);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
         display: flex;
         align-items: center;
-        gap: 8px;
+        gap: 10px;
+        letter-spacing: -0.02em;
       }
       .apva-badge {
-        font-size: 0.75rem;
-        background: #0284c7;
-        color: white;
-        padding: 2px 8px;
+        font-size: 0.72rem;
+        background: rgba(0, 217, 255, 0.15);
+        border: 1px solid rgba(0, 217, 255, 0.4);
+        color: #38bdf8;
+        padding: 3px 10px;
         border-radius: 9999px;
-        font-weight: 600;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.06em;
       }
       .apva-grid {
         display: grid;
         grid-template-columns: 1fr 1fr;
         gap: 16px;
-        margin-bottom: 20px;
+        margin-bottom: 22px;
       }
       .apva-field {
         display: flex;
@@ -60,98 +81,116 @@
         gap: 6px;
       }
       .apva-label {
-        font-size: 0.85rem;
+        font-size: 0.78rem;
         color: #94a3b8;
-        font-weight: 500;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
       }
       .apva-input, .apva-select {
-        background: #1e293b;
-        border: 1px solid #475569;
-        color: white;
-        padding: 10px 12px;
-        border-radius: 8px;
-        font-size: 1rem;
+        background: rgba(8, 12, 20, 0.75);
+        border: 1px solid rgba(255, 255, 255, 0.12);
+        color: #f8fafc;
+        padding: 10px 14px;
+        border-radius: 10px;
+        font-family: 'JetBrains Mono', monospace;
+        font-size: 0.95rem;
         outline: none;
-        transition: border-color 0.2s;
+        transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
       }
       .apva-input:focus, .apva-select:focus {
-        border-color: #38bdf8;
+        border-color: #00d9ff;
+        box-shadow: 0 0 14px rgba(0, 217, 255, 0.25);
       }
       .apva-result-card {
-        background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
-        border: 1px solid #38bdf8;
-        border-radius: 12px;
-        padding: 20px;
+        background: linear-gradient(135deg, rgba(16, 24, 38, 0.9) 0%, rgba(8, 12, 20, 0.95) 100%);
+        border: 1px solid rgba(0, 245, 160, 0.35);
+        border-radius: 16px;
+        padding: 24px;
         text-align: center;
-        margin-bottom: 20px;
+        margin-bottom: 22px;
         position: relative;
+        box-shadow: 0 10px 30px -5px rgba(0, 0, 0, 0.5), inset 0 1px 1px rgba(255, 255, 255, 0.1);
       }
       .apva-grade-pill {
         display: inline-block;
-        font-size: 0.75rem;
+        font-size: 0.72rem;
         font-weight: 800;
-        padding: 3px 10px;
+        padding: 4px 12px;
         border-radius: 9999px;
-        margin-bottom: 8px;
+        margin-bottom: 10px;
         text-transform: uppercase;
-        letter-spacing: 0.05em;
+        letter-spacing: 0.08em;
       }
       .apva-yield-title {
-        font-size: 0.9rem;
+        font-size: 0.8rem;
         color: #94a3b8;
         text-transform: uppercase;
-        letter-spacing: 0.05em;
-        margin-bottom: 4px;
+        letter-spacing: 0.08em;
+        margin-bottom: 6px;
+        font-weight: 700;
       }
       .apva-yield-value {
-        font-size: 2.25rem;
+        font-family: 'JetBrains Mono', monospace;
+        font-size: 2.5rem;
         font-weight: 800;
-        color: #4ade80;
+        color: #00f5a0;
+        text-shadow: 0 0 20px rgba(0, 245, 160, 0.35);
+        letter-spacing: -0.02em;
       }
       .apva-yield-sub {
-        font-size: 0.95rem;
+        font-size: 0.9rem;
         color: #cbd5e1;
-        margin-top: 4px;
+        margin-top: 6px;
       }
       .apva-stats {
         display: grid;
         grid-template-columns: repeat(3, 1fr);
-        gap: 10px;
-        margin-bottom: 20px;
+        gap: 12px;
+        margin-bottom: 22px;
       }
       .apva-stat-box {
-        background: #1e293b;
-        padding: 12px;
-        border-radius: 8px;
+        background: rgba(8, 12, 20, 0.7);
+        border: 1px solid rgba(255, 255, 255, 0.06);
+        padding: 14px 12px;
+        border-radius: 12px;
         text-align: center;
       }
       .apva-stat-num {
-        font-size: 1.1rem;
+        font-family: 'JetBrains Mono', monospace;
+        font-size: 1.15rem;
         font-weight: 700;
-        color: #f1f5f9;
+        color: #ffffff;
       }
       .apva-stat-lbl {
-        font-size: 0.75rem;
+        font-size: 0.72rem;
         color: #64748b;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        margin-top: 4px;
       }
       .apva-btn {
         display: block;
         width: 100%;
-        background: #38bdf8;
-        color: #0f172a;
-        font-weight: 700;
-        font-size: 1rem;
-        padding: 12px 0;
-        border-radius: 8px;
+        background: linear-gradient(135deg, #00f5a0 0%, #00d9ff 100%);
+        color: #06080d;
+        font-family: 'Plus Jakarta Sans', sans-serif;
+        font-weight: 800;
+        font-size: 0.98rem;
+        letter-spacing: 0.02em;
+        padding: 14px 0;
+        border-radius: 12px;
         text-decoration: none;
         text-align: center;
-        transition: transform 0.1s, background-color 0.2s;
+        box-shadow: 0 8px 24px -4px rgba(0, 245, 160, 0.35);
+        transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
       }
       .apva-btn:hover {
-        background: #7dd3fc;
-        transform: translateY(-1px);
+        transform: translateY(-2px);
+        box-shadow: 0 12px 30px -4px rgba(0, 245, 160, 0.5);
+        filter: brightness(1.08);
       }
-      @media (max-width: 500px) {
+      @media (max-width: 540px) {
         .apva-grid { grid-template-columns: 1fr; }
         .apva-stats { grid-template-columns: 1fr; }
       }
@@ -199,7 +238,7 @@
       </div>
 
       <div class="apva-result-card">
-        <div id="apva-grade-badge" class="apva-grade-pill" style="background:#15803d;color:#ffffff;">STRONG YIELD</div>
+        <div id="apva-grade-badge" class="apva-grade-pill" style="background:rgba(0,245,160,0.18);color:#00f5a0;border:1px solid rgba(0,245,160,0.4);">STRONG YIELD</div>
         <div class="apva-yield-title">Estimated Annual Net Value Yield</div>
         <div class="apva-yield-value" id="apva-annual-yield">$378,675 / yr</div>
         <div class="apva-yield-sub" id="apva-tvy-mins">+17.78 minutes net saved per developer task</div>
@@ -250,24 +289,29 @@
     const badge = document.getElementById('apva-grade-badge');
     if (tvyMin >= 30.0) {
       badge.textContent = 'EXCEPTIONAL YIELD';
-      badge.style.background = '#047857';
-      badge.style.color = '#ffffff';
+      badge.style.background = 'rgba(0, 245, 160, 0.2)';
+      badge.style.color = '#00f5a0';
+      badge.style.border = '1px solid rgba(0, 245, 160, 0.5)';
     } else if (tvyMin >= 15.0) {
       badge.textContent = 'STRONG YIELD';
-      badge.style.background = '#15803d';
-      badge.style.color = '#ffffff';
+      badge.style.background = 'rgba(0, 217, 255, 0.2)';
+      badge.style.color = '#00d9ff';
+      badge.style.border = '1px solid rgba(0, 217, 255, 0.5)';
     } else if (tvyMin >= 5.0) {
       badge.textContent = 'MODERATE YIELD';
-      badge.style.background = '#b45309';
-      badge.style.color = '#ffffff';
+      badge.style.background = 'rgba(245, 158, 11, 0.2)';
+      badge.style.color = '#fbbf24';
+      badge.style.border = '1px solid rgba(245, 158, 11, 0.5)';
     } else if (tvyMin >= 0.0) {
       badge.textContent = 'MARGINAL YIELD';
-      badge.style.background = '#ca8a04';
-      badge.style.color = '#0f172a';
+      badge.style.background = 'rgba(234, 179, 8, 0.2)';
+      badge.style.color = '#fde047';
+      badge.style.border = '1px solid rgba(234, 179, 8, 0.5)';
     } else {
       badge.textContent = 'NEGATIVE YIELD';
-      badge.style.background = '#b91c1c';
-      badge.style.color = '#ffffff';
+      badge.style.background = 'rgba(255, 51, 102, 0.2)';
+      badge.style.color = '#ff4d79';
+      badge.style.border = '1px solid rgba(255, 51, 102, 0.5)';
     }
 
     document.getElementById('apva-annual-yield').textContent = 
