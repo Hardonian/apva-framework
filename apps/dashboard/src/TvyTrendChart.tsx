@@ -26,7 +26,7 @@ interface TvyTrendChartProps {
 export default function TvyTrendChart({ data }: TvyTrendChartProps) {
   return (
     <ResponsiveContainer width="100%" height={300}>
-      <LineChart data={data}>
+      <LineChart data={data} accessibilityLayer>
         <CartesianGrid strokeDasharray="3 3" stroke="#333" />
         <XAxis dataKey="name" stroke="#ccc" />
         <YAxis stroke="#ccc" />

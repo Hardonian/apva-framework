@@ -25,6 +25,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Health dependency checks run concurrently and deduplicate identical Redis/broker checks.
 - Optimization insights now expose their sample size, confidence, and data-derived savings estimate.
 - Python telemetry SDK now coalesces queued events into real batch requests and exposes local delivery counters.
+- Dashboard charting is lazy-loaded so authentication and non-analytics views avoid the heavy visualization bundle.
 
 ### Security
 
