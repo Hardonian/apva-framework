@@ -570,7 +570,7 @@ function App() {
 
           <div className="sidebar">
             <div className="benchmarks-panel" style={{ marginBottom: '2rem' }}>
-              <h2>Global Network Percentiles</h2>
+              <h2>Reference Operating Thresholds</h2>
               {benchmarks && (
                 <div className="benchmark-cards">
                   <div

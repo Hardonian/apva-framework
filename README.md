@@ -47,6 +47,50 @@ $$\text{TVY}_{\text{USD}} = \frac{\text{TVY}_{\text{min}}}{60} \times \text{Wage
 
 ---
 
+## From AI telemetry to an approved investment
+
+APVA now carries the measurement all the way into an enterprise decision. The
+multivariate value engine combines observed workflow performance with workforce
+scale, adoption, realization, implementation cost, platform cost, variable AI
+cost, risk avoidance, growth, and discount rate.
+
+Every business case includes:
+
+- Annual task volume, per-task value, first-year net value, recurring value, ROI, payback, break-even volume, and discounted NPV.
+- Deterministic Monte Carlo downside/upside bounds and a bounded adoption × reliability × cost × volume stress matrix.
+- Transparent policy-as-code gates for value, quality, downside, evidence confidence, payback, ROI, and guardrail friction.
+- Ranked optimization levers, a rollout posture (`scale`, `controlled_pilot`, `optimize`, or `do_not_scale`), and a reproducible SHA-256 audit trail.
+- Portfolio ranking and budget allocation across as many as 50 competing AI use cases.
+
+Run the complete reference case:
+
+```bash
+apva business-case examples/enterprise-business-case.json \
+  --format table \
+  --require-decision scale controlled_pilot
+```
+
+The included reference data produces a `SCALE` decision, a 95.8/100 priority
+score, and an auditable three-year business case. The GitHub workflow in
+`.github/workflows/apva-value-gate.yml` publishes that decision as a build
+artifact and fails when the rollout posture falls outside policy.
+
+For live systems, the dashboard’s **Value Studio** converts observed tenant
+telemetry into the same business case without re-keying measurements. The API
+surfaces are:
+
+```text
+POST /api/v1/analysis/business-case
+POST /api/v1/analysis/observed-business-case
+POST /api/v1/analysis/portfolio
+GET  /api/v1/analysis/policy-template
+```
+
+See the [enterprise adoption playbook](docs/enterprise-adoption.md) for the
+measurement contract, rollout sequence, governance model, and workflow patterns.
+
+---
+
 ## 5-Minute Quickstart
 
 ### 1. Installation
@@ -180,6 +224,8 @@ uv run alembic upgrade head
 | **Sensitivity & Monte Carlo** | ✅ **Standard Feature** | ❌ None | ❌ None | ❌ None |
 | **Local-First & Air-Gapped** | ✅ **SQLite / Postgres / ClickHouse** | ❌ Cloud-First | ❌ Cloud Only | ⚠️ Partial |
 | **Multi-Tenant Metered Billing** | ✅ **Stripe Native** | ❌ Tiered Seats | ❌ Custom | ❌ None |
+| **Investment Decision Engine** | ✅ **ROI, Payback, NPV, Downside, Policy Gates** | ❌ None | ❌ None | ❌ None |
+| **Portfolio Capital Allocation** | ✅ **Up to 50 AI Use Cases** | ❌ None | ❌ None | ❌ None |
 
 ---
 

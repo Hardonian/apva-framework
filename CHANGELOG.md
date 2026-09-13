@@ -12,6 +12,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Bounded-cardinality HTTP request and cache metrics in the Prometheus export.
 - Data-quality, cumulative-value, shadow-rate, and value-per-thousand analytics.
 - Composite tenant/time/status indexes and configurable PostgreSQL connection pooling.
+- Enterprise multivariate value engine with adoption, cost, ROI, payback, break-even, NPV, downside/upside, and audit lineage.
+- Policy-as-code rollout gates, 500-cell bounded stress matrices, and 50-use-case portfolio capital allocation.
+- Business-case, observed-business-case, portfolio, and policy-template API endpoints.
+- Dashboard Value Studio, enterprise SDK workflow gates, CLI business-case command, and reusable GitHub value gate.
 
 ### Changed
 
@@ -19,6 +23,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Batch telemetry and evaluation ingestion persist a single aggregated usage row and use batched OLAP sink calls.
 - Health dependency checks run concurrently and deduplicate identical Redis/broker checks.
 - Optimization insights now expose their sample size, confidence, and data-derived savings estimate.
+- Python telemetry SDK now coalesces queued events into real batch requests and exposes local delivery counters.
 
 ### Security
 
