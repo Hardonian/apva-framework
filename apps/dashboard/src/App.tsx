@@ -543,7 +543,7 @@ function App() {
                   <h3>Macro TVY</h3>
                   <div className="metric-card-icon"><ClockIcon size={16} /></div>
                 </div>
-                <div className="metric-value">{metrics?.macro_tvy_min.toFixed(2)}m</div>
+                <div className="metric-value">{metrics?.macro_tvy_min != null ? `${metrics.macro_tvy_min.toFixed(2)}m` : '0.00m'}</div>
                 <div className="metric-card-meta">Net operational yield / event</div>
               </div>
 
@@ -552,7 +552,7 @@ function App() {
                   <h3>Financial TVY</h3>
                   <div className="metric-card-icon"><DollarSignIcon size={16} /></div>
                 </div>
-                <div className="metric-value">${metrics?.avg_true_value_yield_usd?.toFixed(2) || '0.00'}</div>
+                <div className="metric-value">{metrics?.avg_true_value_yield_usd != null ? `$${metrics.avg_true_value_yield_usd.toFixed(2)}` : '$0.00'}</div>
                 <div className="metric-card-meta">Realized cash equivalent yield</div>
               </div>
 
@@ -561,7 +561,7 @@ function App() {
                   <h3>Avg Guardrail Tax</h3>
                   <div className="metric-card-icon"><ShieldCheckIcon size={16} /></div>
                 </div>
-                <div className="metric-value">{metrics?.avg_guardrail_tax_min.toFixed(2)}m</div>
+                <div className="metric-value">{metrics?.avg_guardrail_tax_min != null ? `${metrics.avg_guardrail_tax_min.toFixed(2)}m` : '0.00m'}</div>
                 <div className="metric-card-meta">Latency overhead consumed</div>
               </div>
 
@@ -571,7 +571,7 @@ function App() {
                   <div className="metric-card-icon"><ActivityIcon size={16} /></div>
                 </div>
                 <div className="metric-value">
-                  {((metrics?.avg_rag_reliability_coefficient ?? 0) * 100).toFixed(1)}%
+                  {metrics?.avg_rag_reliability_coefficient != null ? `${(metrics.avg_rag_reliability_coefficient * 100).toFixed(1)}%` : '0.0%'}
                 </div>
                 <div className="metric-card-meta">Context precision coefficient</div>
               </div>
@@ -581,7 +581,7 @@ function App() {
                   <h3>Total Value Captured</h3>
                   <div className="metric-card-icon"><TrendingUpIcon size={16} /></div>
                 </div>
-                <div className="metric-value">${metrics?.total_tvy_usd?.toFixed(2) || '0.00'}</div>
+                <div className="metric-value">{metrics?.total_tvy_usd != null ? `$${metrics.total_tvy_usd.toFixed(2)}` : '$0.00'}</div>
                 <div className="metric-card-meta">Cumulative tenant return</div>
               </div>
 
@@ -590,7 +590,7 @@ function App() {
                   <h3>Observed Runs</h3>
                   <div className="metric-card-icon"><CpuIcon size={16} /></div>
                 </div>
-                <div className="metric-value">{metrics?.telemetry_count.toLocaleString() || '0'}</div>
+                <div className="metric-value">{metrics?.telemetry_count != null ? metrics.telemetry_count.toLocaleString() : '0'}</div>
                 <div className="metric-card-meta">Tracked enterprise executions</div>
               </div>
 
@@ -599,7 +599,7 @@ function App() {
                   <h3>Financial Coverage</h3>
                   <div className="metric-card-icon"><DollarSignIcon size={16} /></div>
                 </div>
-                <div className="metric-value">{((metrics?.hourly_rate_coverage ?? 0) * 100).toFixed(1)}%</div>
+                <div className="metric-value">{metrics?.hourly_rate_coverage != null ? `${(metrics.hourly_rate_coverage * 100).toFixed(1)}%` : '0.0%'}</div>
                 <div className="metric-card-meta">Attributed workforce compensation</div>
               </div>
 
@@ -608,7 +608,7 @@ function App() {
                   <h3>Shadow Event Rate</h3>
                   <div className="metric-card-icon"><AlertTriangleIcon size={16} /></div>
                 </div>
-                <div className="metric-value">{((metrics?.shadow_event_rate ?? 0) * 100).toFixed(1)}%</div>
+                <div className="metric-value">{metrics?.shadow_event_rate != null ? `${(metrics.shadow_event_rate * 100).toFixed(1)}%` : '0.0%'}</div>
                 <div className="metric-card-meta">Unmonitored agent activity</div>
               </div>
             </div>
@@ -696,15 +696,15 @@ function App() {
                   </div>
                   <p className="insight-observation">{insight.observation}</p>
                   <div className="insight-evidence">
-                    EVIDENCE: {insight.sample_size.toLocaleString()} runs · {(insight.confidence * 100).toFixed(0)}% confidence
+                    EVIDENCE: {insight.sample_size != null ? insight.sample_size.toLocaleString() : '0'} runs · {insight.confidence != null ? (insight.confidence * 100).toFixed(0) : '0'}% confidence
                   </div>
                   <div className="insight-prescription">
                     <strong>Direct Action:</strong> {insight.prescription}
                   </div>
-                  {insight.estimated_savings_usd_per_10k > 0 && (
+                  {Boolean(insight.estimated_savings_usd_per_10k && insight.estimated_savings_usd_per_10k > 0) && (
                     <div className="insight-savings">
                       <span>PROJECTED SAVINGS</span>
-                      <span className="savings-value">+${insight.estimated_savings_usd_per_10k}/mo</span>
+                      <span className="savings-value">+${insight.estimated_savings_usd_per_10k.toLocaleString()}/mo</span>
                     </div>
                   )}
                 </div>
@@ -1069,11 +1069,11 @@ function App() {
                   <div className="studio-detail-card">
                     <h3>Top Sensitivity Levers</h3>
                     {businessCase.top_levers.slice(0, 5).map((lever, index) => (
-                      <div className="lever-row" key={lever.parameter}>
+                      <div className="lever-row" key={lever.parameter || index}>
                         <span className="lever-rank">{index + 1}</span>
                         <div>
-                          <strong>{lever.parameter.split('.').pop()?.replaceAll('_', ' ')}</strong>
-                          <small>{lever.direction} · Span: {lever.sensitivity_span_min.toFixed(2)}m TVY</small>
+                          <strong>{lever.parameter?.split('.').pop()?.replaceAll('_', ' ') || 'parameter'}</strong>
+                          <small>{lever.direction || 'optimize'} · Span: {lever.sensitivity_span_min != null ? lever.sensitivity_span_min.toFixed(2) : '0.00'}m TVY</small>
                         </div>
                       </div>
                     ))}

@@ -27,8 +27,8 @@
   align-items: center;
   padding: 0.85rem 1.4rem;
   background: var(--bg-glass);
-  backdrop-filter: blur(20px);
   -webkit-backdrop-filter: blur(20px);
+  backdrop-filter: blur(20px);
   border: 1px solid var(--border-subtle);
   border-radius: 16px;
   box-shadow: var(--shadow-md);
@@ -71,6 +71,7 @@
   letter-spacing: -0.03em;
   background: linear-gradient(135deg, #ffffff 30%, #a5b4fc 100%);
   -webkit-background-clip: text;
+  background-clip: text;
   -webkit-text-fill-color: transparent;
   display: flex;
   align-items: center;
@@ -158,8 +159,8 @@
   display: inline-flex;
   align-items: center;
   background: rgba(10, 14, 22, 0.85);
-  backdrop-filter: blur(16px);
   -webkit-backdrop-filter: blur(16px);
+  backdrop-filter: blur(16px);
   border: 1px solid var(--border-subtle);
   border-radius: 14px;
   padding: 0.35rem;
@@ -231,8 +232,8 @@
 .metric-card {
   position: relative;
   background: var(--bg-glass);
-  backdrop-filter: blur(16px);
   -webkit-backdrop-filter: blur(16px);
+  backdrop-filter: blur(16px);
   border: 1px solid var(--border-subtle);
   border-radius: 16px;
   padding: 1.35rem 1.4rem;
@@ -340,8 +341,8 @@
    -------------------------------------------------------------------------- */
 .chart-container {
   background: var(--bg-glass);
-  backdrop-filter: blur(20px);
   -webkit-backdrop-filter: blur(20px);
+  backdrop-filter: blur(20px);
   border: 1px solid var(--border-subtle);
   border-radius: 18px;
   padding: 1.75rem;
@@ -401,8 +402,8 @@
 
 .benchmarks-panel {
   background: var(--bg-glass);
-  backdrop-filter: blur(20px);
   -webkit-backdrop-filter: blur(20px);
+  backdrop-filter: blur(20px);
   border: 1px solid var(--border-subtle);
   border-radius: 18px;
   padding: 1.65rem;
@@ -488,8 +489,8 @@
    -------------------------------------------------------------------------- */
 .insights-panel {
   background: var(--bg-glass);
-  backdrop-filter: blur(20px);
   -webkit-backdrop-filter: blur(20px);
+  backdrop-filter: blur(20px);
   border: 1px solid var(--border-subtle);
   border-radius: 18px;
   padding: 1.65rem;
@@ -638,8 +639,8 @@
 .studio-panel,
 .studio-results {
   background: var(--bg-glass);
-  backdrop-filter: blur(20px);
   -webkit-backdrop-filter: blur(20px);
+  backdrop-filter: blur(20px);
   border: 1px solid var(--border-subtle);
   border-radius: 20px;
   padding: 2rem;
@@ -781,6 +782,7 @@
   display: flex;
   align-items: center;
   gap: 0.5rem;
+  -webkit-user-select: none;
   user-select: none;
   list-style: none;
 }
@@ -1161,8 +1163,8 @@
    -------------------------------------------------------------------------- */
 .safeguards-view {
   background: var(--bg-glass);
-  backdrop-filter: blur(20px);
   -webkit-backdrop-filter: blur(20px);
+  backdrop-filter: blur(20px);
   border: 1px solid var(--border-subtle);
   border-radius: 20px;
   padding: 2.25rem;
@@ -1365,8 +1367,8 @@
    -------------------------------------------------------------------------- */
 .workspaces-view {
   background: var(--bg-glass);
-  backdrop-filter: blur(20px);
   -webkit-backdrop-filter: blur(20px);
+  backdrop-filter: blur(20px);
   border: 1px solid var(--border-subtle);
   border-radius: 20px;
   padding: 2.25rem;
@@ -1502,8 +1504,8 @@
   right: 0;
   bottom: 0;
   background: rgba(4, 6, 10, 0.8);
-  backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
+  backdrop-filter: blur(12px);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -1585,6 +1587,7 @@
   background: rgba(0, 0, 0, 0.5);
   border-radius: 8px;
   margin: 0.75rem 0;
+  -webkit-user-select: all;
   user-select: all;
 }
 
@@ -1626,8 +1629,8 @@
 
 .login-card {
   background: rgba(13, 18, 28, 0.8);
-  backdrop-filter: blur(28px);
   -webkit-backdrop-filter: blur(28px);
+  backdrop-filter: blur(28px);
   border: 1px solid var(--border-highlight);
   border-radius: 24px;
   padding: 3rem 2.5rem;
@@ -1662,6 +1665,7 @@
   margin: 0 0 0.4rem;
   background: linear-gradient(135deg, #ffffff 40%, #a5b4fc 100%);
   -webkit-background-clip: text;
+  background-clip: text;
   -webkit-text-fill-color: transparent;
 }
 
