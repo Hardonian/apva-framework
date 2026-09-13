@@ -97,7 +97,9 @@ def summarize_eval(results: list[dict[str, Any]], threshold: float = 0.85) -> di
     """Summarize golden set evaluation results."""
     recalls = [float(item["exact_span_recall"]) for item in results]
     precisions = [float(item.get("token_precision", item["exact_span_recall"])) for item in results]
-    groundings = [float(item.get("context_grounding", item["exact_span_recall"])) for item in results]
+    groundings = [
+        float(item.get("context_grounding", item["exact_span_recall"])) for item in results
+    ]
     avg_recall = sum(recalls) / len(recalls) if recalls else 0.0
     avg_precision = sum(precisions) / len(precisions) if precisions else 0.0
     avg_grounding = sum(groundings) / len(groundings) if groundings else 0.0
@@ -274,6 +276,41 @@ def _format_business_case(report: Any, fmt: str, indent: int = 2) -> str:
             "months",
         ),
         ("Positive Scenarios", f"{(report.positive_scenario_rate or 0) * 100:.1f}%", ""),
+        (
+            "Enterprise Value Capture",
+            f"{report.enterprise_value_capture_rate * 100:.1f}%",
+            "",
+        ),
+        (
+            "Trust-Adjusted Autonomy",
+            f"{report.trust_adjusted_autonomy_rate * 100:.1f}%",
+            "",
+        ),
+        (
+            "Negative TVY Probability",
+            f"{report.probability_negative_tvy * 100:.1f}%",
+            "",
+        ),
+        (
+            "Worst 5% Average TVY",
+            f"{report.conditional_value_at_risk_5_min:.2f}",
+            "minutes/task",
+        ),
+        (
+            "Coordination Dividend",
+            f"${report.coordination_dividend_per_task_usd:,.2f}",
+            "USD/task",
+        ),
+        (
+            "Knowledge Dividend",
+            f"${report.knowledge_dividend_per_task_usd:,.2f}",
+            "USD/task",
+        ),
+        (
+            "Expected Downstream Loss",
+            f"${report.expected_downstream_loss_per_task_usd:,.2f}",
+            "USD/task",
+        ),
     ]
     if fmt == "table":
         return format_table(["Metric", "Value", "Unit"], [list(field) for field in fields])
@@ -528,7 +565,9 @@ def main(argv: Sequence[str] | None = None) -> int:
                     ans = asyncio.run(fetch_target_answer(args.target_url, example))
                 recall_val = exact_span_recall(ans, example.expected_answer)
                 prec_val = token_precision(ans, example.expected_answer)
-                ground_val = exact_span_recall(ans, example.context) if example.context else recall_val
+                ground_val = (
+                    exact_span_recall(ans, example.context) if example.context else recall_val
+                )
                 raw_eval_results.append(
                     {
                         "index": str(index),

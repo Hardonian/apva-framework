@@ -240,8 +240,10 @@ class EnterpriseBusinessCaseReport(BaseModel):
     tvy_standard_deviation_min: float
     evidence_confidence: float
     causal_attribution_confidence: float
+    enterprise_value_capture_rate: float
     autonomous_completion_rate: float
     human_override_rate: float
+    trust_adjusted_autonomy_rate: float
     gate_checks: list[GateCheck]
     top_levers: list[OptimizationLever]
     recommendations: list[str]
@@ -348,9 +350,7 @@ class EnterpriseValueEngine:
         )
         raw_realized_value = (tvy_min / 60.0) * hourly_rate_usd * assumptions.realization_rate
         causal_value = raw_realized_value * factors.causal_attribution_confidence
-        coordination_dividend = (
-            factors.coordination_minutes_saved_per_task / 60.0 * hourly_rate_usd
-        )
+        coordination_dividend = factors.coordination_minutes_saved_per_task / 60.0 * hourly_rate_usd
         knowledge_dividend = (
             factors.reusable_output_rate
             * factors.expected_reuses_per_output
@@ -430,7 +430,9 @@ class EnterpriseValueEngine:
             tvy_min, hourly_rate_usd, assumptions, x_factors
         ).per_task_value_usd
         for year in range(1, assumptions.analysis_years + 1):
-            task_volume = round(base_tasks * (1.0 + assumptions.annual_task_growth_rate) ** (year - 1))
+            task_volume = round(
+                base_tasks * (1.0 + assumptions.annual_task_growth_rate) ** (year - 1)
+            )
             productivity_value = per_task_value * task_volume
             variable_cost = assumptions.variable_ai_cost_per_task_usd * task_volume
             operating_cost = assumptions.annual_platform_cost_usd + variable_cost
@@ -463,7 +465,11 @@ class EnterpriseValueEngine:
         x_factors: XFactorInputs,
         policy: DecisionPolicy,
     ) -> list[GateCheck]:
-        downside = report.confidence_interval.lower if report.confidence_interval else report.true_value_yield_min
+        downside = (
+            report.confidence_interval.lower
+            if report.confidence_interval
+            else report.true_value_yield_min
+        )
         roi_passed = (
             economics.first_year_roi_pct >= policy.minimum_first_year_roi_pct
             if economics.first_year_roi_pct is not None
@@ -474,14 +480,79 @@ class EnterpriseValueEngine:
             and economics.payback_months <= policy.maximum_payback_months
         )
         return [
-            GateCheck(check="tvy", label="True Value Yield", passed=report.true_value_yield_min >= policy.minimum_tvy_min, actual=report.true_value_yield_min, operator=">=", threshold=policy.minimum_tvy_min, unit="minutes/task"),
-            GateCheck(check="reliability", label="RAG Reliability", passed=report.rag_reliability_coefficient >= policy.minimum_rag_reliability, actual=report.rag_reliability_coefficient, operator=">=", threshold=policy.minimum_rag_reliability, unit="ratio"),
-            GateCheck(check="roi", label="First-year ROI", passed=roi_passed, actual=economics.first_year_roi_pct, operator=">=", threshold=policy.minimum_first_year_roi_pct, unit="percent"),
-            GateCheck(check="payback", label="Payback Period", passed=payback_passed, actual=economics.payback_months, operator="<=", threshold=policy.maximum_payback_months, unit="months"),
-            GateCheck(check="downside", label="Downside TVY", passed=downside >= policy.minimum_downside_tvy_min, actual=downside, operator=">=", threshold=policy.minimum_downside_tvy_min, unit="minutes/task"),
-            GateCheck(check="evidence", label="Evidence Confidence", passed=assumptions.evidence_confidence >= policy.minimum_evidence_confidence, actual=assumptions.evidence_confidence, operator=">=", threshold=policy.minimum_evidence_confidence, unit="ratio"),
-            GateCheck(check="guardrail", label="Guardrail Friction", passed=report.guardrail_friction_tax_min <= policy.maximum_guardrail_tax_min, actual=report.guardrail_friction_tax_min, operator="<=", threshold=policy.maximum_guardrail_tax_min, unit="minutes/task"),
-            GateCheck(check="causality", label="Causal Attribution", passed=x_factors.causal_attribution_confidence >= policy.minimum_causal_attribution_confidence, actual=x_factors.causal_attribution_confidence, operator=">=", threshold=policy.minimum_causal_attribution_confidence, unit="ratio"),
+            GateCheck(
+                check="tvy",
+                label="True Value Yield",
+                passed=report.true_value_yield_min >= policy.minimum_tvy_min,
+                actual=report.true_value_yield_min,
+                operator=">=",
+                threshold=policy.minimum_tvy_min,
+                unit="minutes/task",
+            ),
+            GateCheck(
+                check="reliability",
+                label="RAG Reliability",
+                passed=report.rag_reliability_coefficient >= policy.minimum_rag_reliability,
+                actual=report.rag_reliability_coefficient,
+                operator=">=",
+                threshold=policy.minimum_rag_reliability,
+                unit="ratio",
+            ),
+            GateCheck(
+                check="roi",
+                label="First-year ROI",
+                passed=roi_passed,
+                actual=economics.first_year_roi_pct,
+                operator=">=",
+                threshold=policy.minimum_first_year_roi_pct,
+                unit="percent",
+            ),
+            GateCheck(
+                check="payback",
+                label="Payback Period",
+                passed=payback_passed,
+                actual=economics.payback_months,
+                operator="<=",
+                threshold=policy.maximum_payback_months,
+                unit="months",
+            ),
+            GateCheck(
+                check="downside",
+                label="Downside TVY",
+                passed=downside >= policy.minimum_downside_tvy_min,
+                actual=downside,
+                operator=">=",
+                threshold=policy.minimum_downside_tvy_min,
+                unit="minutes/task",
+            ),
+            GateCheck(
+                check="evidence",
+                label="Evidence Confidence",
+                passed=assumptions.evidence_confidence >= policy.minimum_evidence_confidence,
+                actual=assumptions.evidence_confidence,
+                operator=">=",
+                threshold=policy.minimum_evidence_confidence,
+                unit="ratio",
+            ),
+            GateCheck(
+                check="guardrail",
+                label="Guardrail Friction",
+                passed=report.guardrail_friction_tax_min <= policy.maximum_guardrail_tax_min,
+                actual=report.guardrail_friction_tax_min,
+                operator="<=",
+                threshold=policy.maximum_guardrail_tax_min,
+                unit="minutes/task",
+            ),
+            GateCheck(
+                check="causality",
+                label="Causal Attribution",
+                passed=x_factors.causal_attribution_confidence
+                >= policy.minimum_causal_attribution_confidence,
+                actual=x_factors.causal_attribution_confidence,
+                operator=">=",
+                threshold=policy.minimum_causal_attribution_confidence,
+                unit="ratio",
+            ),
         ]
 
     @staticmethod
@@ -513,7 +584,11 @@ class EnterpriseValueEngine:
     ) -> float:
         gate_score = sum(check.passed for check in checks) / len(checks)
         roi_score = min(1.0, max(0.0, (economics.first_year_roi_pct or 0.0) / 100.0))
-        downside = report.confidence_interval.lower if report.confidence_interval else report.true_value_yield_min
+        downside = (
+            report.confidence_interval.lower
+            if report.confidence_interval
+            else report.true_value_yield_min
+        )
         downside_score = 1.0 if downside >= 0 else 0.0
         payback_score = (
             max(0.0, 1.0 - economics.payback_months / 36.0)
@@ -739,15 +814,11 @@ class EnterpriseValueEngine:
             benchmark_report=report,
             annual_task_volume=economics.annual_task_volume,
             per_task_value_usd=round(economics.per_task_value_usd, 4),
-            causal_value_yield_per_task_usd=round(
-                economics.causal_value_yield_per_task_usd, 4
-            ),
+            causal_value_yield_per_task_usd=round(economics.causal_value_yield_per_task_usd, 4),
             coordination_dividend_per_task_usd=round(
                 economics.coordination_dividend_per_task_usd, 4
             ),
-            knowledge_dividend_per_task_usd=round(
-                economics.knowledge_dividend_per_task_usd, 4
-            ),
+            knowledge_dividend_per_task_usd=round(economics.knowledge_dividend_per_task_usd, 4),
             expected_downstream_loss_per_task_usd=round(
                 economics.expected_downstream_loss_per_task_usd, 4
             ),
@@ -765,24 +836,18 @@ class EnterpriseValueEngine:
                 * economics.annual_task_volume,
                 2,
             ),
-            annual_productivity_value_usd=round(
-                economics.annual_productivity_value_usd, 2
-            ),
+            annual_productivity_value_usd=round(economics.annual_productivity_value_usd, 2),
             annual_risk_adjusted_value_usd=round(annual_risk_adjusted, 2),
             annual_operating_cost_usd=round(economics.annual_operating_cost_usd, 2),
             first_year_net_value_usd=round(economics.first_year_net_value_usd, 2),
-            recurring_annual_net_value_usd=round(
-                economics.recurring_annual_net_value_usd, 2
-            ),
+            recurring_annual_net_value_usd=round(economics.recurring_annual_net_value_usd, 2),
             first_year_roi_pct=(
                 round(economics.first_year_roi_pct, 2)
                 if economics.first_year_roi_pct is not None
                 else None
             ),
             payback_months=(
-                round(economics.payback_months, 2)
-                if economics.payback_months is not None
-                else None
+                round(economics.payback_months, 2) if economics.payback_months is not None else None
             ),
             break_even_annual_tasks=economics.break_even_annual_tasks,
             net_present_value_usd=round(npv, 2),
@@ -800,17 +865,27 @@ class EnterpriseValueEngine:
             tvy_standard_deviation_min=round(standard_deviation, 4),
             evidence_confidence=request.business_case.evidence_confidence,
             causal_attribution_confidence=request.x_factors.causal_attribution_confidence,
+            enterprise_value_capture_rate=round(
+                request.business_case.adoption_rate
+                * request.business_case.realization_rate
+                * request.x_factors.causal_attribution_confidence,
+                4,
+            ),
             autonomous_completion_rate=request.x_factors.autonomous_completion_rate,
             human_override_rate=request.x_factors.human_override_rate,
+            trust_adjusted_autonomy_rate=round(
+                request.x_factors.autonomous_completion_rate
+                * report.rag_reliability_coefficient
+                * (1.0 - request.x_factors.human_override_rate),
+                4,
+            ),
             gate_checks=checks,
             top_levers=levers,
             recommendations=recommendations,
             projections=projections,
             scenario_matrix=matrix,
             positive_scenario_rate=(
-                round(positive_scenario_rate, 4)
-                if positive_scenario_rate is not None
-                else None
+                round(positive_scenario_rate, 4) if positive_scenario_rate is not None else None
             ),
             audit_trail={
                 "input_sha256": input_hash,
@@ -888,9 +963,7 @@ class EnterpriseValueEngine:
             funded_npv_usd=round(funded_npv, 2),
             recommended_capital_usd=round(recommended_capital, 2),
             remaining_budget_usd=round(remaining, 2) if remaining is not None else None,
-            scale_ready_count=sum(
-                report.decision == DecisionStatus.SCALE for report in reports
-            ),
+            scale_ready_count=sum(report.decision == DecisionStatus.SCALE for report in reports),
             positive_downside_case_rate=round(
                 sum(report.downside_tvy_min >= 0 for report in reports) / len(reports), 4
             ),

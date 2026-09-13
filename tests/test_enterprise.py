@@ -54,6 +54,13 @@ def test_enterprise_business_case_is_auditable_and_deterministic() -> None:
     assert first.net_present_value_usd > first.first_year_net_value_usd
     assert first.payback_months is not None and first.payback_months < 18
     assert first.positive_scenario_rate == 1.0
+    assert first.probability_negative_tvy == 0.0
+    assert first.conditional_value_at_risk_5_min <= first.tvy_value_at_risk_5_min
+    assert first.enterprise_value_capture_rate == pytest.approx(0.4592)
+    assert first.trust_adjusted_autonomy_rate == pytest.approx(0.4366)
+    assert first.coordination_dividend_per_task_usd == pytest.approx(2.4)
+    assert first.knowledge_dividend_per_task_usd == pytest.approx(3.0)
+    assert first.expected_downstream_loss_per_task_usd == pytest.approx(1.5)
     assert len(first.scenario_matrix) == 16
     assert len(first.gate_checks) == 8
     assert all(check.passed for check in first.gate_checks)
@@ -77,6 +84,25 @@ def test_scenario_matrix_has_bounded_computational_cost() -> None:
             cost_multipliers=[0.8, 0.9, 1.0, 1.1],
             volume_multipliers=[0.7, 0.8, 0.9, 1.0],
         )
+
+
+def test_escaped_error_blast_radius_prevents_false_positive_business_case() -> None:
+    baseline = _request(matrix=False)
+    risky_payload = baseline.model_dump()
+    risky_payload["x_factors"].update(
+        {
+            "escaped_error_probability": 0.5,
+            "loss_per_escaped_error_usd": 500.0,
+            "downstream_blast_radius_multiplier": 10.0,
+        }
+    )
+    risky = EnterpriseValueEngine.analyze(EnterpriseAnalysisRequest.model_validate(risky_payload))
+    safe = EnterpriseValueEngine.analyze(baseline)
+
+    assert risky.benchmark_report.true_value_yield_min == safe.benchmark_report.true_value_yield_min
+    assert risky.expected_downstream_loss_per_task_usd == 2500.0
+    assert risky.first_year_net_value_usd < 0
+    assert risky.decision is not DecisionStatus.SCALE
 
 
 def test_portfolio_ranks_and_funds_only_eligible_cases() -> None:
@@ -145,16 +171,22 @@ async def test_observed_telemetry_becomes_enterprise_business_case() -> None:
                     "monte_carlo_simulations": 100,
                 },
             )
+            policy = await client.get("/api/v1/analysis/policy-template")
         assert response.status_code == 200
         data = response.json()
         assert data["use_case"] == "Observed Copilot"
         assert data["audit_trail"]["source"] == "observed_tenant_aggregates"
         assert data["audit_trail"]["telemetry_sample_size"] == 1
         assert response.headers["x-apva-report-id"] == data["report_id"]
+
+        assert policy.status_code == 200
+        assert policy.json()["x_factors"]["causal_attribution_confidence"] == 0.7
     finally:
         app.dependency_overrides.clear()
         async with async_session_maker() as session:
-            await session.execute(delete(TelemetryEvent).where(TelemetryEvent.tenant_id == tenant_id))
+            await session.execute(
+                delete(TelemetryEvent).where(TelemetryEvent.tenant_id == tenant_id)
+            )
             await session.execute(delete(Tenant).where(Tenant.id == tenant_id))
             await session.commit()
 
@@ -184,10 +216,14 @@ def test_enterprise_sdk_analysis_and_gate() -> None:
             client.require_decision(report)
 
 
-def test_business_case_cli_and_policy_exit_code(tmp_path: Path, capsys: pytest.CaptureFixture[str]) -> None:
+def test_business_case_cli_and_policy_exit_code(
+    tmp_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
     path = tmp_path / "case.json"
     path.write_text(json.dumps(_request(matrix=False).model_dump(mode="json")), encoding="utf-8")
-    assert main(["business-case", str(path), "--format", "json", "--require-decision", "scale"]) == 0
+    assert (
+        main(["business-case", str(path), "--format", "json", "--require-decision", "scale"]) == 0
+    )
     assert '"decision": "scale"' in capsys.readouterr().out
     assert (
         main(

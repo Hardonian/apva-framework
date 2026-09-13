@@ -62,6 +62,27 @@ Every business case includes:
 - Ranked optimization levers, a rollout posture (`scale`, `controlled_pilot`, `optimize`, or `do_not_scale`), and a reproducible SHA-256 audit trail.
 - Portfolio ranking and budget allocation across as many as 50 competing AI use cases.
 
+### The X-factor: value integrity, not activity
+
+Most productivity scorecards stop at adoption, output volume, latency, tokens,
+or self-reported time saved. APVA can carry the harder signals that determine
+whether the value is real, durable, and safe:
+
+| Signal | What APVA measures | Why it changes the decision |
+|---|---|---|
+| Causal Value Yield | TVY × realized-value rate × causal attribution confidence | Discounts savings that would have happened without the AI workflow |
+| Enterprise Value Capture | adoption × realization × causal confidence | Exposes the gap between theoretical and actually captured value |
+| Coordination Dividend | handoff, search, meeting, and queue time removed per task | Captures system-level value outside the individual prompt session |
+| Knowledge Compounding Dividend | reusable-output rate × expected reuses × time saved per reuse | Values durable artifacts instead of treating every output as disposable |
+| Downstream Expected Loss | escaped-error probability × loss severity × blast radius | Prevents a fast but high-consequence workflow from appearing productive |
+| Trust-Adjusted Autonomy | autonomous completion × reliability × (1 − human override) | Measures safe delegation, not raw automation |
+| Tail-Value Risk | P(TVY < 0), 5% VaR, and worst-5% conditional VaR | Shows how bad weak outcomes get instead of hiding them inside an average |
+| Carbon-Adjusted Cost | task CO2e × internal carbon price | Makes enterprise externalities explicit in unit economics |
+
+Together these produce a causal, compounding, risk-adjusted value envelope per
+task. Each component remains visible to avoid a persuasive composite score
+hiding weak evidence or double counting.
+
 Run the complete reference case:
 
 ```bash
@@ -70,8 +91,8 @@ apva business-case examples/enterprise-business-case.json \
   --require-decision scale controlled_pilot
 ```
 
-The included reference data produces a `SCALE` decision, a 95.8/100 priority
-score, and an auditable three-year business case. The GitHub workflow in
+The included reference data produces a `SCALE` decision and an auditable
+three-year business case. The GitHub workflow in
 `.github/workflows/apva-value-gate.yml` publishes that decision as a build
 artifact and fails when the rollout posture falls outside policy.
 

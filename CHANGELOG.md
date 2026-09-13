@@ -16,6 +16,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Policy-as-code rollout gates, 500-cell bounded stress matrices, and 50-use-case portfolio capital allocation.
 - Business-case, observed-business-case, portfolio, and policy-template API endpoints.
 - Dashboard Value Studio, enterprise SDK workflow gates, CLI business-case command, and reusable GitHub value gate.
+- Value-integrity inputs and outputs for causal attribution, coordination savings, reusable-knowledge compounding, escaped-error blast radius, safe autonomy, carbon cost, value capture, and Monte Carlo tail risk (VaR/CVaR).
 
 ### Changed
 

@@ -475,15 +475,45 @@ class APVACalculator:
         tvy_samples: list[float] = []
         base_data = benchmark.model_dump()
         numeric_paths: list[tuple[str, str, float, bool]] = [
-            ("productivity", "reference_human_baseline_min", benchmark.productivity.reference_human_baseline_min, False),
-            ("productivity", "ai_generation_time_min", benchmark.productivity.ai_generation_time_min, False),
-            ("productivity", "epistemic_verification_time_min", benchmark.productivity.epistemic_verification_time_min, False),
+            (
+                "productivity",
+                "reference_human_baseline_min",
+                benchmark.productivity.reference_human_baseline_min,
+                False,
+            ),
+            (
+                "productivity",
+                "ai_generation_time_min",
+                benchmark.productivity.ai_generation_time_min,
+                False,
+            ),
+            (
+                "productivity",
+                "epistemic_verification_time_min",
+                benchmark.productivity.epistemic_verification_time_min,
+                False,
+            ),
             ("rag", "exact_span_recall", benchmark.rag.exact_span_recall, True),
             ("rag", "llm_faithfulness_score", benchmark.rag.llm_faithfulness_score, True),
-            ("guardrail", "base_latency_overhead_min", benchmark.guardrail.base_latency_overhead_min, False),
+            (
+                "guardrail",
+                "base_latency_overhead_min",
+                benchmark.guardrail.base_latency_overhead_min,
+                False,
+            ),
             ("guardrail", "false_positive_rate", benchmark.guardrail.false_positive_rate, True),
-            ("guardrail", "resolution_penalty_time_min", benchmark.guardrail.resolution_penalty_time_min, False),
-            ("guardrail", "cra_session_drop_penalty_min", benchmark.guardrail.cra_session_drop_penalty_min, False),
+            (
+                "guardrail",
+                "resolution_penalty_time_min",
+                benchmark.guardrail.resolution_penalty_time_min,
+                False,
+            ),
+            (
+                "guardrail",
+                "cra_session_drop_penalty_min",
+                benchmark.guardrail.cra_session_drop_penalty_min,
+                False,
+            ),
         ]
         for _ in range(n_simulations):
             sim_data = copy.deepcopy(base_data)
@@ -550,9 +580,10 @@ class APVACalculator:
         Returns:
             ConfidenceInterval: Lower, median, and upper bounds.
         """
+        cfg = config or _DEFAULT_CONFIG
         tvy_samples = cls.simulate_tvy(
             benchmark,
-            config,
+            cfg,
             n_simulations=n_simulations,
             noise_pct=noise_pct,
             seed=seed,

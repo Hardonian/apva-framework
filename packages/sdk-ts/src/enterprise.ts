@@ -20,6 +20,13 @@ export interface APVABusinessCaseReport {
   first_year_roi_pct: number | null;
   payback_months: number | null;
   positive_scenario_rate: number | null;
+  x_factor_annual_value_usd: number;
+  probability_negative_tvy: number;
+  tvy_value_at_risk_5_min: number;
+  conditional_value_at_risk_5_min: number;
+  causal_attribution_confidence: number;
+  enterprise_value_capture_rate: number;
+  trust_adjusted_autonomy_rate: number;
   gate_checks: APVAGateCheck[];
   [key: string]: unknown;
 }

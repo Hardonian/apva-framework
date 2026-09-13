@@ -396,6 +396,36 @@ body {
   border-color: var(--primary);
 }
 
+.x-factor-inputs {
+  margin: 0 0 1.25rem;
+  padding: 1rem;
+  background: rgba(34, 211, 238, 0.06);
+  border: 1px solid rgba(34, 211, 238, 0.24);
+  border-radius: 0.65rem;
+}
+
+.x-factor-inputs summary {
+  color: var(--secondary);
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.x-factor-inputs .studio-form-grid {
+  margin-bottom: 0;
+}
+
+.x-factor-scorecard {
+  margin: 1rem 0;
+  padding: 0.25rem 1rem;
+  border: 1px solid rgba(34, 211, 238, 0.24);
+  border-radius: 0.65rem;
+}
+
+.x-factor-scorecard h3 {
+  margin-bottom: 0;
+  color: var(--secondary);
+}
+
 .studio-cta {
   width: 100%;
   padding: 0.9rem 1rem;

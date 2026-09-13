@@ -277,6 +277,26 @@ def test_confidence_interval():
     assert ci.confidence_level == 0.95
 
 
+def test_simulation_samples_support_reproducible_tail_risk():
+    benchmark = _sample_benchmark(name="tail-risk")
+    samples = APVACalculator.simulate_tvy(benchmark, n_simulations=100, noise_pct=0.1, seed=73)
+    repeated = APVACalculator.simulate_tvy(benchmark, n_simulations=100, noise_pct=0.1, seed=73)
+    interval = APVACalculator.confidence_interval_from_samples(samples, 0.9)
+
+    assert samples == repeated
+    assert len(samples) == 100
+    assert interval.n_simulations == 100
+    assert interval.lower <= interval.median <= interval.upper
+
+
+def test_simulation_rejects_invalid_workload():
+    benchmark = _sample_benchmark(name="invalid-simulation")
+    with pytest.raises(ValueError, match="positive"):
+        APVACalculator.simulate_tvy(benchmark, n_simulations=0)
+    with pytest.raises(ValueError, match="cannot be negative"):
+        APVACalculator.simulate_tvy(benchmark, noise_pct=-0.1)
+
+
 # ---------------------------------------------------------------------------
 # Batch Evaluation & Comparison
 # ---------------------------------------------------------------------------

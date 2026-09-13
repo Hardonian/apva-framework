@@ -149,6 +149,7 @@ async def get_policy_template(
     return {
         "tenant_id": tenant_context["tenant_id"],
         "decision_policy": DecisionPolicy().model_dump(),
+        "x_factors": XFactorInputs().model_dump(),
         "scenario_matrix": ScenarioMatrix().model_dump(),
         "explanation": {
             "scale": "Every financial, reliability, downside, evidence, and friction gate passes.",

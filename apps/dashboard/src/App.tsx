@@ -91,6 +91,15 @@ interface BusinessCaseReport {
   monthly_cost_of_delay_usd: number;
   downside_tvy_min: number;
   upside_tvy_min: number;
+  x_factor_annual_value_usd: number;
+  causal_value_yield_per_task_usd: number;
+  coordination_dividend_per_task_usd: number;
+  knowledge_dividend_per_task_usd: number;
+  expected_downstream_loss_per_task_usd: number;
+  probability_negative_tvy: number;
+  conditional_value_at_risk_5_min: number;
+  enterprise_value_capture_rate: number;
+  trust_adjusted_autonomy_rate: number;
   gate_checks: Array<{
     check: string;
     label: string;
@@ -141,6 +150,16 @@ function App() {
   const [annualPlatformCost, setAnnualPlatformCost] = useState<number>(60000);
   const [variableTaskCost, setVariableTaskCost] = useState<number>(0.15);
   const [riskAvoidance, setRiskAvoidance] = useState<number>(25000);
+  const [causalConfidence, setCausalConfidence] = useState<number>(75);
+  const [coordinationMinutes, setCoordinationMinutes] = useState<number>(1.5);
+  const [reusableOutputRate, setReusableOutputRate] = useState<number>(20);
+  const [expectedReuses, setExpectedReuses] = useState<number>(2);
+  const [minutesPerReuse, setMinutesPerReuse] = useState<number>(4);
+  const [escapedErrorRate, setEscapedErrorRate] = useState<number>(0.2);
+  const [escapedErrorLoss, setEscapedErrorLoss] = useState<number>(500);
+  const [blastRadius, setBlastRadius] = useState<number>(1.5);
+  const [autonomousRate, setAutonomousRate] = useState<number>(50);
+  const [humanOverrideRate, setHumanOverrideRate] = useState<number>(10);
   const [businessCase, setBusinessCase] = useState<BusinessCaseReport | null>(null);
   const [analyzingCase, setAnalyzingCase] = useState<boolean>(false);
   const [analysisError, setAnalysisError] = useState<string | null>(null);
@@ -314,6 +333,18 @@ function App() {
             annual_risk_avoidance_usd: riskAvoidance,
             analysis_years: 3,
             discount_rate: 0.1,
+          },
+          x_factors: {
+            causal_attribution_confidence: causalConfidence / 100,
+            coordination_minutes_saved_per_task: coordinationMinutes,
+            reusable_output_rate: reusableOutputRate / 100,
+            expected_reuses_per_output: expectedReuses,
+            minutes_saved_per_reuse: minutesPerReuse,
+            escaped_error_probability: escapedErrorRate / 100,
+            loss_per_escaped_error_usd: escapedErrorLoss,
+            downstream_blast_radius_multiplier: blastRadius,
+            autonomous_completion_rate: autonomousRate / 100,
+            human_override_rate: humanOverrideRate / 100,
           },
           monte_carlo_simulations: 1000,
         },
@@ -732,6 +763,52 @@ function App() {
                 />
               </label>
             </div>
+            <details className="x-factor-inputs">
+              <summary>X-factor value signals</summary>
+              <p>Model attribution, coordination, reusable knowledge, escaped-error exposure, and safe autonomy.</p>
+              <div className="studio-form-grid">
+                <label>
+                  Causal attribution ({causalConfidence}%)
+                  <input type="range" min="0" max="100" value={causalConfidence} onChange={(e) => setCausalConfidence(Number(e.target.value))} />
+                </label>
+                <label>
+                  Coordination min saved / task
+                  <input type="number" min="0" step="0.1" value={coordinationMinutes} onChange={(e) => setCoordinationMinutes(Number(e.target.value))} />
+                </label>
+                <label>
+                  Reusable output rate ({reusableOutputRate}%)
+                  <input type="range" min="0" max="100" value={reusableOutputRate} onChange={(e) => setReusableOutputRate(Number(e.target.value))} />
+                </label>
+                <label>
+                  Expected downstream reuses
+                  <input type="number" min="0" step="0.1" value={expectedReuses} onChange={(e) => setExpectedReuses(Number(e.target.value))} />
+                </label>
+                <label>
+                  Minutes saved / reuse
+                  <input type="number" min="0" step="0.1" value={minutesPerReuse} onChange={(e) => setMinutesPerReuse(Number(e.target.value))} />
+                </label>
+                <label>
+                  Escaped-error rate ({escapedErrorRate}%)
+                  <input type="number" min="0" max="100" step="0.01" value={escapedErrorRate} onChange={(e) => setEscapedErrorRate(Number(e.target.value))} />
+                </label>
+                <label>
+                  Loss / escaped error
+                  <input type="number" min="0" value={escapedErrorLoss} onChange={(e) => setEscapedErrorLoss(Number(e.target.value))} />
+                </label>
+                <label>
+                  Downstream blast radius
+                  <input type="number" min="1" max="1000" step="0.1" value={blastRadius} onChange={(e) => setBlastRadius(Number(e.target.value))} />
+                </label>
+                <label>
+                  Autonomous completion ({autonomousRate}%)
+                  <input type="range" min="0" max="100" value={autonomousRate} onChange={(e) => setAutonomousRate(Number(e.target.value))} />
+                </label>
+                <label>
+                  Human override ({humanOverrideRate}%)
+                  <input type="range" min="0" max="100" value={humanOverrideRate} onChange={(e) => setHumanOverrideRate(Number(e.target.value))} />
+                </label>
+              </div>
+            </details>
             {analysisError && <div className="studio-error">{analysisError}</div>}
             <button className="studio-cta" type="submit" disabled={analyzingCase}>
               {analyzingCase ? 'Running 1,000 simulations…' : 'Generate Enterprise Business Case'}
@@ -761,6 +838,17 @@ function App() {
                   <article><span>Payback</span><strong>{businessCase.payback_months?.toFixed(1) || 'N/A'} mo</strong></article>
                   <article><span>Scenario resilience</span><strong>{((businessCase.positive_scenario_rate || 0) * 100).toFixed(0)}%</strong></article>
                   <article><span>Monthly cost of delay</span><strong>${businessCase.monthly_cost_of_delay_usd.toLocaleString()}</strong></article>
+                </div>
+                <div className="x-factor-scorecard">
+                  <h3>Value integrity scorecard</h3>
+                  <div className="studio-metrics">
+                    <article><span>Enterprise value capture</span><strong>{(businessCase.enterprise_value_capture_rate * 100).toFixed(1)}%</strong></article>
+                    <article><span>Trust-adjusted autonomy</span><strong>{(businessCase.trust_adjusted_autonomy_rate * 100).toFixed(1)}%</strong></article>
+                    <article><span>Negative TVY probability</span><strong>{(businessCase.probability_negative_tvy * 100).toFixed(1)}%</strong></article>
+                    <article><span>Worst 5% average TVY</span><strong>{businessCase.conditional_value_at_risk_5_min.toFixed(2)}m</strong></article>
+                    <article><span>Coordination + reuse / task</span><strong>${(businessCase.coordination_dividend_per_task_usd + businessCase.knowledge_dividend_per_task_usd).toFixed(2)}</strong></article>
+                    <article><span>Expected downstream loss / task</span><strong>${businessCase.expected_downstream_loss_per_task_usd.toFixed(2)}</strong></article>
+                  </div>
                 </div>
                 <div className="studio-detail-grid">
                   <div>

@@ -32,6 +32,7 @@ from apva.enterprise import (
     PortfolioAnalysisReport,
     PortfolioAnalysisRequest,
     ScenarioMatrix,
+    XFactorInputs,
 )
 from apva.exceptions import (
     APVAAuthenticationError,
@@ -84,6 +85,7 @@ __all__ = [
     "PortfolioAnalysisRequest",
     "PortfolioAnalysisReport",
     "ScenarioMatrix",
+    "XFactorInputs",
     # Exceptions
     "APVAAuthenticationError",
     "APVACalculationError",
