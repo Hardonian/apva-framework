@@ -43,8 +43,8 @@
             align-items: center;
             padding: 1rem 1.4rem;
             background: var(--bg-glass);
-            backdrop-filter: blur(20px);
             -webkit-backdrop-filter: blur(20px);
+            backdrop-filter: blur(20px);
             border: 1px solid var(--border);
             border-radius: 16px;
             margin-bottom: 2.25rem;
@@ -74,6 +74,7 @@
             letter-spacing: -0.02em;
             background: linear-gradient(135deg, #ffffff 40%, #93c5fd 100%);
             -webkit-background-clip: text;
+            background-clip: text;
             -webkit-text-fill-color: transparent;
         }
         .stats {
@@ -84,8 +85,8 @@
         }
         .stat {
             background: var(--bg-glass);
-            backdrop-filter: blur(16px);
             -webkit-backdrop-filter: blur(16px);
+            backdrop-filter: blur(16px);
             border: 1px solid var(--border);
             border-radius: 14px;
             padding: 1.35rem 1.5rem;
@@ -127,8 +128,8 @@
         .stat.clean .stat-value { color: var(--accent-mint); text-shadow: 0 0 16px rgba(0, 245, 160, 0.35); }
         .card {
             background: var(--bg-glass);
-            backdrop-filter: blur(20px);
             -webkit-backdrop-filter: blur(20px);
+            backdrop-filter: blur(20px);
             border: 1px solid var(--border);
             border-radius: 18px;
             padding: 1.75rem;
@@ -200,6 +201,15 @@
             color: #93c5fd;
             border: 1px solid rgba(255, 255, 255, 0.05);
         }
+        #status {
+            font-family: var(--font-mono);
+            font-size: 0.9rem;
+            color: var(--text-dim);
+        }
+        .status-badge-online {
+            color: var(--accent-mint);
+            font-weight: 700;
+        }
         .footer {
             text-align: center;
             padding: 2rem 0;
@@ -241,7 +251,7 @@
 
         <div class="card">
             <h2>Real-time Pipeline Heartbeat</h2>
-            <div id="status" style="font-family: var(--font-mono); font-size: 0.9rem; color: var(--text-dim);">Connecting to APVA edge mesh...</div>
+            <div id="status">Connecting to APVA edge mesh...</div>
         </div>
 
         <footer class="footer">POWERED BY APVA DISTRIBUTED VALUE ARCHITECTURE · HARDONIA NETWORKS</footer>
@@ -256,9 +266,9 @@
             try {
                 const res = await fetch('/health');
                 const data = await res.json();
-                el.innerHTML = '<span style="color:var(--accent-mint); font-weight: bold;">● MESH SYNCHRONIZED</span> — ' + (data.service || SERVICE_NAME) + ' v' + (data.version || '1.0.0');
+                el.innerHTML = '<span class="status-badge-online">● MESH SYNCHRONIZED</span> — ' + (data.service || SERVICE_NAME) + ' v' + (data.version || '1.0.0');
             } catch (e) {
-                el.innerHTML = '<span style="color:var(--accent-mint); font-weight: bold;">● LOCAL EMULATOR READY</span> — APVA Analytical Gateway v1.0.0 (Standing by for telemetry)';
+                el.innerHTML = '<span class="status-badge-online">● LOCAL EMULATOR READY</span> — APVA Analytical Gateway v1.0.0 (Standing by for telemetry)';
             }
         }
 
