@@ -1,0 +1,55 @@
+{
+  "benchmark": {
+    "name": "enterprise-support-copilot",
+    "description": "Tier-1 and tier-2 support resolution with human approval",
+    "tags": ["customer-support", "rag", "human-in-the-loop"],
+    "productivity": {
+      "reference_human_baseline_min": 32.0,
+      "skill_level": "mid",
+      "ai_generation_time_min": 2.5,
+      "epistemic_verification_time_min": 4.5,
+      "hourly_rate_usd": 72.0
+    },
+    "rag": {
+      "exact_span_recall": 0.91,
+      "llm_faithfulness_score": 0.89
+    },
+    "guardrail": {
+      "base_latency_overhead_min": 0.25,
+      "false_positive_rate": 0.03,
+      "resolution_penalty_time_min": 3.0,
+      "cra_session_drop_penalty_min": 0.1
+    }
+  },
+  "business_case": {
+    "organization": "Example Global Services",
+    "use_case_owner": "VP Customer Operations",
+    "currency": "USD",
+    "practitioners": 500,
+    "tasks_per_practitioner_per_day": 6.0,
+    "working_days_per_year": 230,
+    "adoption_rate": 0.7,
+    "realization_rate": 0.8,
+    "evidence_confidence": 0.85,
+    "implementation_cost_usd": 180000.0,
+    "annual_platform_cost_usd": 120000.0,
+    "variable_ai_cost_per_task_usd": 0.18,
+    "annual_risk_avoidance_usd": 75000.0,
+    "annual_task_growth_rate": 0.08,
+    "analysis_years": 3,
+    "discount_rate": 0.1
+  },
+  "policy": {
+    "minimum_tvy_min": 3.0,
+    "minimum_rag_reliability": 0.85,
+    "minimum_first_year_roi_pct": 25.0,
+    "maximum_payback_months": 18.0,
+    "minimum_downside_tvy_min": 0.0,
+    "minimum_evidence_confidence": 0.75,
+    "maximum_guardrail_tax_min": 1.0
+  },
+  "monte_carlo_simulations": 2000,
+  "uncertainty_fraction": 0.1,
+  "confidence_level": 0.95,
+  "random_seed": 42
+}

@@ -38,7 +38,11 @@ class APVAEnterpriseClient:
         timeout: float = 30.0,
         transport: httpx.BaseTransport | None = None,
     ) -> None:
-        base_url = api_url or os.getenv("APVA_API_URL", "http://localhost:8000/api/v1")
+        base_url = (
+            api_url
+            or os.getenv("APVA_API_URL")
+            or "http://localhost:8000/api/v1"
+        )
         headers = {"Accept": "application/json", "User-Agent": "apva-sdk/3.0"}
         resolved_api_key = api_key or os.getenv("APVA_API_KEY")
         if resolved_api_key:

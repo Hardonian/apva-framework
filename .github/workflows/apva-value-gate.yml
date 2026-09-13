@@ -1,0 +1,38 @@
+name: APVA Enterprise Value Gate
+
+on:
+  pull_request:
+    paths:
+      - "apva/**"
+      - "apps/backend/**"
+      - "examples/enterprise-business-case.json"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  enterprise-value-gate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v6
+        with:
+          enable-cache: true
+      - name: Generate audited business case and enforce rollout policy
+        run: >-
+          uv run apva business-case examples/enterprise-business-case.json
+          --format markdown
+          --output apva-business-case.md
+          --require-decision scale controlled_pilot
+      - name: Publish decision to workflow summary
+        if: always()
+        run: cat apva-business-case.md >> "$GITHUB_STEP_SUMMARY"
+      - name: Retain auditable decision artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: apva-enterprise-business-case
+          path: apva-business-case.md
+          if-no-files-found: warn

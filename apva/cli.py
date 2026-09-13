@@ -276,7 +276,7 @@ def _format_business_case(report: Any, fmt: str, indent: int = 2) -> str:
         ("Positive Scenarios", f"{(report.positive_scenario_rate or 0) * 100:.1f}%", ""),
     ]
     if fmt == "table":
-        return format_table(["Metric", "Value", "Unit"], fields)
+        return format_table(["Metric", "Value", "Unit"], [list(field) for field in fields])
     if fmt == "markdown":
         rows = "\n".join(f"| {name} | {value} | {unit} |" for name, value, unit in fields)
         gates = "\n".join(
@@ -401,6 +401,13 @@ def build_parser() -> argparse.ArgumentParser:
         help="Generate a multivariate, policy-gated enterprise investment case.",
     )
     business_case.add_argument("path", help="Path to EnterpriseAnalysisRequest JSON file.")
+    business_case.add_argument(
+        "--require-decision",
+        nargs="+",
+        choices=["scale", "controlled_pilot", "optimize", "do_not_scale"],
+        default=None,
+        help="Exit non-zero unless the report decision is one of these values.",
+    )
 
     # proxy
     proxy = sub.add_parser("proxy", help="Run universal local AI workstation proxy.")
@@ -547,8 +554,18 @@ def main(argv: Sequence[str] | None = None) -> int:
             with open(args.path, "r", encoding="utf-8") as handle:
                 payload = json.load(handle)
             request = EnterpriseAnalysisRequest.model_validate(payload)
-            report = EnterpriseValueEngine.analyze(request)
-            _emit(_format_business_case(report, args.format, args.indent), args.output)
+            business_report = EnterpriseValueEngine.analyze(request)
+            _emit(_format_business_case(business_report, args.format, args.indent), args.output)
+            if (
+                args.require_decision
+                and business_report.decision.value not in args.require_decision
+            ):
+                print(
+                    f"Business-case gate failed: decision={business_report.decision.value}; "
+                    f"required one of {', '.join(args.require_decision)}",
+                    file=sys.stderr,
+                )
+                return 1
             return 0
 
         elif args.command == "proxy":

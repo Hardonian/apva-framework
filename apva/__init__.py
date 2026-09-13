@@ -22,15 +22,6 @@ from apva.constants import FRAMEWORK_VERSION
 __version__: str = FRAMEWORK_VERSION
 
 from apva.calculator import APVACalculator, APVACalculatorConfig, compute_tvy
-from apva.exceptions import (
-    APVAAuthenticationError,
-    APVACalculationError,
-    APVAConfigurationError,
-    APVAError,
-    APVANetworkError,
-    APVARateLimitError,
-    APVAValidationError,
-)
 from apva.enterprise import (
     BusinessCaseAssumptions,
     DecisionPolicy,
@@ -41,6 +32,15 @@ from apva.enterprise import (
     PortfolioAnalysisReport,
     PortfolioAnalysisRequest,
     ScenarioMatrix,
+)
+from apva.exceptions import (
+    APVAAuthenticationError,
+    APVACalculationError,
+    APVAConfigurationError,
+    APVAError,
+    APVANetworkError,
+    APVARateLimitError,
+    APVAValidationError,
 )
 from apva.models import (
     APVAReport,

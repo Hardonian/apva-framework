@@ -77,6 +77,37 @@ interface TenantProfile {
   created_at: string;
 }
 
+interface BusinessCaseReport {
+  report_id: string;
+  decision: 'scale' | 'controlled_pilot' | 'optimize' | 'do_not_scale';
+  priority_score: number;
+  annual_task_volume: number;
+  first_year_net_value_usd: number;
+  recurring_annual_net_value_usd: number;
+  net_present_value_usd: number;
+  first_year_roi_pct: number | null;
+  payback_months: number | null;
+  positive_scenario_rate: number | null;
+  monthly_cost_of_delay_usd: number;
+  downside_tvy_min: number;
+  upside_tvy_min: number;
+  gate_checks: Array<{
+    check: string;
+    label: string;
+    passed: boolean;
+    actual: number | null;
+    operator: string;
+    threshold: number;
+    unit: string;
+  }>;
+  top_levers: Array<{
+    parameter: string;
+    direction: string;
+    estimated_tvy_gain_min: number;
+    sensitivity_span_min: number;
+  }>;
+}
+
 function App() {
   const [isAuthenticated, setIsAuthenticated] = useState<boolean>(() => {
     return Boolean(localStorage.getItem('apva_token'));
@@ -97,7 +128,22 @@ function App() {
   const [loginError, setLoginError] = useState<string | null>(null);
 
   // Navigation tab
-  const [activeTab, setActiveTab] = useState<'overview' | 'safeguards' | 'workspaces'>('overview');
+  const [activeTab, setActiveTab] = useState<'overview' | 'value-studio' | 'safeguards' | 'workspaces'>(
+    'overview'
+  );
+
+  // Enterprise Value Studio state
+  const [useCaseName, setUseCaseName] = useState<string>('Enterprise AI Workflow');
+  const [practitioners, setPractitioners] = useState<number>(250);
+  const [tasksPerDay, setTasksPerDay] = useState<number>(4);
+  const [adoptionRate, setAdoptionRate] = useState<number>(65);
+  const [implementationCost, setImplementationCost] = useState<number>(75000);
+  const [annualPlatformCost, setAnnualPlatformCost] = useState<number>(60000);
+  const [variableTaskCost, setVariableTaskCost] = useState<number>(0.15);
+  const [riskAvoidance, setRiskAvoidance] = useState<number>(25000);
+  const [businessCase, setBusinessCase] = useState<BusinessCaseReport | null>(null);
+  const [analyzingCase, setAnalyzingCase] = useState<boolean>(false);
+  const [analysisError, setAnalysisError] = useState<string | null>(null);
 
   // Safeguards state
   const [maxTax, setMaxTax] = useState<number>(2.0);
@@ -244,6 +290,47 @@ function App() {
     }
   };
 
+  const handleAnalyzeBusinessCase = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setAnalyzingCase(true);
+    setAnalysisError(null);
+    try {
+      const response = await axios.post(
+        `${API_BASE}/api/v1/analysis/observed-business-case`,
+        {
+          use_case_name: useCaseName,
+          business_case: {
+            organization: tenantProfile?.name || 'Enterprise',
+            use_case_owner: 'AI Transformation Office',
+            practitioners,
+            tasks_per_practitioner_per_day: tasksPerDay,
+            working_days_per_year: 230,
+            adoption_rate: adoptionRate / 100,
+            realization_rate: 0.8,
+            evidence_confidence: 0.8,
+            implementation_cost_usd: implementationCost,
+            annual_platform_cost_usd: annualPlatformCost,
+            variable_ai_cost_per_task_usd: variableTaskCost,
+            annual_risk_avoidance_usd: riskAvoidance,
+            analysis_years: 3,
+            discount_rate: 0.1,
+          },
+          monte_carlo_simulations: 1000,
+        },
+        { headers: getAuthHeaders() }
+      );
+      setBusinessCase(response.data);
+    } catch (err: unknown) {
+      if (axios.isAxiosError(err)) {
+        setAnalysisError(err.response?.data?.detail || err.message);
+      } else {
+        setAnalysisError('Unable to generate the enterprise business case.');
+      }
+    } finally {
+      setAnalyzingCase(false);
+    }
+  };
+
   const handleProvisionWorkspace = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newOrgName.trim()) return;
@@ -370,6 +457,19 @@ function App() {
         <h1>APVA True Value Yield Dashboard</h1>
         <p>Enterprise Inference Analytics & Operational Directives</p>
         <div className="tabs" style={{ display: 'flex', gap: '1rem', marginTop: '1rem' }}>
+          <button
+            style={{
+              padding: '0.5rem 1rem',
+              background: activeTab === 'value-studio' ? '#6c5ce7' : '#2a2a2a',
+              color: 'white',
+              border: 'none',
+              borderRadius: '4px',
+              cursor: 'pointer',
+            }}
+            onClick={() => setActiveTab('value-studio')}
+          >
+            Value Studio
+          </button>
           <button
             style={{
               padding: '0.5rem 1rem',
@@ -545,6 +645,147 @@ function App() {
               ))}
             </div>
           </div>
+        </div>
+      )}
+
+      {activeTab === 'value-studio' && (
+        <div className="studio-grid">
+          <form className="studio-panel" onSubmit={handleAnalyzeBusinessCase}>
+            <div className="studio-kicker">LIVE TELEMETRY → INVESTMENT DECISION</div>
+            <h2>Enterprise Value Studio</h2>
+            <p>
+              Stress-test observed workflow performance against adoption, workforce scale, implementation cost, and
+              operating economics.
+            </p>
+            <div className="studio-form-grid">
+              <label>
+                Use case
+                <input value={useCaseName} onChange={(e) => setUseCaseName(e.target.value)} required />
+              </label>
+              <label>
+                Practitioners
+                <input
+                  type="number"
+                  min="1"
+                  value={practitioners}
+                  onChange={(e) => setPractitioners(Number(e.target.value))}
+                  required
+                />
+              </label>
+              <label>
+                Tasks per person / day
+                <input
+                  type="number"
+                  min="0.1"
+                  step="0.1"
+                  value={tasksPerDay}
+                  onChange={(e) => setTasksPerDay(Number(e.target.value))}
+                  required
+                />
+              </label>
+              <label>
+                Adoption rate ({adoptionRate}%)
+                <input
+                  type="range"
+                  min="5"
+                  max="100"
+                  step="5"
+                  value={adoptionRate}
+                  onChange={(e) => setAdoptionRate(Number(e.target.value))}
+                />
+              </label>
+              <label>
+                Implementation cost
+                <input
+                  type="number"
+                  min="0"
+                  value={implementationCost}
+                  onChange={(e) => setImplementationCost(Number(e.target.value))}
+                />
+              </label>
+              <label>
+                Annual platform cost
+                <input
+                  type="number"
+                  min="0"
+                  value={annualPlatformCost}
+                  onChange={(e) => setAnnualPlatformCost(Number(e.target.value))}
+                />
+              </label>
+              <label>
+                AI cost per task
+                <input
+                  type="number"
+                  min="0"
+                  step="0.01"
+                  value={variableTaskCost}
+                  onChange={(e) => setVariableTaskCost(Number(e.target.value))}
+                />
+              </label>
+              <label>
+                Annual risk avoidance
+                <input
+                  type="number"
+                  min="0"
+                  value={riskAvoidance}
+                  onChange={(e) => setRiskAvoidance(Number(e.target.value))}
+                />
+              </label>
+            </div>
+            {analysisError && <div className="studio-error">{analysisError}</div>}
+            <button className="studio-cta" type="submit" disabled={analyzingCase}>
+              {analyzingCase ? 'Running 1,000 simulations…' : 'Generate Enterprise Business Case'}
+            </button>
+          </form>
+
+          <section className="studio-results">
+            {!businessCase ? (
+              <div className="studio-empty">
+                <span>81</span>
+                <strong>default multivariate scenarios</strong>
+                <p>Generate a case to quantify the decision, downside, payback, NPV, and policy gates.</p>
+              </div>
+            ) : (
+              <>
+                <div className={`decision-banner decision-${businessCase.decision}`}>
+                  <div>
+                    <span>RECOMMENDED POSTURE</span>
+                    <strong>{businessCase.decision.replaceAll('_', ' ').toUpperCase()}</strong>
+                  </div>
+                  <div className="priority-score">{businessCase.priority_score}<small>/100</small></div>
+                </div>
+                <div className="studio-metrics">
+                  <article><span>First-year net value</span><strong>${businessCase.first_year_net_value_usd.toLocaleString()}</strong></article>
+                  <article><span>3-year NPV</span><strong>${businessCase.net_present_value_usd.toLocaleString()}</strong></article>
+                  <article><span>First-year ROI</span><strong>{businessCase.first_year_roi_pct?.toFixed(0) || 'N/A'}%</strong></article>
+                  <article><span>Payback</span><strong>{businessCase.payback_months?.toFixed(1) || 'N/A'} mo</strong></article>
+                  <article><span>Scenario resilience</span><strong>{((businessCase.positive_scenario_rate || 0) * 100).toFixed(0)}%</strong></article>
+                  <article><span>Monthly cost of delay</span><strong>${businessCase.monthly_cost_of_delay_usd.toLocaleString()}</strong></article>
+                </div>
+                <div className="studio-detail-grid">
+                  <div>
+                    <h3>Governance gates</h3>
+                    {businessCase.gate_checks.map((gate) => (
+                      <div className={`gate-row ${gate.passed ? 'gate-pass' : 'gate-fail'}`} key={gate.check}>
+                        <span>{gate.passed ? '✓' : '!'}</span>
+                        <div><strong>{gate.label}</strong><small>{gate.actual ?? 'N/A'} {gate.unit} · target {gate.operator} {gate.threshold}</small></div>
+                      </div>
+                    ))}
+                  </div>
+                  <div>
+                    <h3>Highest-impact levers</h3>
+                    {businessCase.top_levers.slice(0, 5).map((lever, index) => (
+                      <div className="lever-row" key={lever.parameter}>
+                        <span>{index + 1}</span>
+                        <div><strong>{lever.parameter.split('.').pop()?.replaceAll('_', ' ')}</strong><small>{lever.direction} · sensitivity {lever.sensitivity_span_min.toFixed(2)}m</small></div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+                <div className="report-id">Audit ID: {businessCase.report_id}</div>
+              </>
+            )}
+          </section>
         </div>
       )}
 
