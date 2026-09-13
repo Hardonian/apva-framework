@@ -11,6 +11,14 @@ export interface TelemetryEventPayload {
   metadata?: Record<string, any>;
 }
 
+export interface DeliveryStats {
+  accepted: number;
+  dropped: number;
+  sent: number;
+  failed: number;
+  batches: number;
+}
+
 export function generateUUID(): string {
   if (typeof globalThis !== 'undefined' && (globalThis as any).crypto?.randomUUID) {
     return (globalThis as any).crypto.randomUUID();
@@ -32,6 +40,8 @@ export class APVATelemetryClient {
   private isFlushing: boolean = false;
   private intervalId?: any;
   private maxRetries: number;
+  private batchSize: number;
+  private deliveryStats: DeliveryStats = { accepted: 0, dropped: 0, sent: 0, failed: 0, batches: 0 };
 
   constructor(options?: {
     endpoint?: string;
@@ -40,6 +50,7 @@ export class APVATelemetryClient {
     sessionId?: string;
     queueSize?: number;
     maxRetries?: number;
+    batchSize?: number;
   }) {
     const envEndpoint = (globalThis as any).process?.env?.APVA_INGEST_URL;
     this.endpoint = options?.endpoint || envEndpoint || 'http://localhost:8000/api/v1/telemetry/ingest';
@@ -48,6 +59,7 @@ export class APVATelemetryClient {
     this.sessionId = options?.sessionId || generateUUID().replace(/-/g, '');
     this.maxQueueSize = options?.queueSize || 2000;
     this.maxRetries = options?.maxRetries || 3;
+    this.batchSize = options?.batchSize || 50;
 
     // Background flusher loop every 200ms
     this.intervalId = setInterval(() => this.flush(), 200);
@@ -58,9 +70,11 @@ export class APVATelemetryClient {
 
   public ingestAsync(payload: TelemetryEventPayload): boolean {
     if (this.queue.length >= this.maxQueueSize) {
+      this.deliveryStats.dropped++;
       return false; // Queue full
     }
     this.queue.push(payload);
+    this.deliveryStats.accepted++;
     return true;
   }
 
@@ -76,6 +90,10 @@ export class APVATelemetryClient {
       }
     }
     return enqueued;
+  }
+
+  public getStats(): Readonly<DeliveryStats> {
+    return { ...this.deliveryStats };
   }
 
   public async close(timeoutMs: number = 2000): Promise<void> {
@@ -96,24 +114,25 @@ export class APVATelemetryClient {
     this.isFlushing = true;
     try {
       while (this.queue.length > 0) {
-        const payload = this.queue.shift();
-        if (payload) {
-          try {
-            await this.sendWithRetry(payload);
-          } catch (error) {
-            // Drop on permanent failure to prevent queue buildup
-          }
+        const batch = this.queue.splice(0, this.batchSize);
+        try {
+          await this.sendWithRetry(batch);
+          this.deliveryStats.sent += batch.length;
+        } catch (error) {
+          this.deliveryStats.failed += batch.length;
+          // Drop on permanent failure to prevent queue buildup.
         }
+        this.deliveryStats.batches++;
       }
     } finally {
       this.isFlushing = false;
     }
   }
 
-  private async sendWithRetry(payload: TelemetryEventPayload): Promise<void> {
+  private async sendWithRetry(payloads: TelemetryEventPayload[]): Promise<void> {
     for (let attempt = 0; attempt < this.maxRetries; attempt++) {
       try {
-        await this.send(payload);
+        await this.sendBatchRequest(payloads);
         return;
       } catch (error) {
         if (attempt === this.maxRetries - 1) {
@@ -126,6 +145,10 @@ export class APVATelemetryClient {
   }
 
   private async send(payload: TelemetryEventPayload): Promise<void> {
+    await this.sendBatchRequest([payload]);
+  }
+
+  private async sendBatchRequest(payloads: TelemetryEventPayload[]): Promise<void> {
     const headers: Record<string, string> = {
       'Content-Type': 'application/json',
     };
@@ -133,17 +156,20 @@ export class APVATelemetryClient {
       headers['Authorization'] = `Bearer ${this.apiKey}`;
     }
 
-    const body = JSON.stringify({
-      ...payload,
-      session_iterations: payload.session_iterations ?? 1,
-      hourly_rate_usd: payload.hourly_rate_usd ?? null,
-      is_shadow: payload.is_shadow ?? false,
-      metadata: payload.metadata ?? {},
-    });
+    const normalized = payloads.map(payload => ({
+        ...payload,
+        session_iterations: payload.session_iterations ?? 1,
+        hourly_rate_usd: payload.hourly_rate_usd ?? null,
+        is_shadow: payload.is_shadow ?? false,
+        metadata: payload.metadata ?? {},
+      }));
+    const isBatch = normalized.length > 1;
+    const body = JSON.stringify(isBatch ? { events: normalized } : normalized[0]);
+    const endpoint = isBatch ? `${this.endpoint.replace(/\/$/, '')}/batch` : this.endpoint;
 
     const fetchFn = (globalThis as any).fetch;
     if (typeof fetchFn === 'function') {
-      const res = await fetchFn(this.endpoint, {
+      const res = await fetchFn(endpoint, {
         method: 'POST',
         headers,
         body,
